@@ -6,6 +6,6 @@
 - Project Status: start `In progress`; PR ready for review `In review`; `Done` only after merge and actual completion.
 - Deployment, rollback procedure, release approver, production infrastructure and CI commands: `NOT FOUND`.
 - Onboarding Issue: https://github.com/yanpenalva/starter-kit-frontend/issues/4; branch: `chore/issue-4-initialize-csd`.
-- User authorized this session's CSD branch, commit and branch push after validation. User explicitly declined creating a main branch or initial empty main commit. Prepare only the CSD branch; no frontend PR can target an absent main. Keep Issue In progress.
+- User authorized this session's CSD branch, commit, branch push and PR after validation. On 2026-10-01, the user subsequently authorized creating remote main to follow the PR convention. Main contains only an empty initial commit; the existing CSD branch incorporates that baseline without rewriting published commits. Open the onboarding PR against main and move the existing Issue to In review.
 - This explicit session authorization satisfies CSD Git finalization confirmation for these actions only. Future work defaults to `confirm_each`; resolve each request’s actual authorization before Git actions.
 - No application scaffold, Laravel package installation, migrations, authentication implementation, Docker Compose, frontend app implementation, source-kit edits or monolith edits belong to onboarding.

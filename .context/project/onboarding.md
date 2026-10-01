@@ -6,14 +6,14 @@
 - User confirmed bootstrap for both repositories and the generic documentary module scaffold.
 - CSD npm 1.2.1; official source tag `v1.2.1`, immutable commit `6ca620e0491e94e0836bda29cd55b334b4f12aec`.
 - Official project installer with `--agents codex`; bootstrap discovery/preview and application; module preview/application.
-- API main matched origin/main at `31060fa4e6041c9048cd9d6f2e7571e26fa423cd`. Frontend had no commits or remote main; user declined creating it.
+- Frontend initially had no commits or remote main. On 2026-10-01, the user authorized creating remote main for the PR convention. The empty initial baseline is `55e16963a5df7ffcf960d7b528041f3cca854976`; it was merged into the already-published CSD branch with unrelated histories allowed, preserving existing commits without force push.
 - Single-agent Codex execution, with independent human review and human release approval; future Git mode remains confirm_each.
 - No application dependencies, scaffold, credentials or production infrastructure created. No artificial work item.
 
 ## Pending facts
 
 Business domains, detailed contracts, owners, production infrastructure/domains, SLA, observability, application commands, configured thresholds, CI and deployed versions: `NOT FOUND`.
-Backend Activitylog v5 remains an ADR proposal. Frontend detailed architecture is pending Issue #1. PR requires a remote base branch, which the user has declined creating in this task.
+Frontend detailed architecture is pending Issue #1. The missing PR base was resolved by the user-authorized empty main baseline; no application code was placed on main.
 
 ## Validation
 
