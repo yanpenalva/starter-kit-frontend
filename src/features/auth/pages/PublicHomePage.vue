@@ -1,73 +1,79 @@
 <template>
-  <main class="landing tw:min-h-screen tw:px-6 tw:py-8 tw:sm:px-10">
-    <div
-      class="landing__top tw:mx-auto tw:flex tw:max-w-6xl tw:items-center tw:justify-between"
+  <PublicLayout>
+    <main
+      id="main-content"
+      class="landing tw:min-h-screen tw:px-6 tw:py-8 tw:sm:px-10"
     >
-      <a class="wordmark" href="#inicio" aria-label="Starter Kit, início">
-        <span class="wordmark__mark" aria-hidden="true">S</span>
-        <span>starter<span class="wordmark__light">kit</span></span>
-      </a>
-      <span class="status-note"
-        ><span aria-hidden="true"></span> Base pronta para começar</span
+      <div
+        class="landing__top tw:mx-auto tw:flex tw:max-w-6xl tw:items-center tw:justify-between"
       >
-    </div>
-
-    <section
-      id="inicio"
-      class="hero tw:mx-auto tw:grid tw:max-w-6xl tw:items-center tw:gap-12 tw:lg:grid-cols-[1.15fr_0.85fr]"
-    >
-      <div class="hero__copy">
-        <p class="eyebrow">UM BOM COMEÇO, SEM RUÍDO</p>
-        <h1>Seu próximo<br />projeto começa <em>bem.</em></h1>
-        <p class="hero__summary">
-          Um espaço simples e cuidadoso para construir o que vem a seguir. A
-          estrutura está pronta; o produto começa com você.
-        </p>
-        <a class="hero__link" href="#sobre">
-          Conheça este espaço
-          <q-icon name="arrow_forward" size="18px" aria-hidden="true" />
+        <a class="wordmark" href="#inicio" aria-label="Starter Kit, início">
+          <span class="wordmark__mark" aria-hidden="true">S</span>
+          <span>starter<span class="wordmark__light">kit</span></span>
         </a>
+        <span class="status-note"
+          ><span aria-hidden="true"></span> Base pronta para começar</span
+        >
       </div>
 
-      <aside class="note-card" aria-label="Informação sobre esta página">
-        <div class="note-card__top">
-          <span class="note-card__icon"
-            ><q-icon name="auto_awesome" aria-hidden="true" /></span
-          ><span class="note-card__index">01 / 01</span>
+      <section
+        id="inicio"
+        class="hero tw:mx-auto tw:grid tw:max-w-6xl tw:items-center tw:gap-12 tw:lg:grid-cols-[1.15fr_0.85fr]"
+      >
+        <div class="hero__copy">
+          <p class="eyebrow">UM BOM COMEÇO, SEM RUÍDO</p>
+          <h1>Seu próximo<br />projeto começa <em>bem.</em></h1>
+          <p class="hero__summary">
+            Um espaço simples e cuidadoso para construir o que vem a seguir. A
+            estrutura está pronta; o produto começa com você.
+          </p>
+          <a class="hero__link" href="#sobre">
+            Conheça este espaço
+            <q-icon name="arrow_forward" size="18px" aria-hidden="true" />
+          </a>
         </div>
-        <div class="note-card__rule"></div>
-        <p class="note-card__label">PONTO DE PARTIDA</p>
-        <h2>Feito para<br />evoluir com clareza.</h2>
-        <p class="note-card__body">
-          Esta página é uma base pública. Nenhuma conta ou dado pessoal é
-          necessário para explorá-la.
-        </p>
-        <div class="note-card__foot">
-          <span aria-hidden="true">✳</span> Aberto para novas ideias
-        </div>
-      </aside>
-    </section>
 
-    <footer
-      id="sobre"
-      class="landing__footer tw:mx-auto tw:flex tw:max-w-6xl tw:items-center tw:justify-between"
-    >
-      <span>Uma fundação para o que importa.</span>
-      <span>Starter Kit <span aria-hidden="true">·</span> 2026</span>
-    </footer>
-  </main>
+        <aside class="note-card" aria-label="Informação sobre esta página">
+          <div class="note-card__top">
+            <span class="note-card__icon"
+              ><q-icon name="auto_awesome" aria-hidden="true" /></span
+            ><span class="note-card__index">01 / 01</span>
+          </div>
+          <div class="note-card__rule"></div>
+          <p class="note-card__label">PONTO DE PARTIDA</p>
+          <h2>Feito para<br />evoluir com clareza.</h2>
+          <p class="note-card__body">
+            Esta página é uma base pública. Nenhuma conta ou dado pessoal é
+            necessário para explorá-la.
+          </p>
+          <div class="note-card__foot">
+            <span aria-hidden="true">✳</span> Aberto para novas ideias
+          </div>
+        </aside>
+      </section>
+
+      <footer
+        id="sobre"
+        class="landing__footer tw:mx-auto tw:flex tw:max-w-6xl tw:items-center tw:justify-between"
+      >
+        <span>Uma fundação para o que importa.</span>
+        <span>Starter Kit <span aria-hidden="true">·</span> 2026</span>
+      </footer>
+    </main>
+  </PublicLayout>
 </template>
+
+<script setup lang="ts">
+import PublicLayout from "@shared/layouts/PublicLayout.vue";
+</script>
 
 <style scoped>
 .landing {
-  --ink: #252a25;
-  --muted: #73766e;
-  --accent: #456b56;
   position: relative;
   overflow: hidden;
-  background: #f4f2ec;
-  color: var(--ink);
-  font-family: "DM Sans", sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--type-body);
 }
 
 .landing::before {
@@ -95,7 +101,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--ink);
+  color: var(--color-ink);
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.8px;
@@ -107,14 +113,14 @@
   height: 31px;
   place-items: center;
   border-radius: 10px 10px 10px 3px;
-  background: var(--accent);
+  background: var(--color-evergreen);
   color: white;
-  font-family: Georgia, serif;
+  font-family: var(--type-display);
   font-size: 19px;
   font-weight: 400;
 }
 .wordmark__light {
-  color: var(--accent);
+  color: var(--color-evergreen);
   font-weight: 400;
 }
 .status-note {
@@ -141,26 +147,26 @@
 }
 .eyebrow,
 .note-card__label {
-  color: var(--accent);
+  color: var(--color-evergreen);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 2px;
 }
 .hero h1 {
   margin: 25px 0 22px;
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: var(--type-display);
   font-size: clamp(54px, 7.2vw, 91px);
   font-weight: 400;
   letter-spacing: -3.7px;
   line-height: 0.99;
 }
 .hero h1 em {
-  color: var(--accent);
+  color: var(--color-evergreen);
   font-weight: 400;
 }
 .hero__summary {
   max-width: 410px;
-  color: var(--muted);
+  color: var(--color-muted);
   font-size: 15px;
   line-height: 1.85;
 }
@@ -169,18 +175,18 @@
   align-items: center;
   gap: 10px;
   margin-top: 23px;
-  color: var(--accent);
+  color: var(--color-evergreen);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
-  transition: gap 180ms ease;
+  transition: gap var(--motion-quick) ease;
 }
 .hero__link:hover {
   gap: 15px;
 }
 .hero__link:focus-visible,
 .wordmark:focus-visible {
-  outline: 3px solid #71987a;
+  outline: 3px solid var(--color-focus);
   outline-offset: 5px;
   border-radius: 3px;
 }
@@ -192,7 +198,7 @@
   border: 1px solid rgb(58 77 60 / 9%);
   border-radius: 4px 28px 4px 4px;
   background: rgb(255 255 252 / 72%);
-  box-shadow: 0 26px 70px rgb(39 49 39 / 8%);
+  box-shadow: var(--shadow-panel);
   animation: arrive 650ms 100ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 .note-card__top,
@@ -207,8 +213,8 @@
   height: 38px;
   place-items: center;
   border-radius: 12px;
-  background: #edf0e8;
-  color: var(--accent);
+  background: var(--color-mist);
+  color: var(--color-evergreen);
   font-size: 18px;
 }
 .note-card__index {
@@ -226,7 +232,7 @@
 }
 .note-card h2 {
   margin: 12px 0;
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: var(--type-display);
   font-size: 31px;
   font-weight: 400;
   letter-spacing: -0.7px;
@@ -234,7 +240,7 @@
 }
 .note-card__body {
   max-width: 265px;
-  color: var(--muted);
+  color: var(--color-muted);
   font-size: 12px;
   line-height: 1.8;
 }
@@ -246,7 +252,7 @@
   font-size: 10px;
 }
 .note-card__foot span {
-  color: var(--accent);
+  color: var(--color-evergreen);
   font-size: 17px;
 }
 .landing__footer {

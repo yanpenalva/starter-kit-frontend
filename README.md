@@ -22,7 +22,7 @@ npm test
 npm run build
 ```
 
-`npm run preview` serves the production build. `npm run smoke:browser` checks a locally served preview with Chrome; its setup and actual runs are recorded in `.context/work/FEAT-5/verification.md`. This is a local browser gate, not a claim of remote CI execution. CI runs the initial application gates on PRs targeting main and pushes to main. Fonts/icons are bundled locally; no Google Fonts request is needed at runtime. No tokens or profile snapshots are persisted by this scaffold.
+`npm run preview` serves the production build. The combined public/auth-layout browser smoke uses the Vite development server (`npm run dev`, default port 5173), because its synthetic auth-layout harness is deliberately excluded from production. Run `npm run smoke:browser` with Chrome; `BROWSER_SMOKE_URL` can select another development origin. Layout polling fails after ten seconds instead of hanging on an unreachable harness. Setup and observed runs are recorded in `.context/work/FEAT-5/verification.md` and `FEAT-6/verification.md`. This is a local browser gate, not a claim of remote CI execution. CI runs application checks on PRs targeting main and pushes to main. Fonts/icons are bundled locally; no Google Fonts request is needed at runtime. No tokens or profile snapshots are persisted by this scaffold.
 
 ## Agent onboarding
 

@@ -4,8 +4,8 @@
   "title": "SPA layouts and design foundation: PublicLayout, AuthLayout, tokens (Issue #6)",
   "track": "product",
   "type": "feature",
-  "phase": "plan",
-  "status": "draft",
+  "phase": "verify",
+  "status": "active",
   "risk": "low",
   "owner": "yanpenalva",
   "conversation_profile": "technical-planner",
@@ -14,7 +14,10 @@
   "phase_history": [
     "discover",
     "specify",
-    "plan"
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
   ],
   "classification": {
     "complexity": "medium",
