@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-1",
+  "title": "SPA architecture foundation: Vue 3, Quasar, TypeScript, Tailwind (Issue #1)",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "medium",
+  "owner": "yanpenalva",
+  "conversation_profile": "technical-planner",
+  "git_finalization_mode": "automatic",
+  "implementation_required": true,
+  "phase_history": [
+    "discover",
+    "specify",
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
+  ],
+  "classification": {
+    "complexity": "medium",
+    "impact": "cross-module",
+    "security": "relevant",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": [
+      "core",
+      "project",
+      "architecture",
+      "security",
+      "testing"
+    ],
+    "deferred": [
+      "release",
+      "incident"
+    ],
+    "triggers": [
+      "impact=cross-module (classification dimensions) promotes architecture",
+      "security=relevant (classification dimensions) promotes security",
+      "plan under extended routing promotes architecture",
+      "planning validation strategy promotes testing",
+      "project-specific stack and conventions work promotes project",
+      "governance and precedence interpretation at gates promotes core"
+    ]
+  },
+  "reclassification": [],
+  "policy_exceptions": [
+    "EXC-0001"
+  ],
+  "last_updated": "2026-10-03"
+}
