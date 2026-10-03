@@ -87,7 +87,7 @@
   },
   "pull_request": {
     "mode": "automatic",
-    "command": "rtk gh pr create --base main --title \"$CSD_PR_TITLE\" --body-file \"$CSD_PR_BODY_FILE\"",
+    "command": "gh pr create --base main --title \"$CSD_PR_TITLE\" --body-file \"$CSD_PR_BODY_FILE\"",
     "draft_default": false,
     "merge_requires_human_approval": true
   }

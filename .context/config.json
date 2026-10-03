@@ -41,7 +41,7 @@
   "ai": {
     "approved_tools": [
       "OpenCode",
-      "OmO",
+      "Oh My OpenCode",
       "Codex"
     ],
     "data_classification": "internal",
