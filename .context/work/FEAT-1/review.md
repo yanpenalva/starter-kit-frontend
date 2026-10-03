@@ -22,3 +22,10 @@
 - No blockers. Non-blocking observations: the approved tool has the abbreviated label `OmO`; the ADR must retain generic 403 handling until the API supplies a machine-readable distinction between denied and blocked accounts. Neither observation permits new tools or client-side inference of authorization state.
 - Doctor evidence remains attributed to the parent/writer: CSD healthy 1.2.1. No installation, lockfile, application build, CSS smoke or runtime-authentication result is claimed.
 - This is agent review evidence, not a GitHub approving review. Publication, checks on the exact PR head and integration are parent-owned; Done requires completed acceptance and confirmed integration.
+
+## Follow-up checkpoint review — PASS (2026-10-03)
+
+- Scope: the small post-integration checkpoint delta on branch `docs/issue-1-integration-checkpoint` — FEAT-1 closure reconciliation, integration evidence records, plain-`gh` PR command, `rtk`-optional delivery phrasing, `Oh My OpenCode` label unification, EXC-0001 exact-string scope clarification (all other exception fields preserved).
+- Independent reviewer: oracle session `ses_f00b14f02ffecUjnB5Iz5v7Epb`. Verdict: PASS, no findings or blockers for this checkpoint delta against base `86bf3d0efa715fca1edd5105add6bd5206c1bf92`.
+- Reviewer inspected all ten changed tracked files, reproduced strict validation with `--examples`, six Python tests and whitespace checks, and confirmed byte-identical exception/orchestration configuration across the repositories. Architecture files and core policies/schemas were unchanged.
+- PR #22 integration and document-only closure are evidenced separately from this still-unpublished follow-up. No main CI, application implementation, forged GitHub approval or production authorization is claimed. Publication requires a PR and checks on its exact delivered SHA.
