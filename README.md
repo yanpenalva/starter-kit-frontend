@@ -1,7 +1,28 @@
 # starter-kit-frontend
 
-Greenfield SPA for the Starter Kit ecosystem. This repository currently contains CSD governance and context only.
+Greenfield Vue/Quasar SPA for the Starter Kit ecosystem. The initial scaffold and public foundation page are implemented; authentication, API client and administrative features remain later-wave work.
 Known stack and pending decisions: [.context/project/stack.md](.context/project/stack.md) and [.context/project/architecture.md](.context/project/architecture.md).
+
+## Application development
+
+Use Node.js 24 LTS (at least 24.15.0) and npm 12.2.0. The repository enforces the toolchain and committed lockfile; use an isolated Node 24 environment when the host differs, rather than changing shared host configuration.
+
+```sh
+npm ci
+npm run dev
+```
+
+Application checks:
+
+```sh
+npm run format:check
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+`npm run preview` serves the production build. `npm run smoke:browser` checks a locally served preview with Chrome; its setup and actual runs are recorded in `.context/work/FEAT-5/verification.md`. This is a local browser gate, not a claim of remote CI execution. CI runs the initial application gates on PRs targeting main and pushes to main. Fonts/icons are bundled locally; no Google Fonts request is needed at runtime. No tokens or profile snapshots are persisted by this scaffold.
 
 ## Agent onboarding
 

@@ -1,6 +1,6 @@
 # Quality Configuration
 
-Normative baseline: `.context/policies/core/code-quality.md`. Governance mode is `starter`: application quality tools/thresholds remain `NOT FOUND` until scaffold, without suppressing context validation.
+Normative baseline: `.context/policies/core/code-quality.md`. Governance mode is `starter`: initial application checks are configured by the scaffold; measured coverage/complexity thresholds remain `NOT FOUND`. Context validation remains mandatory.
 
 Executed/required CSD checks:
 
@@ -15,4 +15,4 @@ The unmodified official validator is in `scripts/vendor/csd/validate_context.py`
 
 All other upstream structural, schema/config, link, placeholder, classification, governance, approval and active-work-item checks remain enabled. Thin reference adapters required by upstream validation are present; only Codex is activated by the project installer.
 
-Application test/static-analysis/lint/build commands, measured complexity/coverage/duplication thresholds and quality owner: `NOT FOUND`. API intends Pest/Pint/Larastan; frontend tooling is pending. These are plans, not claimed passing checks.
+Frontend commands now configured by FEAT-5: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`; exact package versions are pinned by `package-lock.json`. `npm run smoke:browser` runs against a locally served production preview and Chrome; it is an explicit browser gate, not part of remote CI. Coverage/complexity/duplication thresholds and quality owner: `NOT FOUND`; no measured threshold is claimed. Execution results are recorded in `.context/work/FEAT-5/verification.md`. API intends Pest/Pint/Larastan.
