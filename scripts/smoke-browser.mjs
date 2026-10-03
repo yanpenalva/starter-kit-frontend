@@ -7,7 +7,8 @@ import process from "node:process";
 import { clearTimeout, setTimeout } from "node:timers";
 import { URL } from "node:url";
 
-const baseUrl = process.env.BROWSER_SMOKE_URL ?? "http://127.0.0.1:4173";
+const baseUrl = process.env.BROWSER_SMOKE_URL ?? "http://127.0.0.1:5173";
+const layoutWaitTimeoutMs = 10_000;
 const chromeBinary = process.env.CHROME_BIN ?? "google-chrome";
 const remoteEndpoint = process.env.CHROME_REMOTE_ENDPOINT?.replace(/\/$/, "");
 let profile;
@@ -58,7 +59,12 @@ try {
     const message = JSON.parse(event.data);
     if (message.method === "Network.requestWillBeSent") {
       const requestUrl = message.params.request.url;
-      if (new URL(requestUrl).origin !== new URL(baseUrl).origin) {
+      const requestedOrigin = new URL(requestUrl);
+      const appOrigin = new URL(baseUrl);
+      if (
+        requestedOrigin.hostname !== appOrigin.hostname ||
+        requestedOrigin.port !== appOrigin.port
+      ) {
         externalRequests.push(requestUrl);
       }
     }
@@ -152,6 +158,22 @@ try {
     code: "Tab",
     windowsVirtualKeyCode: 9,
   });
+  const skipFocus = await evaluate(`(() => ({
+    className: document.activeElement.className,
+    outline: getComputedStyle(document.activeElement).outlineStyle,
+  }))()`);
+  await command("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Tab",
+    code: "Tab",
+    windowsVirtualKeyCode: 9,
+  });
+  await command("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Tab",
+    code: "Tab",
+    windowsVirtualKeyCode: 9,
+  });
   await command("Input.dispatchKeyEvent", {
     type: "keyDown",
     key: "Tab",
@@ -180,7 +202,96 @@ try {
     cardWidth: document.querySelector(".note-card").getBoundingClientRect().width,
     viewport: innerWidth,
   }))()`);
-  const result = { browserVersion, desktop, focus, mobile, externalRequests };
+
+  await command("Emulation.setDeviceMetricsOverride", {
+    width: 1280,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  const authLayoutUrl = new URL("/scripts/layout-smoke.html", baseUrl).href;
+  await command("Page.navigate", { url: authLayoutUrl });
+  await evaluate(
+    `new Promise((resolve, reject) => {
+      const startedAt = Date.now();
+      const waitForLayout = () => {
+        if (document.querySelector(".auth-layout__main")) {
+          resolve(true);
+          return;
+        }
+        if (Date.now() - startedAt >= ${layoutWaitTimeoutMs}) {
+          reject(new Error("Auth layout smoke timed out: use the Vite development server, not preview."));
+          return;
+        }
+        setTimeout(waitForLayout, 50);
+      };
+      waitForLayout();
+    })`,
+    true,
+  );
+  await evaluate("document.fonts.ready.then(() => true)", true);
+  const authDesktop = await evaluate(`(() => ({
+    columns: getComputedStyle(document.querySelector(".auth-layout__main")).gridTemplateColumns,
+    panelWidth: document.querySelector(".auth-layout__panel").getBoundingClientRect().width,
+    viewport: innerWidth,
+    headingFont: getComputedStyle(document.querySelector(".auth-layout__main h1")).fontFamily,
+    evergreen: getComputedStyle(document.documentElement).getPropertyValue("--color-evergreen").trim(),
+  }))()`);
+  await command("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Tab",
+    code: "Tab",
+    windowsVirtualKeyCode: 9,
+  });
+  await command("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Tab",
+    code: "Tab",
+    windowsVirtualKeyCode: 9,
+  });
+  const authSkipFocus = await evaluate(`(() => ({
+    className: document.activeElement.className,
+    outline: getComputedStyle(document.activeElement).outlineStyle,
+  }))()`);
+  await command("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Tab",
+    code: "Tab",
+    windowsVirtualKeyCode: 9,
+  });
+  await command("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Tab",
+    code: "Tab",
+    windowsVirtualKeyCode: 9,
+  });
+  const authBrandFocus = await evaluate(`(() => ({
+    className: document.activeElement.className,
+    outline: getComputedStyle(document.activeElement).outlineStyle,
+  }))()`);
+  await command("Emulation.setDeviceMetricsOverride", {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  const authMobile = await evaluate(`(() => ({
+    columns: getComputedStyle(document.querySelector(".auth-layout__main")).gridTemplateColumns,
+    panelWidth: document.querySelector(".auth-layout__panel").getBoundingClientRect().width,
+    viewport: innerWidth,
+  }))()`);
+  const result = {
+    browserVersion,
+    desktop,
+    skipFocus,
+    focus,
+    mobile,
+    authDesktop,
+    authSkipFocus,
+    authBrandFocus,
+    authMobile,
+    externalRequests,
+  };
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 
   assert(desktop.minHeight === "900px", "Tailwind min-height utility missing");
@@ -212,8 +323,40 @@ try {
   );
   assert(focus.className === "hero__link", "Keyboard focus did not reach CTA");
   assert(focus.outline === "solid", "Keyboard focus outline missing");
+  assert(
+    skipFocus.className === "public-layout__skip" &&
+      skipFocus.outline === "solid",
+    "Public layout skip link is not keyboard accessible",
+  );
   assert(mobile.columns.split(" ").length === 1, "Mobile layout not stacked");
   assert(mobile.cardWidth <= mobile.viewport, "Mobile card overflows viewport");
+  assert(
+    authDesktop.columns.split(" ").length === 2,
+    "Auth layout desktop columns missing",
+  );
+  assert(
+    authDesktop.headingFont.includes("DM Serif Display"),
+    "Auth display font missing",
+  );
+  assert(authDesktop.evergreen === "#456b56", "Shared color token missing");
+  assert(
+    authSkipFocus.className === "auth-layout__skip" &&
+      authSkipFocus.outline === "solid",
+    "Auth layout skip link is not keyboard accessible",
+  );
+  assert(
+    authBrandFocus.className.includes("auth-layout__brand") &&
+      authBrandFocus.outline === "solid",
+    "Auth layout brand focus is not visible",
+  );
+  assert(
+    authMobile.columns.split(" ").length === 1,
+    "Auth layout mobile columns not stacked",
+  );
+  assert(
+    authMobile.panelWidth <= authMobile.viewport,
+    "Auth panel overflows viewport",
+  );
   assert(externalRequests.length === 0, "External runtime request detected");
 } finally {
   socket?.close();

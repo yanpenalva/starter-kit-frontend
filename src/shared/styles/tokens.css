@@ -1,0 +1,19 @@
+:root {
+  color-scheme: light;
+  --color-ink: #252a25;
+  --color-muted: #73766e;
+  --color-evergreen: #456b56;
+  --color-evergreen-deep: #365744;
+  --color-canvas: #f4f2ec;
+  --color-panel: #fffefb;
+  --color-mist: #edf0e8;
+  --color-focus: #71987a;
+  --type-body: "DM Sans", sans-serif;
+  --type-display: "DM Serif Display", Georgia, serif;
+  --layout-width: 72rem;
+  --layout-gutter: clamp(1.5rem, 5vw, 4rem);
+  --space-panel: 1.875rem;
+  --radius-panel: 1.75rem;
+  --shadow-panel: 0 26px 70px rgb(39 49 39 / 8%);
+  --motion-quick: 180ms;
+}

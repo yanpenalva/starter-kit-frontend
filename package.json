@@ -14,8 +14,8 @@
     "smoke:browser": "node scripts/smoke-browser.mjs",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint .",
-    "format": "prettier --write \"src/**/*.{ts,vue,css}\" \"scripts/**/*.mjs\" package.json tsconfig.json vite.config.ts eslint.config.ts index.html",
-    "format:check": "prettier --check \"src/**/*.{ts,vue,css}\" \"scripts/**/*.mjs\" package.json tsconfig.json vite.config.ts eslint.config.ts index.html",
+    "format": "prettier --write \"src/**/*.{ts,vue,css}\" \"scripts/**/*.{mjs,html}\" package.json tsconfig.json vite.config.ts eslint.config.ts index.html",
+    "format:check": "prettier --check \"src/**/*.{ts,vue,css}\" \"scripts/**/*.{mjs,html}\" package.json tsconfig.json vite.config.ts eslint.config.ts index.html",
     "test": "vitest run"
   },
   "dependencies": {

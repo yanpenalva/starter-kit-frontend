@@ -5,6 +5,7 @@
 @import "@fontsource/dm-serif-display/400.css";
 @import "@fontsource/dm-serif-display/400-italic.css";
 @import "@quasar/extras/material-icons/material-icons.css";
+@import "./tokens.css";
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme) prefix(tw);
 @import "tailwindcss/utilities.css" layer(utilities) source("../../features")

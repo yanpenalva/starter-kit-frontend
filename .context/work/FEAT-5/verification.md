@@ -23,5 +23,5 @@
 
 - No auth transport, API DTO, mock endpoint, permission guard, sensitive storage or profile data.
 - No `public/` directory added: this scaffold has no public assets; Vite's root `index.html` is entry point.
-- GitHub Actions workflow is authored but no remote CI run is claimed. FEAT-6 implementation remains blocked pending its independent preflight; its spec/plan are planning artifacts only.
+- At initial FEAT-5 verification time no remote CI run was claimed; subsequent PR #24 and main verification evidence is recorded in `closure.md`. FEAT-6's later independent preflight PASS and implementation evidence are recorded under FEAT-6.
 - FEAT-3/16/18 plans are recorded as planned; FEAT-5 supplies initial gate/tooling slices only, not completion of those work items.

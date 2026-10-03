@@ -4,8 +4,8 @@
   "title": "SPA scaffold: Vue 3 + TypeScript + Vite + Quasar foundation (Issue #5)",
   "track": "product",
   "type": "feature",
-  "phase": "verify",
-  "status": "active",
+  "phase": "close",
+  "status": "completed",
   "risk": "medium",
   "owner": "yanpenalva",
   "conversation_profile": "technical-planner",
@@ -17,7 +17,10 @@
     "plan",
     "preflight",
     "execute",
-    "verify"
+    "verify",
+    "release",
+    "observe",
+    "close"
   ],
   "classification": {
     "complexity": "medium",
