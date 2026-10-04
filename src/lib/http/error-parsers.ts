@@ -12,7 +12,22 @@ import {
 
 const SECONDS_PATTERN = /^[0-9]+$/;
 const IMF_FIXDATE_PATTERN =
-  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{2})\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s+\d{2}:\d{2}:\d{2}\s+GMT$/i;
+  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+GMT$/;
+
+const MONTH_BY_NAME: Readonly<Record<string, number>> = {
+  Jan: 0,
+  Feb: 1,
+  Mar: 2,
+  Apr: 3,
+  May: 4,
+  Jun: 5,
+  Jul: 6,
+  Aug: 7,
+  Sep: 8,
+  Oct: 9,
+  Nov: 10,
+  Dec: 11,
+};
 
 export function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -74,8 +89,26 @@ function parseHttpDate(value: string): number | null {
     return null;
   }
   const expectedDay = Number.parseInt(match[1] as string, 10);
+  const expectedMonth = MONTH_BY_NAME[match[2] as string];
+  const expectedYear = Number.parseInt(match[3] as string, 10);
+  const expectedHour = Number.parseInt(match[4] as string, 10);
+  const expectedMinute = Number.parseInt(match[5] as string, 10);
+  const expectedSecond = Number.parseInt(match[6] as string, 10);
+
   const when = Date.parse(value);
-  if (Number.isNaN(when) || new Date(when).getUTCDate() !== expectedDay) {
+  const date = new Date(when);
+  if (
+    expectedHour > 23 ||
+    expectedMinute > 59 ||
+    expectedSecond > 59 ||
+    Number.isNaN(when) ||
+    date.getUTCDate() !== expectedDay ||
+    date.getUTCMonth() !== expectedMonth ||
+    date.getUTCFullYear() !== expectedYear ||
+    date.getUTCHours() !== expectedHour ||
+    date.getUTCMinutes() !== expectedMinute ||
+    date.getUTCSeconds() !== expectedSecond
+  ) {
     return null;
   }
   const delay = Math.max(0, Math.ceil((when - Date.now()) / 1000));

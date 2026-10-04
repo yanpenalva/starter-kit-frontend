@@ -617,10 +617,29 @@ describe("typed error mapping", () => {
     expect(parseRetryAfterSeconds("99999999999999999999999")).toBeNull();
   });
 
-  it("rejects impossible calendar dates in Retry-After headers", () => {
+  it("parses valid leap day in deterministic clock", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2028-02-29T11:58:00Z"));
+    try {
+      const parsed = parseRetryAfterSeconds("Tue, 29 Feb 2028 12:00:00 GMT");
+      expect(parsed).toBe(120);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects impossible calendar dates and time overflows in Retry-After headers", () => {
+    // Impossible calendar dates
     expect(parseRetryAfterSeconds("Sun, 31 Feb 2026 12:00:00 GMT")).toBeNull();
+    expect(parseRetryAfterSeconds("Sun, 29 Feb 2026 12:00:00 GMT")).toBeNull();
     expect(parseRetryAfterSeconds("Thu, 31 Apr 2026 12:00:00 GMT")).toBeNull();
     expect(parseRetryAfterSeconds("Wed, 31 Jun 2026 12:00:00 GMT")).toBeNull();
+
+    // Time overflows
+    expect(parseRetryAfterSeconds("Sun, 04 Oct 2026 24:00:00 GMT")).toBeNull();
+    expect(parseRetryAfterSeconds("Sun, 04 Oct 2026 25:00:00 GMT")).toBeNull();
+    expect(parseRetryAfterSeconds("Sun, 04 Oct 2026 12:60:00 GMT")).toBeNull();
+    expect(parseRetryAfterSeconds("Sun, 04 Oct 2026 12:00:60 GMT")).toBeNull();
   });
 
   it("yields null retryAfterSeconds when Retry-After is absent", async () => {
@@ -702,15 +721,47 @@ describe("typed error mapping", () => {
 
 describe("api base url validation and factory boundary", () => {
   it.each([
-    ["missing value", undefined],
-    ["empty value", ""],
-    ["blank value", "   "],
-    ["not a url", "localhost:8000/api"],
-    ["ftp protocol", "ftp://localhost:8000"],
+    ["missing value undefined", undefined],
+    ["empty string", ""],
+    ["blank whitespace only", "   "],
+    ["not a url plain text", "not a url"],
+    ["missing host http://", "http://"],
+    ["missing host https://", "https://"],
+    ["missing scheme", "localhost:8000/api"],
+    ["disallowed ftp protocol", "ftp://localhost:8000"],
     ["embedded credentials", "http://user:pass@localhost:8000"],
     ["query string", "http://localhost:8000/?env=dev"],
     ["fragment", "http://localhost:8000/#/admin"],
+    ["backslash in authority", "http://localhost\\8000"],
+    ["backslash in path", "http://localhost:8000\\api"],
+    ["backslash scheme separator", "http:\\\\localhost:8000"],
+    ["no slash http:authority", "http:example.com"],
+    ["no slash https:authority", "https:example.com"],
+    ["single slash http:/authority", "http:/example.com"],
+    ["single slash https:/authority", "https:/example.com"],
+    ["triple slash http:///authority", "http:///example.com"],
+    ["triple slash https:///authority", "https:///example.com"],
   ])("fails closed on %s", (_label, raw) => {
+    expect(() => resolveApiBaseUrl(raw)).toThrow(InvalidApiBaseUrlError);
+  });
+
+  it.each([
+    ["tab leading", "\thttp://localhost:8000"],
+    ["tab trailing", "http://localhost:8000\t"],
+    ["tab in scheme", "ht\ttp://localhost:8000"],
+    ["tab in host", "http://local\thost:8000"],
+    ["tab in path", "http://localhost:8000/a\tpi"],
+    ["carriage return leading", "\rhttp://localhost:8000"],
+    ["carriage return trailing", "http://localhost:8000\r"],
+    ["carriage return in scheme", "ht\rtp://localhost:8000"],
+    ["carriage return in host", "http://local\rhost:8000"],
+    ["carriage return in path", "http://localhost:8000/a\rpi"],
+    ["line feed leading", "\nhttp://localhost:8000"],
+    ["line feed trailing", "http://localhost:8000\n"],
+    ["line feed in scheme", "ht\ntp://localhost:8000"],
+    ["line feed in host", "http://local\nhost:8000"],
+    ["line feed in path", "http://localhost:8000/a\npi"],
+  ])("rejects control characters before trim on %s", (_label, raw) => {
     expect(() => resolveApiBaseUrl(raw)).toThrow(InvalidApiBaseUrlError);
   });
 
@@ -721,33 +772,54 @@ describe("api base url validation and factory boundary", () => {
     expect(resolveApiBaseUrl("https://api.example.com/base///")).toBe(
       "https://api.example.com/base",
     );
+    expect(resolveApiBaseUrl("   http://localhost:8000   ")).toBe(
+      "http://localhost:8000",
+    );
   });
 
-  it("fails closed at the createHttpClient factory boundary", () => {
+  it("fails closed at the createHttpClient factory boundary using same rules", () => {
     expect(() => createHttpClient("http://user:pass@localhost:8000")).toThrow(
       InvalidApiBaseUrlError,
     );
     expect(() => createHttpClient("ftp://localhost:8000")).toThrow(
       InvalidApiBaseUrlError,
     );
+    expect(() => createHttpClient("http:example.com")).toThrow(
+      InvalidApiBaseUrlError,
+    );
+    expect(() => createHttpClient("http://localhost:8000\t")).toThrow(
+      InvalidApiBaseUrlError,
+    );
   });
 
-  it("rejects backslashes in API base URL", () => {
-    expect(() => resolveApiBaseUrl("http://localhost:8000\\api")).toThrow(
-      InvalidApiBaseUrlError,
-    );
-    expect(() => resolveApiBaseUrl("http://localhost\\path")).toThrow(
-      InvalidApiBaseUrlError,
-    );
+  it("never exposes raw input in InvalidApiBaseUrlError message", () => {
+    const sensitive = "http://secret-token:leak@localhost:8000";
+    try {
+      resolveApiBaseUrl(sensitive);
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(InvalidApiBaseUrlError);
+      expect((err as Error).message).not.toContain("secret-token");
+      expect((err as Error).message).not.toContain("leak");
+    }
   });
 
   it("resolves apiBaseUrlFromEnv correctly or fails closed", () => {
     expect(apiBaseUrlFromEnv({ VITE_API_URL: "http://localhost:8000" })).toBe(
       "http://localhost:8000",
     );
+    expect(
+      apiBaseUrlFromEnv({ VITE_API_URL: "https://api.example.com/api" }),
+    ).toBe("https://api.example.com/api");
     expect(() => apiBaseUrlFromEnv(null)).toThrow(InvalidApiBaseUrlError);
     expect(() => apiBaseUrlFromEnv({})).toThrow(InvalidApiBaseUrlError);
     expect(() => apiBaseUrlFromEnv([])).toThrow(InvalidApiBaseUrlError);
+    expect(() =>
+      apiBaseUrlFromEnv({ VITE_API_URL: "http:example.com" }),
+    ).toThrow(InvalidApiBaseUrlError);
+    expect(() =>
+      apiBaseUrlFromEnv({ VITE_API_URL: "http://localhost:8000\n" }),
+    ).toThrow(InvalidApiBaseUrlError);
   });
 });
 

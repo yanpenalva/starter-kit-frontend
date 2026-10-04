@@ -67,6 +67,14 @@ User reported that independent review of commit `540577b` resulted in `FAIL` wit
    - Formatted all modified files with Prettier.
    - Re-verified all 10 gates (59/59 tests passed, 54 in `http-client.test.ts`).
 
+## Final Native Validation (2026-10-04)
+
+- Validator: native fixer lane, model `opencode-go/muse-spark-1.3-contributor` (user-selected; AGY quota exhausted, Sol coordination only, no subagents). Native CLI session ID: NOT FOUND (not exposed to agent).
+- Adopted 6 dirty AGY partials as instructed (no reset/stash/discard): `src/lib/http/config.ts`, `error-parsers.ts`, `http-client.test.ts`, `README.md`, `.context/work/FEAT-7/review.md`, `spec.md`.
+- One in-scope fix: 2 eslint errors from L4 partial in `config.ts` (control-regex, useless-escape) resolved without suppressions via iterative `hasControlCharacters` + class-escape reduction. Behavior unchanged.
+- Re-ran full 10-gate set on pinned toolchain via docker (`node:24.15.0-bookworm`, `npm@12.2.0`): all green, 87/87 tests, AST PASS on all 10 production files. Evidence in `verification.md` (Final Validation section).
+- Independent re-review remains PENDING (reviewer lane owns that gate).
+
 ## Blockers and Deferred Stages
 
 - Stage B (typed client generation with Orval 8.39.0 custom-mutator integration and generated types) remains deferred. It is blocked on API #11 publishing and reviewing the versioned runtime OpenAPI artifact and API #13 implementing the endpoints.

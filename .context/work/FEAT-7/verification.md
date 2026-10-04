@@ -1,5 +1,56 @@
 # Verification Evidence — FEAT-7 typed HTTP client phase A
 
+## Final Validation (Actual Final State, 2026-10-04)
+
+- Status: all 10 gates green on pinned toolchain; independent re-review PENDING.
+- Validator: native fixer lane, model `opencode-go/muse-spark-1.3-contributor` (AGY quota exhausted; no AGY call, no subagents). Native CLI session ID: NOT FOUND (not exposed to agent).
+- Historical sections below are the prior AGY producer's reports, preserved as reported (not re-attested except where re-run here).
+- Lint fix applied by validator (in-scope, directly relevant): the L4 partial introduced 2 eslint errors in `src/lib/http/config.ts` (`no-control-regex` on `/[\x00-\x1F\x7F]/`, `no-useless-escape` on `[^\/...]`). Fixed without suppressions: control check is now iterative char-code helper `hasControlCharacters` (named constants `CONTROL_CHARACTER_MAX`, `DELETE_CHARACTER_CODE`); class escape reduced to `[^/\s?#\\]`. Behavior unchanged (87/87 tests, incl. TAB/CR/LF lexical tests).
+- `node_modules/.bin` was root-owned from a prior docker gate run (host `npm ci` denied EACCES, no sudo); gates re-ran via the same pinned docker path as the producer (`node:24.15.0-bookworm` + `npx --yes npm@12.2.0`).
+
+### Final gate runs (validator, pinned toolchain)
+
+| # | Gate | Exit | Evidence |
+| --- | --- | --- | --- |
+| 1 | `npm ci` | 0 | added 353, audited 354 packages, 0 vulnerabilities |
+| 2 | `format:check` | 0 | All matched files use Prettier code style |
+| 3 | `lint` | 0 | 0 errors, 0 warnings (after 2-error fix above) |
+| 4 | `typecheck` | 0 | `vue-tsc --noEmit`, 0 errors |
+| 5 | `test` | 0 | 87 passed / 0 failed across 6 files (82 `http-client.test.ts` + 5 baseline) |
+| 6 | `build` | 0 | `vue-tsc --noEmit && vite build`, built in 884ms |
+| 7 | `validate_context.py --strict` | 0 | Context validation passed |
+| 8 | `validate_context.py --strict --examples` | 0 | passed (no example suite installed; work items validated) |
+| 9 | `unittest discover -s tests` | 0 | Ran 6 tests, OK |
+| 10 | `csd@1.2.1 doctor --scope project` | 0 | CSD is healthy (1.2.1) |
+
+### Final AST compliance (validator, TypeScript compiler traversal, incl. callbacks)
+
+| File | Lines (max 500) | Functions (max 15) | Max Returns (max 3) | Max Params (max 7) | Else (max 0) | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `src/lib/http/client.ts` | 278 | 14 | 3 | 3 | 0 | PASS |
+| `src/lib/http/config.ts` | 115 | 5 | 2 | 1 | 0 | PASS |
+| `src/lib/http/csrf.ts` | 52 | 5 | 3 | 1 | 0 | PASS |
+| `src/lib/http/error-builders.ts` | 127 | 6 | 3 | 2 | 0 | PASS |
+| `src/lib/http/error-constants.ts` | 54 | 0 | 0 | 0 | 0 | PASS |
+| `src/lib/http/error-guards.ts` | 164 | 11 | 3 | 2 | 0 | PASS |
+| `src/lib/http/error-parsers.ts` | 156 | 8 | 3 | 1 | 0 | PASS |
+| `src/lib/http/error-types.ts` | 67 | 0 | 0 | 0 | 0 | PASS |
+| `src/lib/http/errors.ts` | 55 | 0 | 0 | 0 | 0 | PASS |
+| `src/lib/http/index.ts` | 43 | 0 | 0 | 0 | 0 | PASS |
+
+### Final invariant spot-checks (validator, code + tests)
+
+- Origin invariant: `validateRequestOrigin` runs before CSRF bootstrap; per-request `baseURL` override, foreign absolute URLs, protocol-relative escapes (`//`, `\\`, `/\`, `\/`, backslash paths), `allowAbsoluteUrls: true`, and mutated `instance.defaults.baseURL` all rejected fail-closed with zero MSW outbound dispatch (tests lines 126-268). Same-origin absolute URLs permitted.
+- No auto-replay on 419: response interceptor only resets coordinator, maps typed error, never re-dispatches (client.ts `mapTransportError`/`mapAxiosError`; test line 430).
+- CSRF single-flight/reset race: generation counter prevents stale in-flight failure from clearing newer generation (csrf.ts 23-51; test line 355).
+- PII: no `console`, `localStorage`/`sessionStorage`, `as any`, `eslint-disable`, or TODO in `src/lib/http` production code; raw response text never enters messages (test line 706); `InvalidApiBaseUrlError` never echoes raw input (test line 795).
+- Lexical base URL: control check on raw input before trim; explicit authority pattern rejects `http:example.com`, `http:/example.com`, `http:///example.com`; backslash rejection (config.ts; tests lines 722-824).
+- IMF-fixdate: full day/month/year/hour/minute/second component validation; rejects Feb 31, non-leap Feb 29, Apr 31, time overflows; accepts Feb 29 2028 (error-parsers.ts 86-118; tests lines 620-643).
+
+## Producer Reports (Historical, Preserved As Reported)
+
+> The sections below are the prior AGY producer's (conversation `e2dea9a6-11ed-484f-a15d-f6ab2770cc7b`) evidence for revisions `540577b`/`55ba288` plus the dirty L4 partial. Preserved verbatim except this header.
+
 ## Summary
 
 - Status: verify complete; producer checks passed cleanly on pinned toolchain; independent re-review PENDING.

@@ -32,9 +32,11 @@ Logout (later wave):
 ## Configuration
 
 - `VITE_API_URL` (see `.env.example`) is the primary source of the API base URL (`apiBaseUrlFromEnv`).
-  The factory `createHttpClient(baseURL)` validates the URL fail-closed via `resolveApiBaseUrl`: http/https only, no
-  embedded credentials, no query/fragment, no permissive fallback. It is never
-  taken from unvalidated or user-controlled input.
+  The factory `createHttpClient(baseURL)` validates the URL fail-closed via `resolveApiBaseUrl`:
+  explicit absolute `http://` or `https://` syntax with actual authority, strict lexical rejection
+  of ASCII control characters (TAB, CR, LF) on the raw input before trimming, backslash rejection,
+  no embedded credentials, no query/fragment, no permissive fallback. It is never taken from
+  unvalidated or user-controlled input.
 
 ## Errors
 
