@@ -1,17 +1,24 @@
 # Verification Evidence — FEAT-7 typed HTTP client phase A
 
-## FRONTEND-PREP Validation (Standing User Convention & Clean-up, 2026-10-04)
+## FRONTEND-PREP Validation & Independent Review PASS (2026-10-04)
 
-- Status: all 10 gates green on pinned toolchain; independent re-review PENDING on updated candidate SHA (no self-approval claimed).
-- Executor: AGY Gemini 3.8 Flash (Medium), conversation UUID: `3520c0a0-4c5a-4552-9fe9-b2bdf154f8a3`.
-- Changes applied:
+- Status: all 10 gates green on pinned toolchain; independent review PASS received on exact source SHA `e0809113f332883dc5d2156e80159fb37c68ae3d` (reviewer conversation: `1a204823-1c83-496a-8a19-9ccb8a3a3bdb`, log: `/home/hiyan/.local/share/opencode/agy-logs/2026-10-04T21-38-11-709Z-bo3guu.ndjson`).
+- Producer Executor: AGY Gemini 3.8 Flash (Medium), conversation UUID: `3520c0a0-4c5a-4552-9fe9-b2bdf154f8a3`.
+- Changes applied in candidate:
   - Variables/identifiers strictly en-US.
   - User-facing return status, error, and request validation messages in pt-BR (`SAFE_MESSAGES` in `error-constants.ts` and test assertions in `http-client.test.ts`).
   - Useless source comments removed mechanically across hand-authored transport files (`config.ts`, `csrf.ts`, `error-types.ts`, `error-constants.ts`, `error-parsers.ts`, `error-guards.ts`, `error-builders.ts`, `errors.ts`, `client.ts`, `index.ts`, `http-handlers.ts`, `http-client.test.ts`).
   - No PHPStan annotations introduced in TypeScript.
   - Documented standing convention in `.context/project/conventions.md` and FEAT-7 artifacts.
   - Hardening invariants preserved unchanged.
-- Prior independent-review provenance: commit `8684ae4b9c9843750698173fb24139e47a2a5acf` had independent PASS (100/100 tests reproduced: 95 HTTP + 5 base). Recorded as prior review provenance, NOT as our own new independent review.
+- Parent-Provided Independent Review Provenance (`e080911`):
+  - Reviewer conversation: `1a204823-1c83-496a-8a19-9ccb8a3a3bdb`.
+  - Verdict: PASS (0 findings), reviewed exact source SHA `e0809113f332883dc5d2156e80159fb37c68ae3d` against baseline `8684ae4b9c9843750698173fb24139e47a2a5acf`.
+  - Reviewer used source read-only, its own fresh volumes, pinned Node 24.15 / npm 12.2; all 10 gates exit 0.
+  - Reviewer reproduced gate counts: ci 353 packages added / 354 audited / 0 vulnerabilities; format/lint/typecheck PASS; test 100 passed (95 HTTP + 5 base); build 118 modules; CSD strict PASS; examples PASS (NO examples declared; active work items validated); unit 6 OK; doctor healthy 1.2.1.
+  - Independent reviewer log: `/home/hiyan/.local/share/opencode/agy-logs/2026-10-04T21-38-11-709Z-bo3guu.ndjson`.
+  - Limitations: MSW/jsdom does NOT establish real browser cookies; browser E2E NOT run; original producer log was NOT treated as tested evidence; independent conversation under same account is NOT a GitHub approving review. PASS covers exact `e080911` source SHA; source remains untouched in doc follow-up commits.
+- Prior independent-review provenance: commit `8684ae4b9c9843750698173fb24139e47a2a5acf` had prior independent PASS (100/100 tests reproduced: 95 HTTP + 5 base). Recorded as historical provenance, separate from the `e080911` PASS.
 
 ### Current-revision gate runs — Fresh Isolated Docker Volumes & Containerized CSD
 

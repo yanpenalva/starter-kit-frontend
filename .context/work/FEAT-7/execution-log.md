@@ -99,7 +99,8 @@ User reported that independent review of commit `540577b` resulted in `FAIL` wit
   5. Documented standing user convention in `.context/project/conventions.md` and FEAT-7 artifacts.
   6. Initial candidate verification: executed all 10 gates (exit 0, 100/100 tests passed, AST PASS on all 10 production files), committed and pushed as `ca1851eb714edd3d4b060608dba2dbbc12f5120f`.
   7. Compliance remediation verification: resolved isolation evidence gap by creating fresh lane-only Docker volumes (`wave3-client-lane-fresh-nm` mounted over `/work/node_modules`, `wave3-client-lane-fresh-dist` mounted over `/work/dist`), executing fresh `npm ci` inside volume, reproducing frontend format/lint/typecheck/test/build (100/100 tests passed), and running CSD strict/examples/unit/doctor inside containerized pinned runtime `node:24.15.0-bookworm` (Node 24.15.0, Python 3.11.2).
-  8. Independent re-review on the candidate SHA remains PENDING (parent schedules independent review).
+  8. Independent review received: parent provided independent review evidence (conversation `1a204823-1c83-496a-8a19-9ccb8a3a3bdb`, verdict PASS, 0 findings, reviewed source SHA `e0809113f332883dc5d2156e80159fb37c68ae3d` against baseline `8684ae4b9c9843750698173fb24139e47a2a5acf`; reviewer log: `/home/hiyan/.local/share/opencode/agy-logs/2026-10-04T21-38-11-709Z-bo3guu.ndjson`; all 10 gates green under reviewer-owned fresh volumes; limitations recorded).
+  9. Doc-only follow-up: recorded independent PASS provenance in `review.md`, `verification.md`, and `execution-log.md`; executed doc gates under pinned Docker; committed/pushed candidate docs leaving source untouched; created draft PR against `main` linking `Refs #7`.
 
 ## Blockers and Deferred Stages
 
