@@ -1,15 +1,3 @@
-/**
- * CSRF bootstrap for the Sanctum SPA flow (ADR 0001, decision D9).
- *
- * Before any state-changing request the client must call
- * `GET /sanctum/csrf-cookie` so the API issues the XSRF cookie; axios then
- * mirrors it into the `X-XSRF-TOKEN` header. Concurrent mutations share one
- * in-flight bootstrap (deduplicated). `resetCsrfBootstrap` invalidates the
- * deduplication state after a 419 or logout so the next mutation bootstraps
- * again. Failures never retry blindly: the bootstrap error propagates to the
- * caller as a typed `HttpError`.
- */
-
 import type { AxiosInstance } from "axios";
 import { CSRF_COOKIE_PATH } from "./config";
 

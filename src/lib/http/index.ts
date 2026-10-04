@@ -1,13 +1,3 @@
-/**
- * Public surface of the central HTTP module (`src/lib/http`).
- *
- * Scope: transport only (ADR 0001, D9/D10). Consumers (features, query
- * composables) import the client from here and own endpoint paths/payloads
- * exclusively from the API canonical contract once published (API #11/#13);
- * until then this module stays contract-free by design (no invented
- * endpoints, no speculative DTOs, no generator output).
- */
-
 export {
   apiBaseUrlFromEnv,
   resolveApiBaseUrl,

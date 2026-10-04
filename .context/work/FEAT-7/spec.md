@@ -17,7 +17,7 @@ and AST-verified CSD compliance.
 - `src/lib/http/config.ts`: fail-closed `VITE_API_URL` resolution (http/https only, strict lexical rejection of ASCII control characters `[\x00-\x1F\x7F]` on the raw string before trimming, explicit `http://` or `https://` syntax with actual authority, rejection of `http:example.com` and malformed slashes repaired by WHATWG, backslash rejection, no credentials/query/fragment, no fallback, array rejection in `asRecord`), named constants (`HTTP_TIMEOUT_MS`, CSRF names).
 - `src/lib/http/csrf.ts`: deduplicated bootstrap coordinator (`createCsrfCoordinator`) with generation-tracked reset (`resetCsrfBootstrap`) ensuring in-flight reset races do not wipe newer generations.
 - `src/lib/http/error-types.ts`: pure TypeScript types and discriminated union definitions for `HttpError`.
-- `src/lib/http/error-constants.ts`: status boundaries, safe fixed messages, status maps, and known kinds set.
+- `src/lib/http/error-constants.ts`: status boundaries, safe fixed messages in pt-BR per project convention, status maps, and known kinds set; identifiers strictly en-US; comments cleaned mechanically.
 - `src/lib/http/error-parsers.ts`: unknown-bound parsing of 422 field errors (null-prototype field record so JSON `__proto__`/`constructor` keys stay plain fields without prototype pollution) and `Retry-After` (delay-seconds + strict IMF-fixdate HTTP-date with full calendar day/month/year/hour/minute/second component validation and overflow bounds).
 - `src/lib/http/error-guards.ts`: exhaustive structural type guards rejecting forged objects, non-objects, and invalid shapes.
 - `src/lib/http/error-builders.ts`: fail-closed discriminated error construction protecting against prototype pollution and unknown kinds.
@@ -31,8 +31,8 @@ and AST-verified CSD compliance.
 
 ## Out of scope
 
-- Typed client generation / Orval / DTOs (stage B; waiting on API #11 reviewed main artifact/provenance and API #13 implementations).
-- Profile/Login DTOs, endpoint helpers, query composables, stores, router, pages, UI/design, auth flow wiring, real-API E2E (SPA #17).
+- Typed client generation / Orval / DTOs (stage B; OpenAPI Stage B b0d is NOT approved; parent waiting for corrected ACTUAL main publication + verified receipt; DO NOT generate Orval from draft/runtime candidate).
+- Profile/Login DTOs, endpoint helpers, query composables, stores, router, pages, UI/design, auth flow wiring, real-API E2E (SPA #17; MSW/unit tests never claim to prove real-browser cookies).
 
 ## Module public interface contracts
 

@@ -1,7 +1,3 @@
-/**
- * Safe metadata and status parsers for HTTP transport responses.
- */
-
 import {
   HTTP_STATUS_MAX,
   HTTP_STATUS_MIN,
@@ -53,7 +49,6 @@ export function toStringArray(value: unknown): readonly string[] {
   return [];
 }
 
-/** Parses the Laravel `errors` object out of an untrusted response body. */
 export function parseFieldErrors(
   body: unknown,
 ): Readonly<Record<string, readonly string[]>> {
@@ -65,8 +60,6 @@ export function parseFieldErrors(
   if (errors === null) {
     return {};
   }
-  // Null-prototype record: a JSON own key like "__proto__" must stay a plain
-  // field instead of triggering the default object setter and losing the entry.
   const result = Object.create(null) as Record<string, readonly string[]>;
   for (const [field, value] of Object.entries(errors)) {
     const messages = toStringArray(value);
@@ -119,7 +112,6 @@ function parseHttpDate(value: string): number | null {
     : null;
 }
 
-/** Parses `Retry-After` as delay-seconds or HTTP-date into seconds. */
 export function parseRetryAfterSeconds(
   headerValue: string | null,
 ): number | null {

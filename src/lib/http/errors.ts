@@ -1,14 +1,3 @@
-/**
- * Stable facade for typed HTTP errors (ADR 0001, decision D9).
- *
- * Cohesive responsibilities are split across specialized sub-modules:
- * - `error-types.ts`: Discriminated union types and error interfaces.
- * - `error-constants.ts`: HTTP status boundaries and safe fixed messages.
- * - `error-parsers.ts`: Field error and Retry-After header parsing.
- * - `error-guards.ts`: Full variant validation and type narrowing guards.
- * - `error-builders.ts`: Fail-closed error construction.
- */
-
 export type {
   HttpError,
   HttpErrorBase,

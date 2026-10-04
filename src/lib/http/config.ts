@@ -1,22 +1,6 @@
-/**
- * HTTP client configuration boundaries (ADR 0001, decisions D9/D10).
- *
- * The API base URL comes exclusively from the build-time environment
- * (`VITE_API_URL`, see `.env.example`). It is never accepted as a runtime or
- * user-controlled parameter: `resolveApiBaseUrl` fails closed on missing,
- * malformed or unsafe values instead of falling back to a permissive default.
- */
-
-/** Request timeout for every call made through the central client. */
 export const HTTP_TIMEOUT_MS = 15_000;
-
-/** Sanctum SPA bootstrap endpoint that issues the XSRF cookie. */
 export const CSRF_COOKIE_PATH = "/sanctum/csrf-cookie";
-
-/** Cookie where Sanctum stores the CSRF token (Laravel default). */
 export const CSRF_COOKIE_NAME = "XSRF-TOKEN";
-
-/** Header the client mirrors the CSRF cookie value into (Laravel default). */
 export const CSRF_HEADER_NAME = "X-XSRF-TOKEN";
 
 const ALLOWED_PROTOCOLS: ReadonlySet<string> = new Set(["http:", "https:"]);
@@ -24,7 +8,6 @@ const ALLOWED_PROTOCOLS: ReadonlySet<string> = new Set(["http:", "https:"]);
 const HTTP_AUTHORITY_PATTERN = /^https?:\/\/[^/\s?#\\]+/;
 
 const ENV_KEY_API_BASE_URL = "VITE_API_URL";
-/** Raised when the configured API base URL fails validation. */
 export class InvalidApiBaseUrlError extends Error {
   public constructor(reason: string) {
     super(`Invalid ${ENV_KEY_API_BASE_URL}: ${reason}`);
@@ -74,10 +57,6 @@ function parseApiBaseUrl(trimmedBase: string): URL {
   return parsed;
 }
 
-/**
- * Validates a raw API base URL and returns the normalized form
- * (origin plus optional path, without a trailing slash).
- */
 export function resolveApiBaseUrl(rawBase: unknown): string {
   if (typeof rawBase !== "string") {
     throw new InvalidApiBaseUrlError("value is missing or empty");
@@ -101,10 +80,6 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-/**
- * Resolves the API base URL from an environment object shaped like
- * `ImportMetaEnv`. Missing values fail closed; there is no default host.
- */
 export function apiBaseUrlFromEnv(env: unknown): string {
   const record = asRecord(env);
   if (record === null) {

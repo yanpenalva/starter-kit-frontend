@@ -1,26 +1,41 @@
 # Review — FEAT-7 typed HTTP client phase A
 
-## Status: PENDING — independent re-review required on updated commit
+## Status: PENDING — independent re-review required on updated candidate SHA
 
 No independent review approval has been granted for this revision. Per the
 delivery model (`.context/project/delivery.md`), independent agent review is a
 separate gate owned by the reviewer lane. The author/producer cannot self-approve.
 The work item remains active and not completed.
 
-### Validator Note (2026-10-04, native fixer, `opencode-go/muse-spark-1.3-contributor`)
+### Prior Independent Review Provenance — Commit `8684ae4` (Attribution Record)
 
-- Final 10-gate validation complete and green (87/87 tests, AST PASS all files); evidence in `verification.md`.
-- One in-scope lint fix since the L4 partial (2 eslint errors resolved without suppressions, behavior unchanged).
-- This note is delivery evidence, not a review verdict. Re-review still PENDING.
+- Revision: `8684ae4b9c9843750698173fb24139e47a2a5acf`
+- Independent Review Verdict: PASS
+- Test count reproduced: 100/100 tests (95 HTTP + 5 base)
+- Recorded accurately as prior independent-review provenance, NOT as our own new independent review.
+- The parent schedules independent review of the changed exact SHA; our producer role is to reproduce applicable gates ourselves, not substitute for independent review.
 
-## Independent Review of `fd00a34` (Attribution Record — Not a New Verdict)
+### Current FRONTEND-PREP Revision (Standing Convention Applied)
 
-- Reviewer: independent native reviewer lane, GLM session `ses_ef7b986d3ffeWHKrJX05yvbMTI`, reproduced 87/87 tests.
-- Verdict on `fd00a34`: PASS with 2 medium findings and 1 minor finding (old R1/R2/L3/L4 findings confirmed closed). This PASS-with-findings is recorded as attributed history; it is not re-stated as FAIL and does not auto-approve the new revision below.
-- **M1 (Medium — effective baseURL gap, client.ts)**: per-request `baseURL` empty/whitespace, or `defaults.baseURL` mutated empty, was treated as "no override" while axios honors empty at dispatch and sends to the SPA origin ≠ trusted API origin.
-- **M2 (Medium — non-string baseURL gap, client.ts)**: `String`-object or other non-string runtime `baseURL` skipped the `typeof string` check while axios coerces/combines it to a foreign target with credentials.
-- **Minor (error-parsers.ts)**: `result[field] = messages` on a plain object triggers the setter for a JSON own key `__proto__`, losing the field; fix with null-prototype record or safe own-property definition.
-- Current revision (uncommitted, this worktree) addresses M1/M2/minor with 13 new regression tests. Current review: PENDING until a new independent review.
+- Applies new standing user convention within scope:
+  - Variables/identifiers strictly en-US.
+  - User-facing return status, error, and request validation messages in pt-BR (`SAFE_MESSAGES` in `error-constants.ts` and test assertions in `http-client.test.ts`).
+  - Useless source comments removed mechanically; machine/tool directives and legal notices preserved.
+  - No PHPStan annotations in TypeScript.
+- Hardening invariants remain unchanged and verified:
+  - Immutable trusted origin.
+  - Prebootstrap adapter.
+  - Zero outbound traffic in negative cases.
+  - BaseURL typechecks (resolveEffectiveBaseUrl).
+  - Singleflight generation reset.
+  - 419 never replay mutations.
+  - Retry-After strict IMF handling/leap dates.
+  - Null-prototype fieldErrors including `__proto__`/`constructor`.
+  - No manually authored DTOs or generated DTOs.
+  - No tokens/profile PII storage.
+  - OpenAPI Stage B b0d explicitly NOT approved; parent waiting for corrected ACTUAL main publication + verified receipt.
+  - No premature Orval generation or browser-cookie claims.
+- Current review status: PENDING until parent independent review of the exact candidate SHA.
 
 ## Review History
 

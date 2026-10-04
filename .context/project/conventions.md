@@ -8,4 +8,8 @@
 - Work items inside the EXC-0001 roadmap scope MUST reference the exception in `policy_exceptions` (see `.context/exceptions/EXC-0001.json` and `delivery.md`).
 - Preserve `.context/` as the sole normative context. Agent adapters only route to it.
 - Deployment and versioning remain independent between API and frontend.
+- Variables and identifiers are authored strictly in en-US.
+- User-facing return status, error, request validation, and general user messages are authored strictly in pt-BR.
+- Source comments: useless or redundant comments are removed; necessary machine/tool directives, legal notices, and technically necessary directives are preserved.
+- PHPStan annotations apply exclusively to PHP codebases and must never be introduced into TypeScript.
 - Naming beyond these conventions, review ownership and detailed compatibility policy: `NOT FOUND`.

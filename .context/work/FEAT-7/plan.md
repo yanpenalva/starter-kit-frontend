@@ -18,11 +18,17 @@ and any auth-flow wiring are separate, later items and are not planned here.
 | S9 | wave-3-client-lane | S4, S5 | R1 origin invariant interceptor + zero-outbound tests | 6 | security |
 | S10 | wave-3-client-lane | S2 | R2 error domain CSD decomposition + AST compliance audit | 6 | core |
 | S11 | wave-3-client-lane | S9, S10 | L3/L4 robustness & date fixes + 10 pinned gate re-run | 7 | testing |
+| S12 | wave-3-client-lane | S11 | M1/M2/minor fixes (resolveEffectiveBaseUrl, null-proto fields) + 13 tests (100 total) | 8 | testing |
+| S13 | wave-3-client-lane | S12 | FRONTEND-PREP: standing convention (pt-BR safe messages, comments cleanup, en-US IDs) + 10-gate docker verification | 9 | project |
+
+## Next Wave 3 Dependencies
+
+- Stage B (typed client generation with Orval 8.39.0 custom-mutator integration and generated types) remains deferred and explicitly NOT approved (OpenAPI Stage B b0d not approved; parent waiting for corrected ACTUAL main publication + verified receipt). DO NOT generate Orval from draft/runtime candidate.
+- Real-browser cookie issuance and cross-origin CORS policy remain deferred to real-API E2E under SPA #17. MSW unit tests do not claim to prove browser cookies.
 
 ## Boundaries
 
 - No changes outside `src/lib/http/**`, `src/test/http-handlers.ts`,
-  `.env.example`, `package.json`/`package-lock.json` (axios pin) and
-  `.context/work/FEAT-7/**`. Existing `src/test/server.ts`/`setup.ts` hooks
-  stay untouched (empty server + global lifecycle preserved).
+  `.context/project/conventions.md` and `.context/work/FEAT-7/**`.
+  Existing `src/test/server.ts`/`setup.ts` hooks stay untouched.
 - Delivery is recorded in preflight.md before Git finalization (EXC-0001).

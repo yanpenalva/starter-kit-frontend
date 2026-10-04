@@ -82,7 +82,25 @@ User reported that independent review of commit `540577b` resulted in `FAIL` wit
 - Re-ran full 10-gate set on pinned toolchain via docker (`node:24.15.0-bookworm`, `npm@12.2.0`): all green, 87/87 tests, AST PASS on all 10 production files. Evidence in `verification.md` (Final Validation section).
 - Independent re-review remains PENDING (reviewer lane owns that gate).
 
+## FRONTEND-PREP Revision (Standing User Convention & Clean-up, 2026-10-04)
+
+- Date: 2026-10-04
+- Executor: AGY Gemini 3.8 Flash (Medium)
+- Conversation UUID: `3520c0a0-4c5a-4552-9fe9-b2bdf154f8a3`
+- Raw transcript log: `/home/hiyan/.gemini/antigravity-cli/brain/3520c0a0-4c5a-4552-9fe9-b2bdf154f8a3/.system_generated/logs/transcript.jsonl`
+- Worktree: `/home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree`
+- Branch: `feat/wave-3-http-client`
+- Baseline revision: `8684ae4b9c9843750698173fb24139e47a2a5acf` (prior independent-review provenance: PASS, 100/100 tests)
+- Actions executed:
+  1. Applied standing user convention: variables/identifiers in en-US; user-facing return status, error, and request validation messages in pt-BR (`SAFE_MESSAGES` in `error-constants.ts`, assertions in `http-client.test.ts`).
+  2. Removed useless source comments mechanically from hand-authored transport files (`config.ts`, `csrf.ts`, `error-types.ts`, `error-constants.ts`, `error-parsers.ts`, `error-guards.ts`, `error-builders.ts`, `errors.ts`, `client.ts`, `index.ts`, `http-handlers.ts`, `http-client.test.ts`).
+  3. No PHPStan annotations introduced in TypeScript.
+  4. Preserved all hardening invariants unchanged: immutable origin invariant, prebootstrap adapter, zero outbound traffic in negative cases, baseURL typechecks, singleflight generation reset, 419 never replay mutations, Retry-After strict IMF handling/leap dates, null-prototype fieldErrors including `__proto__`/`constructor`.
+  5. Documented standing user convention in `.context/project/conventions.md` and FEAT-7 artifacts.
+  6. Re-ran full 10-gate suite under pinned Docker toolchain (`node:24.15.0-bookworm`, `npm@12.2.0`) and host Python CSD tooling: 100/100 tests passed, AST PASS on all 10 production files.
+  7. Independent re-review on the updated candidate SHA remains PENDING (parent schedules independent review).
+
 ## Blockers and Deferred Stages
 
-- Stage B (typed client generation with Orval 8.39.0 custom-mutator integration and generated types) remains deferred. It is blocked on API #11 publishing and reviewing the versioned runtime OpenAPI artifact and API #13 implementing the endpoints.
-- Real-browser cookie issuance and cross-origin CORS policy remain deferred to real-API E2E under SPA #17.
+- Stage B (typed client generation with Orval 8.39.0 custom-mutator integration and generated types) remains deferred and explicitly NOT approved (OpenAPI Stage B b0d not approved; parent waiting for corrected ACTUAL main publication + verified receipt). DO NOT generate Orval from draft/runtime candidate.
+- Real-browser cookie issuance and cross-origin CORS policy remain deferred to real-API E2E under SPA #17; MSW tests do not claim to prove browser cookies.

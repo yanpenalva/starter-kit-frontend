@@ -1,7 +1,3 @@
-/**
- * Robust builders for HttpError discriminated union variants.
- */
-
 import {
   HTTP_STATUS_TOO_MANY_REQUESTS,
   HTTP_STATUS_UNPROCESSABLE_ENTITY,
@@ -112,7 +108,6 @@ function dispatchBuild(
   return buildTransportKindError(kind, rec);
 }
 
-/** Builds the discriminated error from transport facts with fail-closed unknown handling. */
 export function buildHttpError(input: unknown): HttpError {
   const record = asRecord(input);
   if (record === null) {

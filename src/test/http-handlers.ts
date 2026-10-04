@@ -1,13 +1,3 @@
-/**
- * Shared MSW handlers for HTTP-transport tests.
- *
- * These handlers record every observed request (method, path, headers) so
- * tests can assert real request facts (ordering, CSRF header mirroring).
- * They simulate API responses only; cookie issuance by a real browser and
- * cross-origin behavior are real-API E2E concerns (SPA #17) and are never
- * claimed here.
- */
-
 import { http, HttpResponse } from "msw";
 import type { RequestHandler, ResponseResolver } from "msw";
 import { CSRF_COOKIE_NAME } from "@/lib/http/config";
@@ -28,13 +18,9 @@ export interface RecordedHandlers {
 }
 
 export interface HandlerOptions {
-  /** Status returned by the bootstrap endpoint. */
   readonly csrfStatus?: number;
-  /** Status returned by the echo endpoint. */
   readonly echoStatus?: number;
-  /** JSON body returned by the echo endpoint. */
   readonly echoBody?: unknown;
-  /** Extra headers returned by the echo endpoint. */
   readonly echoHeaders?: Readonly<Record<string, string>>;
 }
 
@@ -75,10 +61,6 @@ function echoResolver(
   };
 }
 
-/**
- * Builds fresh handlers + a call log for one test. Usage:
- * `const test = createHttpTestHandlers(); server.use(...test.handlers);`
- */
 export function createHttpTestHandlers(
   options: HandlerOptions = {},
 ): RecordedHandlers {

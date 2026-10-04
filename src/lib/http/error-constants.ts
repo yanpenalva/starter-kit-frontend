@@ -1,7 +1,3 @@
-/**
- * Pure constant mappings and status boundaries for HTTP transport errors.
- */
-
 import type { HttpErrorKind, MappedStatusKind } from "./error-types";
 
 export const HTTP_STATUS_UNPROCESSABLE_ENTITY = 422;
@@ -33,19 +29,18 @@ export const STATUS_TO_KIND: Readonly<Record<number, HttpErrorKind>> = {
 };
 
 export const SAFE_MESSAGES: Readonly<Record<HttpErrorKind, string>> = {
-  unauthorized: "Your session is not authenticated or has expired.",
-  forbidden: "You are not allowed to perform this action.",
-  not_found: "The requested resource was not found.",
-  conflict: "The request conflicts with the current state of the resource.",
-  csrf_mismatch:
-    "Your security token expired and the action was not completed.",
-  validation: "Some fields need your attention.",
-  rate_limited: "Too many requests. Please wait before trying again.",
+  unauthorized: "Sua sessão não está autenticada ou expirou.",
+  forbidden: "Você não tem permissão para realizar esta ação.",
+  not_found: "O recurso solicitado não foi encontrado.",
+  conflict: "A requisição conflita com o estado atual do recurso.",
+  csrf_mismatch: "Seu token de segurança expirou e a ação não foi concluída.",
+  validation: "Alguns campos precisam da sua atenção.",
+  rate_limited: "Muitas requisições. Aguarde antes de tentar novamente.",
   server_error:
-    "The service is temporarily unavailable. Please try again later.",
-  network: "The service could not be reached. Check your connection.",
-  cancelled: "The request was cancelled.",
-  unexpected: "An unexpected response was received.",
+    "O serviço está temporariamente indisponível. Tente novamente mais tarde.",
+  network: "Não foi possível conectar ao serviço. Verifique sua conexão.",
+  cancelled: "A requisição foi cancelada.",
+  unexpected: "Uma resposta inesperada foi recebida.",
 };
 
 export const KNOWN_KINDS_SET: ReadonlySet<string> = new Set(

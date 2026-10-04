@@ -1,22 +1,3 @@
-/**
- * Central HTTP client (ADR 0001, decision D9).
- *
- * One axios instance owns every SPA transport concern: credentials and the
- * CSRF header flow, a single named timeout, JSON negotiation, and mapping of
- * transport failures to typed `HttpError` values. Session state lives only in
- * HttpOnly cookies owned by the API: no Bearer/PAT headers, nothing in
- * localStorage/sessionStorage, and no mutation of axios global defaults.
- *
- * The factory enforces an immutable origin invariant: requests targeting
- * foreign origins, protocol-relative escapes, or overriding the base URL to
- * a foreign destination are rejected before CSRF bootstrap or network dispatch.
- *
- * 419 (CSRF mismatch) resets the bootstrap so the NEXT mutating request
- * re-bootstraps. The failed request itself is never retried here: a token
- * mismatch can mean session rotation, so retrying is an auth-flow decision
- * owned by later waves, not a blind transport retry.
- */
-
 import axios from "axios";
 import type {
   AxiosError,
@@ -51,7 +32,6 @@ const MUTATING_METHODS: ReadonlySet<string> = new Set([
 const AXIOS_TIMEOUT_CODE = "ECONNABORTED";
 
 export interface HttpClient {
-  /** The single configured axios instance for the whole SPA. */
   readonly instance: AxiosInstance;
   readonly ensureCsrfCookie: CsrfBootstrapper;
   readonly resetCsrfBootstrap: () => void;
@@ -87,18 +67,6 @@ function combineUrls(baseURL: string, relativeURL: string): string {
   return `${cleanBase}/${cleanRelative}`;
 }
 
-/**
- * Resolves the effective merged base URL seen by this interceptor.
- *
- * Axios merges per-request options over instance defaults before
- * interceptors run, so `config.baseURL` is the value axios will actually
- * dispatch with — including an empty override (which axios honors instead
- * of the instance default, dispatching to the SPA origin) or a non-string
- * runtime value (which axios coerces/combines). Every such value must be a
- * primitive non-empty string matching the captured trusted origin; anything
- * else fails closed. An unspecified per-request option naturally retains the
- * captured primitive default and passes.
- */
 function resolveEffectiveBaseUrl(
   rawBase: unknown,
   trustedOrigin: string,
@@ -262,7 +230,6 @@ function rejectWithHttpError(
   return Promise.reject(mapTransportError(cause, resetCsrfBootstrap));
 }
 
-/** Creates the SPA-wide HTTP client. Callers own exactly one instance. */
 export function createHttpClient(baseURL: string): HttpClient {
   const validatedBaseUrl = resolveApiBaseUrl(baseURL);
   const trustedUrl = new URL(validatedBaseUrl);

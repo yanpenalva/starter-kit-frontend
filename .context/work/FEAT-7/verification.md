@@ -1,13 +1,67 @@
 # Verification Evidence — FEAT-7 typed HTTP client phase A
 
-## Final Validation — M1/M2/Minor Revision (Actual Final State, 2026-10-04)
+## FRONTEND-PREP Validation (Standing User Convention & Clean-up, 2026-10-04)
 
-- Status: all 10 gates green on pinned toolchain; independent re-review PENDING (no reviewer approval claimed for new source).
+- Status: all 10 gates green on pinned toolchain; independent re-review PENDING on updated candidate SHA (no self-approval claimed).
+- Executor: AGY Gemini 3.8 Flash (Medium), conversation UUID: `3520c0a0-4c5a-4552-9fe9-b2bdf154f8a3`.
+- Changes applied:
+  - Variables/identifiers strictly en-US.
+  - User-facing return status, error, and request validation messages in pt-BR (`SAFE_MESSAGES` in `error-constants.ts` and test assertions in `http-client.test.ts`).
+  - Useless source comments removed mechanically across hand-authored transport files (`config.ts`, `csrf.ts`, `error-types.ts`, `error-constants.ts`, `error-parsers.ts`, `error-guards.ts`, `error-builders.ts`, `errors.ts`, `client.ts`, `index.ts`, `http-handlers.ts`, `http-client.test.ts`).
+  - No PHPStan annotations introduced in TypeScript.
+  - Documented standing convention in `.context/project/conventions.md` and FEAT-7 artifacts.
+  - Hardening invariants preserved unchanged.
+- Prior independent-review provenance: commit `8684ae4b9c9843750698173fb24139e47a2a5acf` had independent PASS (100/100 tests reproduced: 95 HTTP + 5 base). Recorded as prior review provenance, NOT as our own new independent review.
+
+### Current-revision gate runs (pinned `node:24.15.0-bookworm` + `npx --yes npm@12.2.0`)
+
+| # | Gate | Exit | Command | Evidence |
+| --- | --- | --- | --- | --- |
+| 1 | `npm ci` | 0 | `docker run --rm --name wave3-client-lane-ci -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 ci` | added 353 packages, audited 354 packages, 0 vulnerabilities |
+| 2 | `format:check` | 0 | `docker run --rm --name wave3-client-lane-formatcheck -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run format:check` | All matched files use Prettier code style! |
+| 3 | `lint` | 0 | `docker run --rm --name wave3-client-lane-lint -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run lint` | 0 errors, 0 warnings (`eslint .`) |
+| 4 | `typecheck` | 0 | `docker run --rm --name wave3-client-lane-typecheck -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run typecheck` | `vue-tsc --noEmit`, 0 errors |
+| 5 | `test` | 0 | `docker run --rm --name wave3-client-lane-test -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 test` | 100 passed / 0 failed across 6 test files (95 `http-client.test.ts` + 5 base) |
+| 6 | `build` | 0 | `docker run --rm --name wave3-client-lane-build -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run build` | `vue-tsc --noEmit && vite build`, 118 modules transformed, built in 684ms |
+| 7 | `validate_context.py --strict` | 0 | `python3 scripts/validate_context.py --strict` | Context validation passed |
+| 8 | `validate_context.py --strict --examples` | 0 | `python3 scripts/validate_context.py --strict --examples` | Context validation passed (no example suite installed; work items validated) |
+| 9 | `unittest discover -s tests` | 0 | `python3 -m unittest discover -s tests -v` | Ran 6 tests, OK |
+| 10 | `csd@1.2.1 doctor --scope project` | 0 | `npx @owlcodium/context-spec-develop@1.2.1 doctor --scope project` | CSD is healthy (1.2.1) |
+
+### Current-revision AST compliance (TypeScript compiler traversal, incl. callbacks)
+
+| File | Lines (max 500) | Functions (max 15) | Max Returns (max 3) | Max Params (max 7) | Else (max 0) | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `src/lib/http/client.ts` | 264 | 14 | 3 | 3 | 0 | PASS |
+| `src/lib/http/config.ts` | 90 | 5 | 2 | 1 | 0 | PASS |
+| `src/lib/http/csrf.ts` | 40 | 5 | 2 | 1 | 0 | PASS |
+| `src/lib/http/error-builders.ts` | 122 | 6 | 3 | 2 | 0 | PASS |
+| `src/lib/http/error-constants.ts` | 50 | 0 | 0 | 0 | 0 | PASS |
+| `src/lib/http/error-guards.ts` | 159 | 11 | 3 | 2 | 0 | PASS |
+| `src/lib/http/error-parsers.ts` | 150 | 8 | 3 | 1 | 0 | PASS |
+| `src/lib/http/error-types.ts` | 56 | 0 | 0 | 0 | 0 | PASS |
+| `src/lib/http/errors.ts` | 44 | 0 | 0 | 0 | 0 | PASS |
+| `src/lib/http/index.ts` | 33 | 0 | 0 | 0 | 0 | PASS |
+
+### Current-revision invariant spot-checks
+
+- Origin invariant: `validateRequestOrigin` runs before CSRF bootstrap; foreign absolute URLs, protocol-relative escapes (`//`, `\\`, `/\`, `\/`, backslash paths), `allowAbsoluteUrls: true`, mutated `defaults.baseURL`, String-object/non-string URL/baseURL fail closed with 0 outbound MSW dispatch. Same-origin absolute URLs permitted.
+- BaseURL validation: `resolveEffectiveBaseUrl` enforces non-empty string matching trusted origin; empty/whitespace/non-string values fail closed.
+- No auto-replay on 419: response interceptor resets coordinator, maps typed error, never re-dispatches mutations.
+- Singleflight generation race safety: generation counter prevents stale in-flight failures from resetting newer generations.
+- Safe messages in pt-BR: safe fixed messages in pt-BR; raw response body never copied into safe message or exception (no PII/credential leaks).
+- Null-prototype fieldErrors: JSON `__proto__` and `constructor` keys preserved as plain fields without prototype pollution.
+- No `eslint-disable`, `@ts-`, `as any`, `console`, or TODO/FIXME in production code. Protected files (`src/test/server.ts`, `setup.ts`, `vite.config.ts`, router, providers, UI) untouched.
+- OpenAPI Stage B explicitly NOT approved; no Orval generation from draft/runtime candidate; no claim that E2E/MSW proves browser cookies.
+
+## Prior Validation — M1/M2/Minor Revision (Historical, 2026-10-04)
+
+- Status: all 10 gates green on pinned toolchain; independent review PASS at `8684ae4`.
 - Validator: native fixer lane, model `opencode-go/muse-spark-1.3-contributor` (no AGY, no subagents). Native CLI session ID: NOT FOUND (not exposed to agent).
 - Changes since `fd00a34`: `client.ts` (`validateBaseUrlOverride` → `resolveEffectiveBaseUrl`: every effective merged baseURL must be a primitive non-empty string matching trusted origin; non-string `url` rejected; `trustedBaseUrl` fallback removed so validated target equals dispatched target), `error-parsers.ts` (null-prototype field record), `http-client.test.ts` (+13 regressions), FEAT-7 docs.
 - Prior gate run on `fd00a34` source (87/87) is preserved in the historical section below; the runs here are on the current revision.
 
-### Current-revision gate runs (validator, pinned `node:24.15.0-bookworm` + `npx --yes npm@12.2.0`)
+### Prior gate runs on `8684ae4` (pinned `node:24.15.0-bookworm` + `npx --yes npm@12.2.0`)
 
 | # | Gate | Exit | Evidence |
 | --- | --- | --- | --- |
@@ -21,28 +75,6 @@
 | 8 | `validate_context.py --strict --examples` | 0 | passed (no example suite installed; work items validated) |
 | 9 | `unittest discover -s tests` | 0 | Ran 6 tests, OK |
 | 10 | `csd@1.2.1 doctor --scope project` | 0 | CSD is healthy (1.2.1) |
-
-### Current-revision AST compliance (validator, TypeScript compiler traversal, incl. callbacks)
-
-| File | Lines (max 500) | Functions (max 15) | Max Returns (max 3) | Max Params (max 7) | Else (max 0) | Status |
-| --- | --- | --- | --- | --- | --- | --- |
-| `src/lib/http/client.ts` | 297 | 14 | 3 | 3 | 0 | PASS |
-| `src/lib/http/config.ts` | 115 | 5 | 2 | 1 | 0 | PASS |
-| `src/lib/http/csrf.ts` | 52 | 5 | 3 | 1 | 0 | PASS |
-| `src/lib/http/error-builders.ts` | 127 | 6 | 3 | 2 | 0 | PASS |
-| `src/lib/http/error-constants.ts` | 54 | 0 | 0 | 0 | 0 | PASS |
-| `src/lib/http/error-guards.ts` | 164 | 11 | 3 | 2 | 0 | PASS |
-| `src/lib/http/error-parsers.ts` | 158 | 8 | 3 | 1 | 0 | PASS |
-| `src/lib/http/error-types.ts` | 67 | 0 | 0 | 0 | 0 | PASS |
-| `src/lib/http/errors.ts` | 55 | 0 | 0 | 0 | 0 | PASS |
-| `src/lib/http/index.ts` | 43 | 0 | 0 | 0 | 0 | PASS |
-
-### Current-revision invariant spot-checks
-
-- M1/M2 regressions: per-request empty/whitespace baseURL (POST, zero bootstrap + zero outbound), defaults mutated to empty/undefined/null, String-object foreign baseURL (POST), number/array/object baseURL, String-object foreign URL — all `unexpected`/null with 0 dispatched requests and 0 handler calls.
-- Prior safeguards retained and green: foreign absolute, protocol-relative escapes, foreign baseURL override, `allowAbsoluteUrls: true`, mutated foreign defaults, same-origin absolute allowance.
-- Minor regressions: JSON `__proto__`/`constructor` keys preserved as own fields, no global prototype pollution, 422 end-to-end guard pass.
-- No `eslint-disable`, `@ts-`, `as any`, `console`, TODO/FIXME in `src/lib/http` production files; protected files (`src/test/server.ts`, `setup.ts`, `vite.config.ts`, router/providers/UI) untouched.
 
 ## Prior Validation — `fd00a34` Revision (Historical, Preserved As Reported)
 

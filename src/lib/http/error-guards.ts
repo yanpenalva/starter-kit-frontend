@@ -1,7 +1,3 @@
-/**
- * Type guards and structural validation for HttpError instances.
- */
-
 import {
   HTTP_STATUS_SERVER_ERROR_MAX,
   HTTP_STATUS_SERVER_ERROR_MIN,
@@ -131,7 +127,6 @@ function validateVariant(
   return validateTransportKind(kind, rec);
 }
 
-/** Type guard narrowing `unknown` failures (e.g. caught throws) to HttpError. */
 export function isHttpError(value: unknown): value is HttpError {
   const record = asRecord(value);
   if (record === null) {
