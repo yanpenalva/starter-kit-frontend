@@ -6,7 +6,7 @@ and any auth-flow wiring are separate, later items and are not planned here.
 ## Subtasks and waves
 
 | Subtask ID | Owner | Dependencies | Acceptance evidence | Wave | Context domains |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | --- |
 | S1 | wave-3-client-lane | none | src/lib/http/config.ts + validation tests | 1 | none |
 | S2 | wave-3-client-lane | none | src/lib/http/errors.ts + mapping tests | 1 | none |
 | S3 | wave-3-client-lane | none | src/lib/http/csrf.ts | 1 | none |
@@ -15,6 +15,9 @@ and any auth-flow wiring are separate, later items and are not planned here.
 | S6 | wave-3-client-lane | none | package.json/package-lock.json axios 1.20.0, .env.example | 1 | none |
 | S7 | wave-3-client-lane | S1, S5, S6 | gate run on pinned toolchain recorded in verification.md | 4 | none |
 | S8 | wave-3-client-lane | S7 | FEAT-7 records (this item) referencing EXC-0001 | 5 | none |
+| S9 | wave-3-client-lane | S4, S5 | R1 origin invariant interceptor + zero-outbound tests | 6 | security |
+| S10 | wave-3-client-lane | S2 | R2 error domain CSD decomposition + AST compliance audit | 6 | core |
+| S11 | wave-3-client-lane | S9, S10 | L3/L4 robustness & date fixes + 10 pinned gate re-run | 7 | testing |
 
 ## Boundaries
 

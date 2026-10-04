@@ -50,8 +50,10 @@ or PII leakage). Consumers narrow with the exported type guards.
 
 - Session lives in HttpOnly cookies owned by the API. No Bearer/PAT headers,
   no tokens in localStorage/sessionStorage, no profile snapshots.
+- Immutable origin invariant: The factory captures `trustedOrigin` and `trustedBaseUrl` immutably. A request interceptor running before CSRF bootstrap and network dispatch verifies that target URLs and per-request `baseURL` overrides match `trustedOrigin`. Foreign absolute targets (`https://foreign/x`), protocol-relative escapes (`//`, `\\`, `/\`, `\/`), and unauthorized `baseURL` overrides fail closed with a safe `HttpError` (`kind: "unexpected"`), producing zero outbound network requests and preventing credential/cookie leakage.
 - No mutation of axios global defaults; configuration is instance-scoped.
 - No credentials, PII or raw error text is logged by this module.
+- Cohesive module architecture: Error handling is factored into cycle-free sub-modules (`error-types.ts`, `error-constants.ts`, `error-parsers.ts`, `error-guards.ts`, `error-builders.ts`) unified under the backward-compatible facade `errors.ts`, strictly adhering to CSD quality rules ($\le 15$ functions/file, $\le 3$ returns/function, 0 `else` statements).
 
 ## Tests
 

@@ -25,25 +25,47 @@
   5. Validation boundaries: `asRecord` accepted arrays; `isHttpError` checked only `kind` allowing forged malformed objects; HTTP status bounds allowed >599; Retry-After lacked IMF-fixdate validation and overflow protection; `createHttpClient` bypassed URL validation.
   6. Documentation inaccuracies: preflight and discovery falsely claimed sibling API documentation was `NOT FOUND`. Sibling `.context/project/api.md` and `openapi.yaml` exist as manually reviewed preimplementation draft contracts.
 
-## Work Executed by Current Producer
+## Initial Producer Revision (`540577bc75f3a6ea8a087abd222f672a1b288875`)
 
-1. Runtime toolchain verification: confirmed exact versions using `node:24.15.0-bookworm` container (Node `v24.15.0`, npm `12.2.0`, typescript `6.0.3`, axios `1.20.0`).
-2. Sibling API inspection: verified `/home/hiyan/Development/github/personal/starter-kit-api/.context/project/api.md` and `openapi.yaml` (draft contracts, not generated runtime artifacts).
-3. Hash verification: captured baseline SHA-256 for protected files (`src/test/server.ts`, `src/test/setup.ts`, `vite.config.ts`, sibling API files) and verified they remained untouched.
-4. Reproduction: ran initial test suite, reproducing 17 failures out of 33 tests due to CORS and mapping defects.
-5. Implementation fixes:
-   - `src/lib/http/config.ts`: updated `asRecord` to reject arrays.
-   - `src/lib/http/csrf.ts`: added generation counter to `createCsrfCoordinator` to handle in-flight reset races cleanly.
-   - `src/lib/http/errors.ts`: refactored to implement full structural variant validation, bounded status codes (500..599), safe Retry-After parsing (delay-seconds + IMF-fixdate, overflow bounds), array rejection in `asRecord`, <= 3 returns per function, 15 declared functions, no `else`.
-   - `src/lib/http/client.ts`: added fail-closed URL validation at factory boundary, bounded status codes, preserved internal `HttpError`s, <= 3 returns per function, no `else`.
-   - `src/test/http-handlers.ts`: updated to use `HttpResponse` from `msw`, origin reflection in CORS headers compatible with credentials (`withCredentials: true`).
-   - `src/lib/http/http-client.test.ts`: expanded to 43 comprehensive tests with genuine assertions covering all transport, CSRF, error mapping, Retry-After, validation and boundary criteria. Removed temporary `debug.test.ts`.
-   - `src/lib/http/README.md`: updated documentation on factory validation and bounded errors.
-   - Formatted modified files with pinned Prettier.
-6. Documentation & Context alignment:
-   - Corrected sibling API contract status in `preflight.md` and `discovery.md`.
-   - Updated `spec.md`, `plan.md` (dependency wave ordering), `verification.md`.
-   - Maintained `review.md` as PENDING.
+- Executed initial refactor addressing items 1-6 above.
+- Verified all 10 gates passed cleanly on pinned Node 24.15/npm 12.2.0 (48/48 tests passed).
+- Committed and pushed as `540577bc75f3a6ea8a087abd222f672a1b288875`.
+
+## Independent Review Intake & Remediation
+
+User reported that independent review of commit `540577b` resulted in `FAIL` with 2 Medium findings and 2 Low findings:
+1. **R1 (Medium Security)**: `client.ts` allowed foreign absolute URLs, protocol-relative escapes, and foreign `baseURL` overrides with credentials and XSRF headers attached.
+2. **R2 (Medium Policy)**: `errors.ts` had 39 syntactic functions/methods/callbacks, exceeding the CSD $\le 15$ limit.
+3. **L3 (Low Robustness)**: `buildHttpError` lacked fail-closed guards against malformed inputs and prototype pollution.
+4. **L4 (Low Parsing)**: Missing backslash check in `parseApiBaseUrl`, calendar date rollover in `parseHttpDate`, and status bounds test assertion.
+
+### Remediations Implemented:
+
+1. **R1 Security Origin Invariant (`client.ts`)**:
+   - Captured `trustedOrigin` and `trustedBaseUrl` immutably in `createHttpClient`.
+   - Added `validateRequestOrigin` into request interceptor running *before* `attachCsrf` and adapter dispatch.
+   - Rejects foreign absolute URLs, protocol-relative escapes (`//`, `\\`, `/\`, `\/`, `\`), and foreign `baseURL` overrides fail-closed with `HttpError` (`kind: "unexpected"`).
+   - Added 7 regression tests asserting 0 MSW requests are dispatched (zero outbound traffic) and sensitive tokens are not leaked in errors.
+2. **R2 CSD Function Decomposition (`src/lib/http/`)**:
+   - Cohesively split `errors.ts` into cycle-free sub-modules:
+     - `error-types.ts`: 0 functions, 67 lines.
+     - `error-constants.ts`: 0 functions, 54 lines.
+     - `error-parsers.ts`: 8 functions, 123 lines.
+     - `error-guards.ts`: 11 functions, 164 lines.
+     - `error-builders.ts`: 6 functions, 127 lines.
+     - `errors.ts`: stable facade re-exporting all symbols (0 functions, 55 lines).
+   - Replaced nested array callbacks with iterative loops.
+   - AST script verified: every production file has $\le 14$ functions/callbacks (ceiling 15), $\le 3$ returns per function, 0 `else`/`else if`, and $\le 278$ lines (ceiling 500).
+3. **L3 Robustness (`error-builders.ts`)**:
+   - Hardened `buildHttpError(input: unknown)` to fail closed on non-objects, malformed shapes, and prototype pollution attempts (`KNOWN_KINDS_SET`).
+   - Added unit tests for primitives, arrays, null, undefined, `{ kind: '__proto__' }`, `{ kind: 'toString' }`.
+4. **L4 Parsing Robustness (`config.ts`, `error-parsers.ts`, `http-client.test.ts`)**:
+   - `parseApiBaseUrl`: added explicit check rejecting backslashes (`\`).
+   - `parseHttpDate`: added UTC day-of-month check (`getUTCDate() === expectedDay`) to reject impossible calendar dates (e.g. Feb 31).
+   - Direct status bounds assertions (< 100 and > 599) added for both `buildHttpError` and `isHttpError`.
+5. **Prettier & Quality**:
+   - Formatted all modified files with Prettier.
+   - Re-verified all 10 gates (59/59 tests passed, 54 in `http-client.test.ts`).
 
 ## Blockers and Deferred Stages
 

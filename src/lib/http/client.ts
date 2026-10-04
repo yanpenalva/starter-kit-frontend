@@ -7,6 +7,10 @@
  * HttpOnly cookies owned by the API: no Bearer/PAT headers, nothing in
  * localStorage/sessionStorage, and no mutation of axios global defaults.
  *
+ * The factory enforces an immutable origin invariant: requests targeting
+ * foreign origins, protocol-relative escapes, or overriding the base URL to
+ * a foreign destination are rejected before CSRF bootstrap or network dispatch.
+ *
  * 419 (CSRF mismatch) resets the bootstrap so the NEXT mutating request
  * re-bootstraps. The failed request itself is never retried here: a token
  * mismatch can mean session rotation, so retrying is an auth-flow decision
@@ -28,7 +32,13 @@ import {
 } from "./config";
 import { createCsrfCoordinator } from "./csrf";
 import type { CsrfBootstrapper, CsrfCoordinator } from "./csrf";
-import { buildHttpError, isHttpError } from "./errors";
+import {
+  buildHttpError,
+  HTTP_STATUS_SERVER_ERROR_MAX,
+  HTTP_STATUS_SERVER_ERROR_MIN,
+  isHttpError,
+  STATUS_TO_KIND,
+} from "./errors";
 import type { HttpError, HttpErrorKind } from "./errors";
 
 const MUTATING_METHODS: ReadonlySet<string> = new Set([
@@ -38,20 +48,7 @@ const MUTATING_METHODS: ReadonlySet<string> = new Set([
   "delete",
 ]);
 
-const STATUS_TO_KIND: Readonly<Record<number, HttpErrorKind>> = {
-  401: "unauthorized",
-  403: "forbidden",
-  404: "not_found",
-  409: "conflict",
-  419: "csrf_mismatch",
-  422: "validation",
-  429: "rate_limited",
-  500: "server_error",
-};
-
 const AXIOS_TIMEOUT_CODE = "ECONNABORTED";
-const SERVER_ERROR_FLOOR = 500;
-const SERVER_ERROR_CEILING = 599;
 
 export interface HttpClient {
   /** The single configured axios instance for the whole SPA. */
@@ -64,7 +61,10 @@ function classifyStatus(status: number | null): HttpErrorKind {
   if (status === null) {
     return "network";
   }
-  if (status >= SERVER_ERROR_FLOOR && status <= SERVER_ERROR_CEILING) {
+  if (
+    status >= HTTP_STATUS_SERVER_ERROR_MIN &&
+    status <= HTTP_STATUS_SERVER_ERROR_MAX
+  ) {
     return "server_error";
   }
   return STATUS_TO_KIND[status] ?? "unexpected";
@@ -79,6 +79,104 @@ function toSingleHeader(value: unknown): string | null {
     return String(candidate);
   }
   return null;
+}
+
+function combineUrls(baseURL: string, relativeURL: string): string {
+  const cleanBase = baseURL.replace(/\/+$/, "");
+  const cleanRelative = relativeURL.replace(/^\/+/, "");
+  return `${cleanBase}/${cleanRelative}`;
+}
+
+function validateBaseUrlOverride(rawBase: string, trustedOrigin: string): void {
+  if (rawBase === "") {
+    return;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(rawBase);
+  } catch {
+    throw buildHttpError({ kind: "unexpected" });
+  }
+  if (
+    parsed.origin !== trustedOrigin ||
+    (parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+    parsed.username !== "" ||
+    parsed.password !== ""
+  ) {
+    throw buildHttpError({ kind: "unexpected" });
+  }
+}
+
+function validateAbsoluteUrl(rawUrl: string, trustedOrigin: string): boolean {
+  if (!/^[a-z][a-z\d+\-.]*:\/\//i.test(rawUrl)) {
+    return false;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw buildHttpError({ kind: "unexpected" });
+  }
+  if (
+    parsed.origin !== trustedOrigin ||
+    (parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+    parsed.username !== "" ||
+    parsed.password !== ""
+  ) {
+    throw buildHttpError({ kind: "unexpected" });
+  }
+  return true;
+}
+
+function validateRelativeUrl(
+  rawUrl: string,
+  baseToUse: string,
+  trustedOrigin: string,
+): void {
+  const combined = combineUrls(baseToUse, rawUrl);
+  let parsed: URL;
+  try {
+    parsed = new URL(combined, trustedOrigin);
+  } catch {
+    throw buildHttpError({ kind: "unexpected" });
+  }
+  if (
+    parsed.origin !== trustedOrigin ||
+    (parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+    parsed.username !== "" ||
+    parsed.password !== ""
+  ) {
+    throw buildHttpError({ kind: "unexpected" });
+  }
+}
+
+function validateRequestOrigin(
+  config: InternalAxiosRequestConfig,
+  trustedBaseUrl: string,
+  trustedOrigin: string,
+): void {
+  const rawUrl = typeof config.url === "string" ? config.url.trim() : "";
+  const rawBase =
+    typeof config.baseURL === "string" ? config.baseURL.trim() : "";
+
+  if (
+    rawUrl.startsWith("//") ||
+    rawUrl.startsWith("\\\\") ||
+    rawUrl.startsWith("/\\") ||
+    rawUrl.startsWith("\\/") ||
+    (rawUrl.startsWith("/") && rawUrl.includes("\\"))
+  ) {
+    throw buildHttpError({ kind: "unexpected" });
+  }
+  validateBaseUrlOverride(rawBase, trustedOrigin);
+  if (validateAbsoluteUrl(rawUrl, trustedOrigin)) {
+    return;
+  }
+  if (/^[a-z][a-z\d+\-.]*:/i.test(rawUrl)) {
+    throw buildHttpError({ kind: "unexpected" });
+  }
+  const baseToUse = rawBase !== "" ? rawBase : trustedBaseUrl;
+  validateRelativeUrl(rawUrl, baseToUse, trustedOrigin);
 }
 
 function mapAxiosError(
@@ -148,6 +246,9 @@ function rejectWithHttpError(
 /** Creates the SPA-wide HTTP client. Callers own exactly one instance. */
 export function createHttpClient(baseURL: string): HttpClient {
   const validatedBaseUrl = resolveApiBaseUrl(baseURL);
+  const trustedUrl = new URL(validatedBaseUrl);
+  const trustedOrigin = trustedUrl.origin;
+
   const instance: AxiosInstance = axios.create({
     baseURL: validatedBaseUrl,
     withCredentials: true,
@@ -160,9 +261,10 @@ export function createHttpClient(baseURL: string): HttpClient {
   const coordinator: CsrfCoordinator = createCsrfCoordinator(instance);
   const resetCsrfBootstrap = coordinator.resetCsrfBootstrap;
 
-  instance.interceptors.request.use((config) =>
-    attachCsrf(config, coordinator.ensureCsrfCookie),
-  );
+  instance.interceptors.request.use((config) => {
+    validateRequestOrigin(config, validatedBaseUrl, trustedOrigin);
+    return attachCsrf(config, coordinator.ensureCsrfCookie);
+  });
   instance.interceptors.response.use(undefined, (cause: unknown) =>
     rejectWithHttpError(cause, resetCsrfBootstrap),
   );

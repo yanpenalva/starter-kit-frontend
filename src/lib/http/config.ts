@@ -32,6 +32,9 @@ export class InvalidApiBaseUrlError extends Error {
 }
 
 function parseApiBaseUrl(rawBase: string): URL {
+  if (rawBase.includes("\\")) {
+    throw new InvalidApiBaseUrlError("backslashes are not allowed in base URL");
+  }
   let parsed: URL;
   try {
     parsed = new URL(rawBase);
