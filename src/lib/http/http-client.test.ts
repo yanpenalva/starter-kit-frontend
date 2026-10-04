@@ -265,6 +265,127 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
     expect(test.calls).toHaveLength(1);
     expect(test.calls[0]?.path).toBe(TEST_ECHO_PATH);
   });
+
+  it.each([
+    ["empty string", ""],
+    ["whitespace only", "   "],
+  ])(
+    "rejects per-request baseURL override with %s before bootstrap and records zero outbound requests",
+    async (_label, override) => {
+      const test = useFreshHandlers();
+      const client = createHttpClient(TEST_API_BASE);
+      document.cookie = `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`;
+
+      let cause: unknown;
+      try {
+        await client.instance.post(
+          "/api/v1/test",
+          { data: "sensitive" },
+          { baseURL: override },
+        );
+      } catch (err) {
+        cause = err;
+      }
+
+      expectKind(cause, "unexpected", null);
+      expect(dispatchedUrls).toHaveLength(0);
+      expect(test.calls).toHaveLength(0);
+    },
+  );
+
+  it.each([
+    ["empty string", ""],
+    ["whitespace only", "   "],
+    ["undefined", undefined],
+    ["null", null],
+  ])(
+    "rejects requests if instance.defaults.baseURL is mutated to %s and records zero outbound requests",
+    async (_label, mutated) => {
+      const test = useFreshHandlers();
+      const client = createHttpClient(TEST_API_BASE);
+
+      client.instance.defaults.baseURL = mutated as unknown as string;
+
+      let cause: unknown;
+      try {
+        await client.instance.get("/api/v1/test");
+      } catch (err) {
+        cause = err;
+      }
+
+      expectKind(cause, "unexpected", null);
+      expect(dispatchedUrls).toHaveLength(0);
+      expect(test.calls).toHaveLength(0);
+    },
+  );
+
+  it("rejects String-object foreign baseURL override and records zero outbound requests", async () => {
+    const test = useFreshHandlers();
+    const client = createHttpClient(TEST_API_BASE);
+    document.cookie = `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`;
+
+    let cause: unknown;
+    try {
+      await client.instance.post(
+        "/api/v1/test",
+        { data: "sensitive" },
+        {
+          baseURL: Object(
+            "https://foreign-boxed.example.com",
+          ) as unknown as string,
+        },
+      );
+    } catch (err) {
+      cause = err;
+    }
+
+    expectKind(cause, "unexpected", null);
+    expect(dispatchedUrls).toHaveLength(0);
+    expect(test.calls).toHaveLength(0);
+  });
+
+  it.each([
+    ["number", 42],
+    ["array", ["https://foreign-array.example.com"]],
+    ["plain object", { href: "https://foreign-object.example.com" }],
+  ])(
+    "rejects unexpected non-string baseURL override of type %s and records zero outbound requests",
+    async (_label, override) => {
+      const test = useFreshHandlers();
+      const client = createHttpClient(TEST_API_BASE);
+
+      let cause: unknown;
+      try {
+        await client.instance.get("/api/v1/test", {
+          baseURL: override as unknown as string,
+        });
+      } catch (err) {
+        cause = err;
+      }
+
+      expectKind(cause, "unexpected", null);
+      expect(dispatchedUrls).toHaveLength(0);
+      expect(test.calls).toHaveLength(0);
+    },
+  );
+
+  it("rejects String-object foreign URL and records zero outbound requests", async () => {
+    const test = useFreshHandlers();
+    const client = createHttpClient(TEST_API_BASE);
+
+    let cause: unknown;
+    try {
+      await client.instance.get(
+        Object("https://evil-boxed.example.com/steal") as unknown as string,
+      );
+    } catch (err) {
+      cause = err;
+    }
+
+    expectKind(cause, "unexpected", null);
+    expect(dispatchedUrls).toHaveLength(0);
+    expect(test.calls).toHaveLength(0);
+  });
 });
 
 describe("csrf bootstrap flow", () => {
@@ -701,6 +822,47 @@ describe("typed error mapping", () => {
       name: ["single error"],
       email: ["valid error"],
     });
+  });
+
+  it("keeps JSON __proto__ and constructor keys as plain field errors without polluting prototypes", () => {
+    const body = JSON.parse(
+      '{"errors":{"__proto__":["must stay a field"],"constructor":["must stay a field"],"email":["must be a valid email address"]}}',
+    ) as unknown;
+    const fields = parseFieldErrors(body);
+
+    expect(Object.keys(fields).sort()).toEqual([
+      "__proto__",
+      "constructor",
+      "email",
+    ]);
+    expect(fields["email"]).toEqual(["must be a valid email address"]);
+    expect(Object.getOwnPropertyDescriptor(fields, "__proto__")?.value).toEqual(
+      ["must stay a field"],
+    );
+    expect("polluted" in {}).toBe(false);
+    expect(
+      ({} as Record<string, unknown>)["must stay a field"],
+    ).toBeUndefined();
+  });
+
+  it("maps 422 bodies carrying JSON __proto__ keys to validation errors with guards passing", async () => {
+    useFreshHandlers();
+    setErrorEcho(
+      422,
+      JSON.parse(
+        '{"message":"The given data was invalid.","errors":{"__proto__":["must stay a field"],"email":["must be a valid email address"]}}',
+      ) as unknown,
+    );
+    const client = createHttpClient(TEST_API_BASE);
+    const cause = await rejectedPost(client);
+    if (isValidationHttpError(cause) && cause.kind === "validation") {
+      expect(cause.fieldErrors["email"]).toEqual([
+        "must be a valid email address",
+      ]);
+      expect(Object.keys(cause.fieldErrors)).toContain("__proto__");
+      return;
+    }
+    throw new Error(`expected a validation HttpError, got: ${String(cause)}`);
   });
 
   it("never copies raw response text into the safe error message", async () => {

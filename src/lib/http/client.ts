@@ -87,13 +87,32 @@ function combineUrls(baseURL: string, relativeURL: string): string {
   return `${cleanBase}/${cleanRelative}`;
 }
 
-function validateBaseUrlOverride(rawBase: string, trustedOrigin: string): void {
-  if (rawBase === "") {
-    return;
+/**
+ * Resolves the effective merged base URL seen by this interceptor.
+ *
+ * Axios merges per-request options over instance defaults before
+ * interceptors run, so `config.baseURL` is the value axios will actually
+ * dispatch with — including an empty override (which axios honors instead
+ * of the instance default, dispatching to the SPA origin) or a non-string
+ * runtime value (which axios coerces/combines). Every such value must be a
+ * primitive non-empty string matching the captured trusted origin; anything
+ * else fails closed. An unspecified per-request option naturally retains the
+ * captured primitive default and passes.
+ */
+function resolveEffectiveBaseUrl(
+  rawBase: unknown,
+  trustedOrigin: string,
+): string {
+  if (typeof rawBase !== "string") {
+    throw buildHttpError({ kind: "unexpected" });
+  }
+  const trimmed = rawBase.trim();
+  if (trimmed === "") {
+    throw buildHttpError({ kind: "unexpected" });
   }
   let parsed: URL;
   try {
-    parsed = new URL(rawBase);
+    parsed = new URL(trimmed);
   } catch {
     throw buildHttpError({ kind: "unexpected" });
   }
@@ -105,6 +124,7 @@ function validateBaseUrlOverride(rawBase: string, trustedOrigin: string): void {
   ) {
     throw buildHttpError({ kind: "unexpected" });
   }
+  return trimmed;
 }
 
 function validateAbsoluteUrl(rawUrl: string, trustedOrigin: string): boolean {
@@ -152,12 +172,13 @@ function validateRelativeUrl(
 
 function validateRequestOrigin(
   config: InternalAxiosRequestConfig,
-  trustedBaseUrl: string,
   trustedOrigin: string,
 ): void {
+  if (config.url !== undefined && typeof config.url !== "string") {
+    throw buildHttpError({ kind: "unexpected" });
+  }
   const rawUrl = typeof config.url === "string" ? config.url.trim() : "";
-  const rawBase =
-    typeof config.baseURL === "string" ? config.baseURL.trim() : "";
+  const effectiveBase = resolveEffectiveBaseUrl(config.baseURL, trustedOrigin);
 
   if (
     rawUrl.startsWith("//") ||
@@ -168,15 +189,13 @@ function validateRequestOrigin(
   ) {
     throw buildHttpError({ kind: "unexpected" });
   }
-  validateBaseUrlOverride(rawBase, trustedOrigin);
   if (validateAbsoluteUrl(rawUrl, trustedOrigin)) {
     return;
   }
   if (/^[a-z][a-z\d+\-.]*:/i.test(rawUrl)) {
     throw buildHttpError({ kind: "unexpected" });
   }
-  const baseToUse = rawBase !== "" ? rawBase : trustedBaseUrl;
-  validateRelativeUrl(rawUrl, baseToUse, trustedOrigin);
+  validateRelativeUrl(rawUrl, effectiveBase, trustedOrigin);
 }
 
 function mapAxiosError(
@@ -262,7 +281,7 @@ export function createHttpClient(baseURL: string): HttpClient {
   const resetCsrfBootstrap = coordinator.resetCsrfBootstrap;
 
   instance.interceptors.request.use((config) => {
-    validateRequestOrigin(config, validatedBaseUrl, trustedOrigin);
+    validateRequestOrigin(config, trustedOrigin);
     return attachCsrf(config, coordinator.ensureCsrfCookie);
   });
   instance.interceptors.response.use(undefined, (cause: unknown) =>

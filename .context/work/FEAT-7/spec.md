@@ -18,11 +18,11 @@ and AST-verified CSD compliance.
 - `src/lib/http/csrf.ts`: deduplicated bootstrap coordinator (`createCsrfCoordinator`) with generation-tracked reset (`resetCsrfBootstrap`) ensuring in-flight reset races do not wipe newer generations.
 - `src/lib/http/error-types.ts`: pure TypeScript types and discriminated union definitions for `HttpError`.
 - `src/lib/http/error-constants.ts`: status boundaries, safe fixed messages, status maps, and known kinds set.
-- `src/lib/http/error-parsers.ts`: unknown-bound parsing of 422 field errors and `Retry-After` (delay-seconds + strict IMF-fixdate HTTP-date with full calendar day/month/year/hour/minute/second component validation and overflow bounds).
+- `src/lib/http/error-parsers.ts`: unknown-bound parsing of 422 field errors (null-prototype field record so JSON `__proto__`/`constructor` keys stay plain fields without prototype pollution) and `Retry-After` (delay-seconds + strict IMF-fixdate HTTP-date with full calendar day/month/year/hour/minute/second component validation and overflow bounds).
 - `src/lib/http/error-guards.ts`: exhaustive structural type guards rejecting forged objects, non-objects, and invalid shapes.
 - `src/lib/http/error-builders.ts`: fail-closed discriminated error construction protecting against prototype pollution and unknown kinds.
 - `src/lib/http/errors.ts`: stable backward-compatible facade re-exporting all sub-module symbols.
-- `src/lib/http/client.ts`: factory boundary validation (`createHttpClient` validates `baseURL`), instance-scoped configuration (`withCredentials: true`, `withXSRFToken: true`, `xsrfCookieName`, `xsrfHeaderName`, `timeout: HTTP_TIMEOUT_MS`, `Accept: application/json`), immutable origin invariant interceptor running before CSRF bootstrap, request interceptor (bootstrap before POST/PUT/PATCH/DELETE), response interceptor (typed mapping, 419 reset, preservation of internal typed errors, no blind retry). No axios global mutation.
+- `src/lib/http/client.ts`: factory boundary validation (`createHttpClient` validates `baseURL`), instance-scoped configuration (`withCredentials: true`, `withXSRFToken: true`, `xsrfCookieName`, `xsrfHeaderName`, `timeout: HTTP_TIMEOUT_MS`, `Accept: application/json`), immutable origin invariant interceptor running before CSRF bootstrap, effective merged baseURL resolution (every per-request/defaults `baseURL` must be a primitive non-empty string matching the trusted origin — empty/whitespace/non-string values fail closed instead of falling back, since axios honors them at dispatch; non-string `url` values likewise rejected), request interceptor (bootstrap before POST/PUT/PATCH/DELETE), response interceptor (typed mapping, 419 reset, preservation of internal typed errors, no blind retry). No axios global mutation.
 - `.env.example`: non-secret `VITE_API_URL=http://localhost:8000` with documentation.
 - `package.json` / `package-lock.json`: exact `axios: 1.20.0` pin.
 - `src/test/http-handlers.ts`: shared MSW handlers using `HttpResponse`, origin-reflecting CORS headers compatible with credentials (`Access-Control-Allow-Credentials: true`).
@@ -51,7 +51,7 @@ and AST-verified CSD compliance.
 - Session lives only in HttpOnly cookies owned by the API: no Bearer/PAT, no localStorage/sessionStorage.
 - Raw response text never enters messages, logs or exceptions; only contract metadata (field errors, Retry-After) is parsed, via unknown-bound guards.
 - Base URL is build-time env, never user-controlled input; validated at factory boundary.
-- Origin invariant: target URLs and `baseURL` overrides must match the factory's immutable trusted origin. Foreign targets produce 0 outbound network requests.
+- Origin invariant: target URLs and every effective merged `baseURL` must match the factory's immutable trusted origin. Foreign targets produce 0 outbound network requests. Validated target never differs from dispatched target: empty/whitespace/non-string baseURL values and non-string URLs fail closed (axios would otherwise honor/coerce them at dispatch).
 - 419 resets bootstrap coordinator on the client for the subsequent request; never blindly replays non-idempotent mutations.
 - CSD rules: $\le 15$ declared implementation functions/methods per file (including arrow functions and callbacks), $\le 3$ returns per function, $\le 7$ parameters, 0 `else`/`else if` statements, $\le 500$ lines per file.
 
@@ -59,10 +59,11 @@ and AST-verified CSD compliance.
 
 1. Full gate set green on pinned Node 24.15/npm 12.2.0 (`npm ci`, format:check, lint, typecheck, test, build).
 2. Tests assert real request facts: bootstrap-before-mutation (POST/PUT/PATCH/DELETE), single-flight dedup, XSRF header mirroring, 419 reset without retry, every typed status mapping, metadata parsing, safe messages, type guard negative tests.
-3. Origin invariant proven with zero outbound MSW dispatch for foreign targets, protocol-relative escapes, and baseURL overrides.
+3. Origin invariant proven with zero outbound MSW dispatch for foreign targets, protocol-relative escapes, baseURL overrides, empty/whitespace/non-string baseURL values, defaults mutations (empty/undefined/null), String-object foreign baseURL/URL, and unexpected primitive/array/object types.
 4. Lexical control character rejection proven before trimming (TAB, CR, LF rejected on leading, trailing, and internal positions).
 5. Honest test table labels covering truly malformed URLs, missing scheme, and WHATWG repair variants (`http:example.com`, `http:/example.com`, `http:///example.com`).
 6. Strict IMF-fixdate validation proven rejecting impossible dates (Feb 31, non-leap Feb 29, Apr 31, time overflows) and accepting valid leap days (Feb 29 2028).
-7. AST audit verifies $\le 15$ functions/file, $\le 3$ returns, $\le 7$ params, 0 `else`, $\le 500$ lines for all production files.
-8. Fail-closed env and factory validation demonstrated (missing/invalid/unsafe URL throws `InvalidApiBaseUrlError`).
-9. No test claims real browser cookie issuance; that stays with real-API E2E (SPA #17).
+7. JSON `__proto__`/`constructor` field keys preserved as plain validation fields with no prototype pollution, guards passing end to end.
+8. AST audit verifies $\le 15$ functions/file, $\le 3$ returns, $\le 7$ params, 0 `else`, $\le 500$ lines for all production files.
+9. Fail-closed env and factory validation demonstrated (missing/invalid/unsafe URL throws `InvalidApiBaseUrlError`).
+10. No test claims real browser cookie issuance; that stays with real-API E2E (SPA #17).

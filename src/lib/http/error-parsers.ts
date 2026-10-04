@@ -65,7 +65,9 @@ export function parseFieldErrors(
   if (errors === null) {
     return {};
   }
-  const result: Record<string, readonly string[]> = {};
+  // Null-prototype record: a JSON own key like "__proto__" must stay a plain
+  // field instead of triggering the default object setter and losing the entry.
+  const result = Object.create(null) as Record<string, readonly string[]>;
   for (const [field, value] of Object.entries(errors)) {
     const messages = toStringArray(value);
     if (messages.length > 0) {

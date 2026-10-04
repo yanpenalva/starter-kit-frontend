@@ -67,7 +67,14 @@ User reported that independent review of commit `540577b` resulted in `FAIL` wit
    - Formatted all modified files with Prettier.
    - Re-verified all 10 gates (59/59 tests passed, 54 in `http-client.test.ts`).
 
-## Final Native Validation (2026-10-04)
+## M1/M2/Minor Fix Revision (2026-10-04)
+
+- Executor: native fixer lane, model `opencode-go/muse-spark-1.3-contributor` (user-selected; no AGY, no subagents). Native CLI session ID: NOT FOUND (not exposed to agent).
+- Input: independent GLM review (`ses_ef7b986d3ffeWHKrJX05yvbMTI`) verdict PASS on `fd00a34` with 2 medium (M1 effective-empty-baseURL, M2 non-string-baseURL) + 1 minor (`__proto__` field record); old findings confirmed closed.
+- Fixes: `resolveEffectiveBaseUrl` (primitive non-empty trusted-origin-only; unspecified option retains captured default and passes), non-string `url` rejection, null-prototype field record; 13 new regression tests (100/100 total); full 10-gate set green; AST PASS all files. Evidence in `verification.md` (M1/M2/Minor section).
+- Current review: PENDING until new independent review. No reviewer approval claimed.
+
+## Final Native Validation of `fd00a34` (2026-10-04, Historical)
 
 - Validator: native fixer lane, model `opencode-go/muse-spark-1.3-contributor` (user-selected; AGY quota exhausted, Sol coordination only, no subagents). Native CLI session ID: NOT FOUND (not exposed to agent).
 - Adopted 6 dirty AGY partials as instructed (no reset/stash/discard): `src/lib/http/config.ts`, `error-parsers.ts`, `http-client.test.ts`, `README.md`, `.context/work/FEAT-7/review.md`, `spec.md`.

@@ -13,6 +13,15 @@ The work item remains active and not completed.
 - One in-scope lint fix since the L4 partial (2 eslint errors resolved without suppressions, behavior unchanged).
 - This note is delivery evidence, not a review verdict. Re-review still PENDING.
 
+## Independent Review of `fd00a34` (Attribution Record — Not a New Verdict)
+
+- Reviewer: independent native reviewer lane, GLM session `ses_ef7b986d3ffeWHKrJX05yvbMTI`, reproduced 87/87 tests.
+- Verdict on `fd00a34`: PASS with 2 medium findings and 1 minor finding (old R1/R2/L3/L4 findings confirmed closed). This PASS-with-findings is recorded as attributed history; it is not re-stated as FAIL and does not auto-approve the new revision below.
+- **M1 (Medium — effective baseURL gap, client.ts)**: per-request `baseURL` empty/whitespace, or `defaults.baseURL` mutated empty, was treated as "no override" while axios honors empty at dispatch and sends to the SPA origin ≠ trusted API origin.
+- **M2 (Medium — non-string baseURL gap, client.ts)**: `String`-object or other non-string runtime `baseURL` skipped the `typeof string` check while axios coerces/combines it to a foreign target with credentials.
+- **Minor (error-parsers.ts)**: `result[field] = messages` on a plain object triggers the setter for a JSON own key `__proto__`, losing the field; fix with null-prototype record or safe own-property definition.
+- Current revision (uncommitted, this worktree) addresses M1/M2/minor with 13 new regression tests. Current review: PENDING until a new independent review.
+
 ## Review History
 
 ### Revision 1 (`540577bc75f3a6ea8a087abd222f672a1b288875`) — FAIL (User-Reported Review)
@@ -58,6 +67,6 @@ The parent user explicitly provided the complete, precise L4 requirements:
 - Worktree: `/home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree`
 - Delivery branch: `feat/wave-3-http-client`
 - Pinned toolchain: Node `v24.15.0`, npm `12.2.0`, TypeScript `6.0.3`, Axios `1.20.0`.
-- Automated test suite: 87 passed across 6 test files (82 in `http-client.test.ts`).
-- AST compliance: All 10 production files strictly comply with CSD rules ($\le 15$ functions/file, $\le 3$ returns, $\le 7$ params, 0 `else`, $\le 278$ lines).
+- Automated test suite: 100 passed across 6 test files (95 in `http-client.test.ts`: 82 prior + 13 new M1/M2/minor regressions).
+- AST compliance: All 10 production files strictly comply with CSD rules ($\le 15$ functions/file, $\le 3$ returns, $\le 7$ params, 0 `else`, $\le 297$ lines).
 - Execution evidence: `.context/work/FEAT-7/verification.md`.
