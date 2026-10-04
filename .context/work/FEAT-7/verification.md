@@ -13,20 +13,32 @@
   - Hardening invariants preserved unchanged.
 - Prior independent-review provenance: commit `8684ae4b9c9843750698173fb24139e47a2a5acf` had independent PASS (100/100 tests reproduced: 95 HTTP + 5 base). Recorded as prior review provenance, NOT as our own new independent review.
 
-### Current-revision gate runs (pinned `node:24.15.0-bookworm` + `npx --yes npm@12.2.0`)
+### Current-revision gate runs — Fresh Isolated Docker Volumes & Containerized CSD
+
+Executed under isolated lane-only Docker volumes (`wave3-client-lane-fresh-nm` mounted over `/work/node_modules`, `wave3-client-lane-fresh-dist` mounted over `/work/dist`) so host `node_modules` was untouched. Both frontend and CSD gates executed inside pinned Docker image `node:24.15.0-bookworm` (Python 3.11.2, Node 24.15.0).
+
+- Volume creation:
+  - `docker volume create wave3-client-lane-fresh-nm`
+  - `docker volume create wave3-client-lane-fresh-dist`
 
 | # | Gate | Exit | Command | Evidence |
 | --- | --- | --- | --- | --- |
-| 1 | `npm ci` | 0 | `docker run --rm --name wave3-client-lane-ci -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 ci` | added 353 packages, audited 354 packages, 0 vulnerabilities |
-| 2 | `format:check` | 0 | `docker run --rm --name wave3-client-lane-formatcheck -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run format:check` | All matched files use Prettier code style! |
-| 3 | `lint` | 0 | `docker run --rm --name wave3-client-lane-lint -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run lint` | 0 errors, 0 warnings (`eslint .`) |
-| 4 | `typecheck` | 0 | `docker run --rm --name wave3-client-lane-typecheck -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run typecheck` | `vue-tsc --noEmit`, 0 errors |
-| 5 | `test` | 0 | `docker run --rm --name wave3-client-lane-test -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 test` | 100 passed / 0 failed across 6 test files (95 `http-client.test.ts` + 5 base) |
-| 6 | `build` | 0 | `docker run --rm --name wave3-client-lane-build -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run build` | `vue-tsc --noEmit && vite build`, 118 modules transformed, built in 684ms |
-| 7 | `validate_context.py --strict` | 0 | `python3 scripts/validate_context.py --strict` | Context validation passed |
-| 8 | `validate_context.py --strict --examples` | 0 | `python3 scripts/validate_context.py --strict --examples` | Context validation passed (no example suite installed; work items validated) |
-| 9 | `unittest discover -s tests` | 0 | `python3 -m unittest discover -s tests -v` | Ran 6 tests, OK |
-| 10 | `csd@1.2.1 doctor --scope project` | 0 | `npx @owlcodium/context-spec-develop@1.2.1 doctor --scope project` | CSD is healthy (1.2.1) |
+| 1 | `npm ci` | 0 | `docker run --rm --name wave3-client-lane-ci -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -v wave3-client-lane-fresh-nm:/work/node_modules -v wave3-client-lane-fresh-dist:/work/dist -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 ci` | added 353 packages, audited 354 packages, 0 vulnerabilities |
+| 2 | `format:check` | 0 | `docker run --rm --name wave3-client-lane-formatcheck -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -v wave3-client-lane-fresh-nm:/work/node_modules -v wave3-client-lane-fresh-dist:/work/dist -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run format:check` | All matched files use Prettier code style! |
+| 3 | `lint` | 0 | `docker run --rm --name wave3-client-lane-lint -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -v wave3-client-lane-fresh-nm:/work/node_modules -v wave3-client-lane-fresh-dist:/work/dist -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run lint` | 0 errors, 0 warnings (`eslint .`) |
+| 4 | `typecheck` | 0 | `docker run --rm --name wave3-client-lane-typecheck -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -v wave3-client-lane-fresh-nm:/work/node_modules -v wave3-client-lane-fresh-dist:/work/dist -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run typecheck` | `vue-tsc --noEmit`, 0 errors |
+| 5 | `test` | 0 | `docker run --rm --name wave3-client-lane-test -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -v wave3-client-lane-fresh-nm:/work/node_modules -v wave3-client-lane-fresh-dist:/work/dist -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 test` | 100 passed / 0 failed across 6 test files (95 `http-client.test.ts` + 5 base) |
+| 6 | `build` | 0 | `docker run --rm --name wave3-client-lane-build -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -v wave3-client-lane-fresh-nm:/work/node_modules -v wave3-client-lane-fresh-dist:/work/dist -w /work node:24.15.0-bookworm npx --yes npm@12.2.0 run build` | `vue-tsc --noEmit && vite build`, 118 modules transformed, built in 684ms |
+| 7 | `validate_context.py --strict` | 0 | `docker run --rm --name wave3-client-lane-csd-strict -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm python3 scripts/validate_context.py --strict` | Context validation passed |
+| 8 | `validate_context.py --strict --examples` | 0 | `docker run --rm --name wave3-client-lane-csd-examples -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm python3 scripts/validate_context.py --strict --examples` | Context validation passed (no example suite installed; work items validated) |
+| 9 | `unittest discover -s tests` | 0 | `docker run --rm --name wave3-client-lane-csd-unittest -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -w /work node:24.15.0-bookworm python3 -m unittest discover -s tests -v` | Ran 6 tests, OK |
+| 10 | `csd@1.2.1 doctor --scope project` | 0 | `docker run --rm --name wave3-client-lane-csd-doctor -v /home/hiyan/Development/github/personal/starter-kit-frontend-wave3-client-worktree:/work -v wave3-client-lane-fresh-nm:/work/node_modules -w /work node:24.15.0-bookworm npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project` | CSD is healthy (1.2.1) |
+
+### Prior Initial FRONTEND-PREP Gate Runs (Historical, Candidate `ca1851e`, Pre-Isolation)
+
+- Status: all 10 gates green; frontend run mounted host `/work` without isolated `node_modules` volume; CSD ran on host Python/npx.
+- Remediated above with isolated lane-only Docker volumes and containerized CSD in `node:24.15.0-bookworm`.
+
 
 ### Current-revision AST compliance (TypeScript compiler traversal, incl. callbacks)
 

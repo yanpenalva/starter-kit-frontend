@@ -97,8 +97,9 @@ User reported that independent review of commit `540577b` resulted in `FAIL` wit
   3. No PHPStan annotations introduced in TypeScript.
   4. Preserved all hardening invariants unchanged: immutable origin invariant, prebootstrap adapter, zero outbound traffic in negative cases, baseURL typechecks, singleflight generation reset, 419 never replay mutations, Retry-After strict IMF handling/leap dates, null-prototype fieldErrors including `__proto__`/`constructor`.
   5. Documented standing user convention in `.context/project/conventions.md` and FEAT-7 artifacts.
-  6. Re-ran full 10-gate suite under pinned Docker toolchain (`node:24.15.0-bookworm`, `npm@12.2.0`) and host Python CSD tooling: 100/100 tests passed, AST PASS on all 10 production files.
-  7. Independent re-review on the updated candidate SHA remains PENDING (parent schedules independent review).
+  6. Initial candidate verification: executed all 10 gates (exit 0, 100/100 tests passed, AST PASS on all 10 production files), committed and pushed as `ca1851eb714edd3d4b060608dba2dbbc12f5120f`.
+  7. Compliance remediation verification: resolved isolation evidence gap by creating fresh lane-only Docker volumes (`wave3-client-lane-fresh-nm` mounted over `/work/node_modules`, `wave3-client-lane-fresh-dist` mounted over `/work/dist`), executing fresh `npm ci` inside volume, reproducing frontend format/lint/typecheck/test/build (100/100 tests passed), and running CSD strict/examples/unit/doctor inside containerized pinned runtime `node:24.15.0-bookworm` (Node 24.15.0, Python 3.11.2).
+  8. Independent re-review on the candidate SHA remains PENDING (parent schedules independent review).
 
 ## Blockers and Deferred Stages
 
