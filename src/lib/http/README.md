@@ -6,12 +6,13 @@ may create axios instances.
 
 ## Contract status
 
-- Phase A (this module): transport foundation only. No endpoint helpers, no
-  DTOs, no generator output. Typed client generation stays deferred until the
-  API publishes the pinned OpenAPI artifact (API #11 / API #13 routes; Orval
-  8.39.0 candidate integration is stage B work on this module).
-- Endpoints and payload shapes come only from the API canonical contract once
-  it exists. Nothing is invented here.
+- Phase A owns the transport foundation. Stage B consumes only the approved,
+  pinned OpenAPI artifact under `openapi/`; generated operations and schemas
+  live under `src/lib/api/generated` and are Orval-owned. No endpoint or DTO is
+  authored by hand.
+- Offline contract verification is `npm run contract:verify`; generation is
+  `npm run client:generate`. Both fail closed without the verified committed
+  artifact/receipt/ZIP and do not fetch from the API repository.
 
 ## Session/CSRF flow
 
@@ -37,6 +38,9 @@ Logout (later wave):
   of ASCII control characters (TAB, CR, LF) on the raw input before trimming, backslash rejection,
   no embedded credentials, no query/fragment, no permissive fallback. It is never taken from
   unvalidated or user-controlled input.
+- The generated transport requires `VITE_API_URL` to resolve to the trusted
+  root origin only. Contract paths already include `/api/v1`; do not add that
+  prefix to `VITE_API_URL`. `/sanctum/csrf-cookie` remains root-relative.
 
 ## Errors
 
@@ -54,6 +58,10 @@ or PII leakage). Consumers narrow with the exported type guards.
   no tokens in localStorage/sessionStorage, no profile snapshots.
 - Immutable origin invariant: The factory captures `trustedOrigin` and `trustedBaseUrl` immutably. A request interceptor running before CSRF bootstrap and network dispatch verifies that target URLs and per-request `baseURL` overrides match `trustedOrigin`. Foreign absolute targets (`https://foreign/x`), protocol-relative escapes (`//`, `\\`, `/\`, `\/`), and unauthorized `baseURL` overrides fail closed with a safe `HttpError` (`kind: "unexpected"`), producing zero outbound network requests and preventing credential/cookie leakage.
 - No mutation of axios global defaults; configuration is instance-scoped.
+- The Orval mutator delegates to this module's central instance, captures the
+  validated root origin once, passes `AbortSignal`, returns typed response
+  data and preserves normalized `HttpError` failures. It does not rewrite
+  generated paths or permit foreign `baseURL` overrides.
 - No credentials, PII or raw error text is logged by this module.
 - Cohesive module architecture: Error handling is factored into cycle-free sub-modules (`error-types.ts`, `error-constants.ts`, `error-parsers.ts`, `error-guards.ts`, `error-builders.ts`) unified under the backward-compatible facade `errors.ts`, strictly adhering to CSD quality rules ($\le 15$ functions/file, $\le 3$ returns/function, 0 `else` statements).
 

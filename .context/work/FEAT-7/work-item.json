@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "id": "FEAT-7",
-  "title": "Typed HTTP client phase A: central transport, CSRF bootstrap, typed errors (Issue #7)",
+  "title": "Typed HTTP client and approved Orval consumer (Issue #7)",
   "track": "product",
   "type": "feature",
   "phase": "verify",

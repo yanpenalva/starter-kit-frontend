@@ -71,7 +71,7 @@ Executed under isolated lane-only Docker volumes (`wave3-client-lane-fresh-nm` m
 - Safe messages in pt-BR: safe fixed messages in pt-BR; raw response body never copied into safe message or exception (no PII/credential leaks).
 - Null-prototype fieldErrors: JSON `__proto__` and `constructor` keys preserved as plain fields without prototype pollution.
 - No `eslint-disable`, `@ts-`, `as any`, `console`, or TODO/FIXME in production code. Protected files (`src/test/server.ts`, `setup.ts`, `vite.config.ts`, router, providers, UI) untouched.
-- OpenAPI Stage B explicitly NOT approved; no Orval generation from draft/runtime candidate; no claim that E2E/MSW proves browser cookies.
+- At the Phase A verification checkpoint, Stage B had not been approved and no draft contract was generated. The later parent-authorized source pin is verified in the Stage B section below; no claim that E2E/MSW proves browser cookies.
 
 ## Prior Validation — M1/M2/Minor Revision (Historical, 2026-10-04)
 
@@ -257,3 +257,55 @@ SHA-256 checksums demonstrate that protected test hooks and sibling API files we
 | `vite.config.ts` | `d57d6be66367f09e98c5bfc75ec5e3240bfd24365f8838a3c1bf5a266d59a8d0` | `d57d6be66367f09e98c5bfc75ec5e3240bfd24365f8838a3c1bf5a266d59a8d0` | MATCH |
 | `starter-kit-api/.context/project/api.md` | `814ed58c76655f7b9fcee17c4243c4fc5b9e93fd09fa08bb3c997b3e80c6bdbc` | `814ed58c76655f7b9fcee17c4243c4fc5b9e93fd09fa08bb3c997b3e80c6bdbc` | MATCH |
 | `starter-kit-api/.context/project/openapi.yaml` | `88bd0197ca53c15ad6cc54d739da8c3d7c8179e6030412676784d70a6971a894` | `88bd0197ca53c15ad6cc54d739da8c3d7c8179e6030412676784d70a6971a894` | MATCH |
+
+## Orval Stage B Candidate — Fresh Docker Verification (2026-10-05)
+
+- Container: `node:24.15.0-bookworm`; npm `12.2.0`; fresh named volumes `wave3-feat7-ci-nm` and `wave3-feat7-ci-dist`; source mounted from this worktree. `node_modules` on host was not used or modified. Python ran with `PYTHONDONTWRITEBYTECODE=1`.
+- Complete gate command log: `/tmp/opencode/luna-frontend-generation/wrapper-logs/full-gates-attempt.log` and `/tmp/opencode/luna-frontend-generation/wrapper-logs/remaining-gates.log`; CSD/doctor log: `/tmp/opencode/luna-frontend-generation/wrapper-logs/csd-doctor.log`. First/second generated-tree hash manifests are in the same scratch log directory.
+
+| Gate | Command in pinned container | Result |
+| --- | --- | --- |
+| Install | `npm ci` | PASS; 414 added, 415 audited, 0 vulnerabilities |
+| Dependency pin | `npm ls orval esbuild @esbuild/linux-x64 --depth=2` | PASS; Orval 8.39.0; esbuild and Linux binary 0.28.2 |
+| Audit | `npm audit --audit-level=low` | PASS; 0 vulnerabilities |
+| Format | `npm run format:check` | PASS |
+| Lint | `npm run lint` | PASS; 0 errors/warnings |
+| Types | `npm run typecheck` | PASS |
+| Offline source/provenance | `npm run contract:verify` | PASS; no remote API access |
+| Generation | `npm run client:generate` twice | PASS; both runs generated 24 files; all per-file SHA-256 entries identical |
+| Generated diff | `git diff --exit-code -- src/lib/api/generated` and `git ls-files --others --exclude-standard -- src/lib/api/generated` | PASS after staging; no unstaged or untracked generated output |
+| Vitest | `npm test` | PASS; 105/105 across 7 files (95 existing HTTP + 5 existing base + 5 new mutator tests) |
+| Build | `npm run build` | PASS; 118 modules, 869 ms |
+| Context strict | `python3 scripts/validate_context.py --strict` | PASS |
+| Context examples | `python3 scripts/validate_context.py --strict --examples` | PASS; no example suite installed; active work items validated |
+| Python unit | `python3 -m unittest discover -s tests -v` | PASS; 14/14 (6 existing validator tests + 8 new contract verifier tests) |
+| Doctor | `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project` | PASS; CSD healthy 1.2.1 |
+
+The first external hash-comparison one-liner failed due its own `str`/`bytes` mismatch after both Orval runs had completed. Correct comparison read both manifests and files as bytes: 24/24 generated files are byte-identical. The initial strict-context run also caught placeholder-like syntax in the new prose; the wording was corrected and strict/examples then passed.
+
+### CSD structural review of hand-authored additions
+
+TypeScript compiler AST counted declarations and inline callbacks; generated Orval output is excluded because generator owns it and regeneration is deterministic. Python AST review covered verifier and tests.
+
+| File | Lines | Functions/callbacks | Max returns/function | Max params | Else | Non-null assertion | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `orval.config.ts` | 31 | 1 | 0 | 0 | 0 | 0 | PASS |
+| `src/lib/http/orval-mutator.ts` | 57 | 4 | 1 | 2 | 0 | 0 | PASS |
+| `src/lib/http/orval-mutator.test.ts` | 161 | 12 | 1 | 3 | 0 | 0 | PASS |
+| `scripts/generate-client.mjs` | 27 | 0 | 0 | 0 | 0 | 0 | PASS |
+| `scripts/check-client-generated.mjs` | 24 | 0 | 0 | 0 | 0 | 0 | PASS |
+| `scripts/verify_contract.py` | 203 | 5 | 3 | 4 | 0 | N/A | PASS |
+| `tests/test_contract_verifier.py` | 83 | 8 | 0 | 1 | 0 | N/A | PASS |
+
+SHA-preserved upstream verifier files were also AST-counted: `contract_cli.py` 185 lines/4 functions/max 3 returns/1 parameter; `contract_core.py` 390/15/1/5; `contract_extract.py` 182/6/1/3. All have zero `else` branches and satisfy the same ceilings.
+
+### Artifact and dependency reconciliation
+
+- `openapi/artifact.zip`: 2,044 bytes, SHA-256 `0d019b1adfc1d9d3f3fb65f0544d15fcc0d51a7361e23508204c8e2a5646a6fe`.
+- `openapi/openapi.json`: 21,323 bytes, SHA-256 `ed772d267e56784b9a847743575a242b049697ffe35369c541913903c0b24914`.
+- `openapi/contract-pin.json`: SHA-256 `7eb4157b25e9c9fdaf34ecac2d15e3f3771d3fff30945bffd7c2bcabee89f41f`.
+- `orval`: manifest, lockfile and installed version all `8.39.0`; SRI `sha512-QHMA1sYzmUCAh5CJN3t/s+/JfphIM8JUjShi1oRhhX4YDk59nAnl/lDXMSMWprw0kFmZJs3HTnYBInLW4CafyQ==`.
+- `esbuild`: lockfile SRI `sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==`, matching public registry metadata and audited tarball. Exact-version script allow only.
+- Lock delta versus starting HEAD: 86 new package records, 0 removed, 0 existing package-version changes.
+
+Generation is validated offline against the externally pinned parent policy. No generated output was edited manually; no DTO was authored by hand. Tests use local Axios adapter fixtures only; no MSW/browser/network/cookie evidence is claimed.

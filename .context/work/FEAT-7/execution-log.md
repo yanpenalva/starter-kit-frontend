@@ -102,7 +102,19 @@ User reported that independent review of commit `540577b` resulted in `FAIL` wit
   8. Independent review received: parent provided independent review evidence (conversation `1a204823-1c83-496a-8a19-9ccb8a3a3bdb`, verdict PASS, 0 findings, reviewed source SHA `e0809113f332883dc5d2156e80159fb37c68ae3d` against baseline `8684ae4b9c9843750698173fb24139e47a2a5acf`; reviewer log: `/home/hiyan/.local/share/opencode/agy-logs/2026-10-04T21-38-11-709Z-bo3guu.ndjson`; all 10 gates green under reviewer-owned fresh volumes; limitations recorded).
   9. Doc-only follow-up: recorded independent PASS provenance in `review.md`, `verification.md`, and `execution-log.md`; executed doc gates under pinned Docker; committed/pushed candidate docs leaving source untouched; created draft PR against `main` linking `Refs #7`.
 
-## Blockers and Deferred Stages
+## Approved Orval Stage B Continuation (2026-10-05)
 
-- Stage B (typed client generation with Orval 8.39.0 custom-mutator integration and generated types) remains deferred and explicitly NOT approved (OpenAPI Stage B b0d not approved; parent waiting for corrected ACTUAL main publication + verified receipt). DO NOT generate Orval from draft/runtime candidate.
+- Executor: native OpenCode session. Runtime exposed model label `openai/gpt-6-luna`; precise fast/medium variant, OAuth state/proof, and native session UUID are not exposed to this execution log. No credential/auth content was inspected or recorded.
+- Reconciled previous stop: baseline `package.json`/lock have no `esbuild`. The baseline `npm ci` was not attempted or rejected. The first Orval install attempt ran npm `11.12.1` in the container and failed `EBADENGINE` against the required npm `12.2.0`; later npm 12.2.0 Orval install/lock-only attempts were rejected by strict scripts because newly resolved Orval transitives introduced `esbuild@0.28.2`. Existing HTTP transport and baseline CI were not broken.
+- Revalidated exact parent-provided artifact before import: ZIP 2,044 bytes/hash `0d019b1adfc1d9d3f3fb65f0544d15fcc0d51a7361e23508204c8e2a5646a6fe`; JSON 21,323 bytes/hash `ed772d267e56784b9a847743575a242b049697ffe35369c541913903c0b24914`; ZIP contains only `openapi.json`, CRC clean, safe extraction and upstream committed-provenance verification passed.
+- Added exact Orval `8.39.0`; lock delta added 86 package records, removed none and changed no existing package versions. Installed/locked Orval resolved to the same registry integrity. `npm audit --audit-level=low`: zero vulnerabilities.
+- Audited public registry tarball and postinstall for exact `esbuild@0.28.2`; allowed only `"esbuild@0.28.2": true`. Existing allow entries were preserved. Normal lifecycle-enabled npm install and fresh-volume `npm ci` passed; no other script was approved.
+- Implemented offline receipt/schema/ZIP verifier, parent-pinned source manifest, read-only upstream verifier copies with SHA provenance, Orval config and central HTTP mutator, generated 24 Orval files, and unit/negative fixtures. Generated tree is 24 files/710 lines/25 AST function nodes; it is excluded from hand-authored CSD counts by generator provenance.
+- First 2x generation comparator had a Python harness type mismatch (`str` versus `bytes`), not a generation failure. Correct comparison of first-run hash manifest against the second-run 24-file tree passed byte-identically.
+- First strict CSD pass flagged the generic alias notation in prose as an unresolved placeholder; prose was changed to avoid placeholder syntax. Subsequent strict and strict/examples checks passed.
+- Full gates and logs are recorded in the Stage B section of `verification.md`; user-required operations remain limited to the current FEAT-7 candidate, with PR review pending.
+
+## Deferred work recorded at Phase A completion (historical)
+
+- At the Phase A checkpoint, Stage B was deferred pending the published API artifact and verified receipt. The parent-authorized continuation and its exact source pin are recorded above; no draft or fallback contract was used.
 - Real-browser cookie issuance and cross-origin CORS policy remain deferred to real-API E2E under SPA #17; MSW tests do not claim to prove browser cookies.

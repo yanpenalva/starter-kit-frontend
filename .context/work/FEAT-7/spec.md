@@ -29,10 +29,18 @@ and AST-verified CSD compliance.
 - `src/lib/http/http-client.test.ts`: comprehensive tests asserting real transport facts, origin invariant zero outbound dispatch, lexical control character rejection, honest test table labels, and error bounds.
 - CSD work item FEAT-7 with EXC-0001 reference, verification evidence, and execution log.
 
+## Stage B — approved typed client consumer
+
+- Pin Orval `8.39.0` exactly and generate only from `openapi/openapi.json` verified against `openapi/receipt.json`, `openapi/artifact.zip`, and `openapi/contract-pin.json`.
+- Keep `VITE_API_URL` as the sole origin setting. It must resolve to root origin; generated `/api/v1/...` paths pass unchanged through the central HTTP client; `/sanctum/csrf-cookie` remains root-relative.
+- Generated endpoints and schema types are Orval-owned output. Orval config sets Vue Query v5, Axios transport, generated header, formatting, and the central mutator; output is never edited manually.
+- Offline verification uses byte-identical upstream provenance modules and fixed source policy. Committed mode does not expire snapshots; refresh mode retains 90-day age and 300-second clock-skew policy. The CI consumer has no cross-repository token or network fetch.
+- The mutator preserves the central instance's credentials, origin guard, cancellation, CSRF singleflight/reset, 419 no-replay, and normalized `HttpError`. It overwrites request `baseURL` with immutable root origin and does not rewrite contract paths.
+- Dependency installation script exception is limited to audited `esbuild@0.28.2` in `allowScripts`; any future version requires separate review.
+
 ## Out of scope
 
-- Typed client generation / Orval / DTOs (stage B; OpenAPI Stage B b0d is NOT approved; parent waiting for corrected ACTUAL main publication + verified receipt; DO NOT generate Orval from draft/runtime candidate).
-- Profile/Login DTOs, endpoint helpers, query composables, stores, router, pages, UI/design, auth flow wiring, real-API E2E (SPA #17; MSW/unit tests never claim to prove real-browser cookies).
+- Hand-authored domain DTOs, auth state/provider wiring, UI/layout/style/router changes, token/PII persistence, real-browser or real-API E2E, and claims about browser cookie/network behavior.
 
 ## Module public interface contracts
 
@@ -67,3 +75,6 @@ and AST-verified CSD compliance.
 8. AST audit verifies $\le 15$ functions/file, $\le 3$ returns, $\le 7$ params, 0 `else`, $\le 500$ lines for all production files.
 9. Fail-closed env and factory validation demonstrated (missing/invalid/unsafe URL throws `InvalidApiBaseUrlError`).
 10. No test claims real browser cookie issuance; that stays with real-API E2E (SPA #17).
+11. Pinned contract bytes, receipt identity, archive digest, strict JSON, local-only refs, safe archive extraction, and missing-input generation failure pass offline fixtures.
+12. Two consecutive Orval 8.39.0 generations are byte-identical; generated Vue Query calls propagate `AbortSignal`; HTTP 204 is void and HTTP 200 is typed data.
+13. Existing 100 baseline tests remain unchanged and green; added tests cover mutator and offline contract rejection paths.

@@ -1,0 +1,35 @@
+name: Contract client
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+      - name: Pin npm
+        run: |
+          npm install --global npm@12.2.0
+          test "$(npm --version)" = "12.2.0"
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run client:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: python3 scripts/validate_context.py --strict --examples
+      - run: python3 -m unittest discover -s tests -v
+      - run: npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project

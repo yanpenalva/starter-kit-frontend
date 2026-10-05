@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "policy_source": "Parent authorization in FEAT-7 retake prompt, 2026-10-05",
+  "source": {
+    "repository": "yanpenalva/starter-kit-api",
+    "commit_sha": "e646c34a280b851847676af290494e872edcaa9b",
+    "branch": "main"
+  },
+  "workflow": {
+    "name": "OpenAPI Contract",
+    "path": ".github/workflows/openapi.yml",
+    "id": 374937885,
+    "event": "workflow_dispatch"
+  },
+  "run": {
+    "id": 37255680565,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "artifact": {
+    "id": 11321734331,
+    "name": "openapi-e646c34a280b851847676af290494e872edcaa9b",
+    "archive_file": "artifact.zip",
+    "archive_bytes": 2044,
+    "archive_sha256": "0d019b1adfc1d9d3f3fb65f0544d15fcc0d51a7361e23508204c8e2a5646a6fe",
+    "contract_file": "openapi.json",
+    "contract_bytes": 21323,
+    "contract_sha256": "ed772d267e56784b9a847743575a242b049697ffe35369c541913903c0b24914"
+  },
+  "verification": {
+    "mode": "verify-committed",
+    "max_age_days_for_download": 90,
+    "clock_skew_seconds_for_download": 300,
+    "max_archive_bytes": 10485760,
+    "max_contract_bytes": 65536,
+    "duplicate_json_keys": "reject",
+    "external_refs": "reject",
+    "committed_snapshot_expiration": "not-applied"
+  }
+}

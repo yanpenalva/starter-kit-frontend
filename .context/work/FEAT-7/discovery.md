@@ -8,7 +8,7 @@
 
 ## Evidence
 
-- Sibling API repository inspection: `.context/project/api.md` and `openapi.yaml` exist as manually reviewed preimplementation draft contracts, NOT generated runtime artifacts from Scramble. Stage B typed client generation (Orval 8.39.0 custom-mutator integration, generated types) remains deferred to SPA #7 stage B waiting on API #11 reviewed main artifact/provenance and API #13 implementations. Contract-dependent endpoints/DTOs remain out of phase A scope.
+- At original Phase A discovery, sibling API `.context/project/api.md` and `openapi.yaml` were manually reviewed preimplementation drafts, not generated runtime artifacts from Scramble; Stage B was then deferred. Parent later authorized the exact published artifact in `orval-stage-b.md`. No draft is used as runtime input; contract-dependent endpoints and DTOs were outside Phase A scope.
 - Stack facts: axios 1.20.0 pinned (registry verified), Node 24.15/npm 12.2.0 toolchain per FEAT-5/6 precedent, MSW 3 configured with a fail-on-unhandled-frame server hook.
 - Confidence: high on transport constraints; contract-dependent parts are explicitly deferred.
 
@@ -25,3 +25,7 @@ If we `implement the central axios instance, CSRF bootstrap coordinator and type
 - Constraints: transport only — no routes, pages, UI, design, stores, query composables or router changes; no Bearer/PAT/localStorage tokens; no speculative Profile/Login DTOs; no Orval install/generation; no axios global-default mutation; no PII/credentials in errors or logs.
 - Alternatives: per-feature clients (rejected: duplication, insecure variance); starting typed generation now (rejected: API #11 artifact does not exist; fail-closed sync would have nothing to consume); blind 419 retry (rejected: security — token mismatch may mean session rotation).
 - Why now: wave 3 opens the credential lane; auth journeys (FEAT-2 successors) block on this foundation.
+
+## Stage B continuation (authorized 2026-10-05)
+
+The earlier discovery accurately records Phase A's then-deferred generator and draft-contract exclusions. Parent later authorized Stage B only against the API `main` publication and exact receipt recorded in `orval-stage-b.md`. This continuation adds a pinned offline consumer and generated client; no handwritten endpoint DTOs or API-fetch credentials are introduced.

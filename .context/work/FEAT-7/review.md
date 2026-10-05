@@ -1,6 +1,10 @@
-# Review — FEAT-7 typed HTTP client phase A
+# Review — FEAT-7 typed HTTP client
 
-## Status: PASS — Independent Review Received on Exact Source SHA e0809113f332883dc5d2156e80159fb37c68ae3d
+## Stage B candidate: independent review pending — PR #26 remains draft
+
+The historical PASS below applies only to Phase A source SHA `e0809113f332883dc5d2156e80159fb37c68ae3d`. It is not a review or approval of this Stage B candidate. Parent review is pending.
+
+## Phase A provenance: PASS — reviewed source SHA e0809113f332883dc5d2156e80159fb37c68ae3d
 
 Independent review was conducted by a dedicated reviewer agent in a separate conversation, evaluating the exact source SHA `e0809113f332883dc5d2156e80159fb37c68ae3d` against baseline `8684ae4b9c9843750698173fb24139e47a2a5acf`. The verdict is PASS with 0 findings.
 
@@ -57,7 +61,7 @@ Independent review was conducted by a dedicated reviewer agent in a separate con
   - Null-prototype fieldErrors including `__proto__`/`constructor`.
   - No manually authored DTOs or generated DTOs.
   - No tokens/profile PII storage.
-  - OpenAPI Stage B b0d explicitly NOT approved; parent waiting for corrected ACTUAL main publication + verified receipt.
+  - At this Phase A review checkpoint, OpenAPI Stage B b0d was not approved; the subsequent parent-authorized publication and receipt are recorded in `orval-stage-b.md`.
   - No premature Orval generation or browser-cookie claims.
 - Current review status: PASS on exact source SHA `e0809113f332883dc5d2156e80159fb37c68ae3d` (parent independent review conversation `1a204823-1c83-496a-8a19-9ccb8a3a3bdb`). Subsequent doc-only follow-ups leave source code untouched.
 
