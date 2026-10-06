@@ -1,8 +1,10 @@
 # Review — FEAT-7 typed HTTP client
 
-## Stage B candidate: independent review pending — PR #26 remains draft
+## Stage B candidate: corrective changes after capsule FAIL — independent review pending
 
-The historical PASS below applies only to Phase A source SHA `e0809113f332883dc5d2156e80159fb37c68ae3d`. It is not a review or approval of this Stage B candidate. Parent review is pending.
+Fresh independent LUNA capsule review of source `928db516ac159368bb7f5640c687785ce5b0b814` returned FAIL: 1 P1 receipt identity forgery, 2 P2 fail-closed input/weekday issues, and 1 INFO workflow job collision. Corrective commit and offline regression evidence are recorded below after validation. Local regression/gate evidence is not an independent review PASS; parent/peer review remains pending and PR #26 stays DRAFT.
+
+The historical PASS below applies only to Phase A source SHA `e0809113f332883dc5d2156e80159fb37c68ae3d`. It is not a review or approval of the Stage B candidate or corrective commit.
 
 ## Phase A provenance: PASS — reviewed source SHA e0809113f332883dc5d2156e80159fb37c68ae3d
 

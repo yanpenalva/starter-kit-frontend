@@ -8,7 +8,17 @@ import {
 
 const SECONDS_PATTERN = /^[0-9]+$/;
 const IMF_FIXDATE_PATTERN =
-  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+GMT$/;
+  /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+GMT$/;
+
+const WEEKDAY_BY_NAME: Readonly<Record<string, number>> = {
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+  Sun: 0,
+};
 
 const MONTH_BY_NAME: Readonly<Record<string, number>> = {
   Jan: 0,
@@ -83,12 +93,13 @@ function parseHttpDate(value: string): number | null {
   if (match === null) {
     return null;
   }
-  const expectedDay = Number.parseInt(match[1] as string, 10);
-  const expectedMonth = MONTH_BY_NAME[match[2] as string];
-  const expectedYear = Number.parseInt(match[3] as string, 10);
-  const expectedHour = Number.parseInt(match[4] as string, 10);
-  const expectedMinute = Number.parseInt(match[5] as string, 10);
-  const expectedSecond = Number.parseInt(match[6] as string, 10);
+  const expectedWeekday = WEEKDAY_BY_NAME[match[1] as string];
+  const expectedDay = Number.parseInt(match[2] as string, 10);
+  const expectedMonth = MONTH_BY_NAME[match[3] as string];
+  const expectedYear = Number.parseInt(match[4] as string, 10);
+  const expectedHour = Number.parseInt(match[5] as string, 10);
+  const expectedMinute = Number.parseInt(match[6] as string, 10);
+  const expectedSecond = Number.parseInt(match[7] as string, 10);
 
   const when = Date.parse(value);
   const date = new Date(when);
@@ -97,6 +108,7 @@ function parseHttpDate(value: string): number | null {
     expectedMinute > 59 ||
     expectedSecond > 59 ||
     Number.isNaN(when) ||
+    date.getUTCDay() !== expectedWeekday ||
     date.getUTCDate() !== expectedDay ||
     date.getUTCMonth() !== expectedMonth ||
     date.getUTCFullYear() !== expectedYear ||
@@ -106,8 +118,10 @@ function parseHttpDate(value: string): number | null {
   ) {
     return null;
   }
-  const delay = Math.max(0, Math.ceil((when - Date.now()) / 1000));
-  return Number.isSafeInteger(delay) && delay <= MAX_RETRY_AFTER_SECONDS
+  const delay = Math.ceil((when - Date.now()) / 1000);
+  return Number.isSafeInteger(delay) &&
+    delay > 0 &&
+    delay <= MAX_RETRY_AFTER_SECONDS
     ? delay
     : null;
 }

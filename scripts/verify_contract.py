@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import sys
 from types import ModuleType
-from typing import Any
+from typing import TypedDict
 
 ROOT = Path(__file__).resolve().parents[1]
 OPENAPI = ROOT / "openapi"
@@ -18,7 +18,59 @@ RECEIPT_PATH = OPENAPI / "receipt.json"
 ARCHIVE_PATH = OPENAPI / "artifact.zip"
 VERIFIER_PATH = ROOT / "scripts/vendor/openapi-contract"
 
-EXPECTED_PIN: dict[str, Any] = {
+class SourcePin(TypedDict):
+    repository: str
+    commit_sha: str
+    branch: str
+
+
+class WorkflowPin(TypedDict):
+    name: str
+    path: str
+    id: int
+    event: str
+
+
+class RunPin(TypedDict):
+    id: int
+    attempt: int
+    status: str
+    conclusion: str
+
+
+class ArtifactPin(TypedDict):
+    id: int
+    name: str
+    archive_file: str
+    archive_bytes: int
+    archive_sha256: str
+    contract_file: str
+    contract_bytes: int
+    contract_sha256: str
+
+
+class VerificationPin(TypedDict):
+    mode: str
+    max_age_days_for_download: int
+    clock_skew_seconds_for_download: int
+    max_archive_bytes: int
+    max_contract_bytes: int
+    duplicate_json_keys: str
+    external_refs: str
+    committed_snapshot_expiration: str
+
+
+class ExpectedPin(TypedDict):
+    schema_version: int
+    policy_source: str
+    source: SourcePin
+    workflow: WorkflowPin
+    run: RunPin
+    artifact: ArtifactPin
+    verification: VerificationPin
+
+
+EXPECTED_PIN: ExpectedPin = {
     "schema_version": 1,
     "policy_source": "Parent authorization in FEAT-7 retake prompt, 2026-10-05",
     "source": {
@@ -60,6 +112,24 @@ EXPECTED_PIN: dict[str, Any] = {
     },
 }
 
+RECEIPT_PIN_FIELDS: dict[str, object] = {
+    "repository": EXPECTED_PIN["source"]["repository"],
+    "commit_sha": EXPECTED_PIN["source"]["commit_sha"],
+    "head_branch": EXPECTED_PIN["source"]["branch"],
+    "workflow_name": EXPECTED_PIN["workflow"]["name"],
+    "workflow_path": EXPECTED_PIN["workflow"]["path"],
+    "workflow_id": EXPECTED_PIN["workflow"]["id"],
+    "event": EXPECTED_PIN["workflow"]["event"],
+    "run_id": EXPECTED_PIN["run"]["id"],
+    "run_attempt": EXPECTED_PIN["run"]["attempt"],
+    "artifact_id": EXPECTED_PIN["artifact"]["id"],
+    "artifact_name": EXPECTED_PIN["artifact"]["name"],
+    "artifact_size_bytes": EXPECTED_PIN["artifact"]["archive_bytes"],
+    "artifact_file_bytes": EXPECTED_PIN["artifact"]["contract_bytes"],
+    "archive_sha256": EXPECTED_PIN["artifact"]["archive_sha256"],
+    "artifact_file_sha256": EXPECTED_PIN["artifact"]["contract_sha256"],
+}
+
 
 class ContractVerificationError(ValueError):
     pass
@@ -72,7 +142,7 @@ def verifier_module(name: str) -> ModuleType:
     return importlib.import_module(name)
 
 
-def strict_json(payload: bytes, description: str) -> Any:
+def strict_json(payload: bytes, description: str) -> object:
     try:
         duplicate_hook = verifier_module("contract_core").check_duplicate_keys
         return json.loads(payload.decode("utf-8"), object_pairs_hook=duplicate_hook)
@@ -82,7 +152,52 @@ def strict_json(payload: bytes, description: str) -> Any:
         ) from error
 
 
-def validate_local_refs(document: Any) -> None:
+def strict_json_equal(actual: object, expected: object) -> bool:
+    matches = type(actual) is type(expected)
+    if matches and isinstance(actual, dict) and isinstance(expected, dict):
+        matches = actual.keys() == expected.keys()
+        if matches:
+            for key, value in actual.items():
+                matches = matches and strict_json_equal(value, expected[key])
+    if matches and isinstance(actual, list) and isinstance(expected, list):
+        matches = len(actual) == len(expected)
+        if matches:
+            for index, value in enumerate(actual):
+                matches = matches and strict_json_equal(value, expected[index])
+    if matches and not isinstance(actual, (dict, list)):
+        matches = actual == expected
+    return matches
+
+
+def validate_receipt_pin(receipt: object) -> None:
+    if not isinstance(receipt, dict):
+        raise ContractVerificationError("Receipt precisa ser um objeto JSON")
+    for field, expected in RECEIPT_PIN_FIELDS.items():
+        if field not in receipt:
+            raise ContractVerificationError(f"Receipt sem campo obrigatório: {field}")
+        if not strict_json_equal(receipt[field], expected):
+            raise ContractVerificationError(f"Receipt diverge do pin no campo: {field}")
+    if "run_url" not in receipt or not isinstance(receipt["run_url"], str):
+        raise ContractVerificationError("Receipt sem URL canônica da execução")
+    repository = receipt["repository"]
+    run_id = receipt["run_id"]
+    if not isinstance(repository, str) or type(run_id) is not int:
+        raise ContractVerificationError("Receipt contém tipo inválido na identidade da execução")
+    run_attempt = receipt["run_attempt"]
+    if type(run_attempt) is not int:
+        raise ContractVerificationError("Receipt contém tipo inválido em run_attempt")
+    expected_url = f"https://github.com/{repository}/actions/runs/{run_id}"
+    actual_url = receipt["run_url"]
+    if actual_url != expected_url:
+        attempt_prefix = f"{expected_url}/attempts/"
+        if actual_url.startswith(attempt_prefix):
+            suffix = actual_url[len(attempt_prefix) :]
+            if suffix != str(run_attempt):
+                raise ContractVerificationError("URL do run_attempt diverge do pin")
+        raise ContractVerificationError("URL do run não corresponde à identidade pinada")
+
+
+def validate_local_refs(document: object) -> None:
     pending = [document]
     while pending:
         current = pending.pop()
@@ -109,8 +224,16 @@ def verify_files(
 
     pin_bytes = core.read_bounded_bytes(pin_path, 65536, "Pin manifest")
     pin = strict_json(pin_bytes, "manifesto de pin")
-    if pin != EXPECTED_PIN:
+    if not strict_json_equal(pin, EXPECTED_PIN):
         raise ContractVerificationError("Manifesto de pin diverge da política aprovada")
+
+    receipt_bytes = core.read_bounded_bytes(
+        receipt_path,
+        core.MAX_RECEIPT_BYTES,
+        "Receipt",
+    )
+    receipt = strict_json(receipt_bytes, "receipt")
+    validate_receipt_pin(receipt)
 
     contract_bytes = core.read_bounded_bytes(contract_path, 65536, "Contract")
     document = strict_json(contract_bytes, "OpenAPI")

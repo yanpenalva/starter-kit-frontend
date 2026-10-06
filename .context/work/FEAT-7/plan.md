@@ -23,6 +23,7 @@ continuation executes Stage B against the parent-approved artifact receipt.
 | S14 | wave-3-client-lane | S13 | exact Orval 8.39.0 pin, reviewed esbuild script allow, provenance verifier and committed source pin | 10 | security, testing, project |
 | S15 | wave-3-client-lane | S14 | central mutator, Vue Query client generation, typed output and transport tests | 11 | architecture, testing |
 | S16 | wave-3-client-lane | S15 | full pinned Docker gates, generation determinism, offline CI and exact-diff review | 12 | core, testing, project |
+| S17 | wave-3-client-lane | S16 | remediate source-928 capsule findings: pinned receipt identity, fail-closed mutator baseURL, weekday validation, unique CI job; offline regression proof | 13 | security, testing, project |
 
 ## Next Wave 3 Dependencies
 

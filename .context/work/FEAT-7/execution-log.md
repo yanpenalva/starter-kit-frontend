@@ -114,6 +114,17 @@ User reported that independent review of commit `540577b` resulted in `FAIL` wit
 - First strict CSD pass flagged the generic alias notation in prose as an unresolved placeholder; prose was changed to avoid placeholder syntax. Subsequent strict and strict/examples checks passed.
 - Full gates and logs are recorded in the Stage B section of `verification.md`; user-required operations remain limited to the current FEAT-7 candidate, with PR review pending.
 
+## Corrective capsule fixes (2026-10-05)
+
+- Input review: LUNA capsule FAIL on source `928db516ac159368bb7f5640c687785ce5b0b814`: P1 receipt identity forgery; P2 both mutator `baseURL` layers silently overwrote invalid own values; P2 IMF weekday ignored/expired date accepted; INFO duplicate CI job ID.
+- Old-vs-fixed evidence: before changes, Python verifier accepted coherent `run_id + 1`/matching `run_url` plus `artifact_id + 1` and `run_attempt + 1`, missing `run_attempt`, `schema_version` bool/float, and bool run attempt. After change these are rejected before CLI; canonical receipt still passes.
+- Old-vs-fixed mutator evidence: before changes, all 20 adversarial own-baseURL cases (10 inputs in each of config/options) failed the expected rejection and each called fixture adapter once. After change, all 20 emit the localized invariant error and adapter remains uncalled; no-property/exact-root controls pass.
+- Old-vs-fixed date evidence: before changes, six non-Sunday weekday tokens for `04 Oct 2026` parsed as +120 seconds and expired date returned +120; after change only Sunday gives +120, all six mismatches and past date return null, valid leap day and seconds form remain intact.
+- CI INFO: new job ID renamed `verify` → `verify-contract-client`, display `Verificar contrato OpenAPI (cliente)`; legacy `.github/workflows/frontend-checks.yml` is unchanged.
+- Targeted post-fix: `format:check`, `lint`, `typecheck` PASS; 33/33 affected Vitest checks (25 mutator + 8 weekday) PASS; Python unit 18/18 PASS.
+- Fresh-volume full gates: `npm ci` 414 added/415 audited/0 vulnerabilities; `npm audit --audit-level=low` 0; full Vitest 133/133; build 118 modules; offline provenance, two deterministic generations (24 files), CSD strict/examples, Python 18/18, doctor 1.2.1 all PASS. Logs in `/tmp/opencode/luna-frontend-generation/wrapper-logs/fixes-full-gates-final.log` and `/tmp/opencode/luna-frontend-generation/wrapper-logs/fixes-csd-final.log`.
+- Independent review of corrective HEAD remains pending. Earlier `e080911` PASS remains Phase A historical evidence only.
+
 ## Deferred work recorded at Phase A completion (historical)
 
 - At the Phase A checkpoint, Stage B was deferred pending the published API artifact and verified receipt. The parent-authorized continuation and its exact source pin are recorded above; no draft or fallback contract was used.

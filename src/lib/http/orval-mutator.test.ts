@@ -1,6 +1,7 @@
 import axios, { AxiosHeaders, CanceledError } from "axios";
 import type {
   AxiosAdapter,
+  AxiosRequestConfig,
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
@@ -10,6 +11,31 @@ import type { HttpClient } from "@/lib/http";
 import { createApiMutator } from "@/lib/http/orval-mutator";
 
 const API_ROOT = "http://127.0.0.1:8090";
+type BaseUrlLayer = "config" | "options";
+type UnsafeBaseUrlCase = readonly [string, BaseUrlLayer, unknown];
+
+const UNSAFE_BASE_URL_CASES: readonly UnsafeBaseUrlCase[] = [
+  ["foreign URL", "config", "https://outside.invalid"],
+  ["foreign URL", "options", "https://outside.invalid"],
+  ["empty string", "config", ""],
+  ["empty string", "options", ""],
+  ["null", "config", null],
+  ["null", "options", null],
+  ["explicit undefined", "config", undefined],
+  ["explicit undefined", "options", undefined],
+  ["plain object", "config", {}],
+  ["plain object", "options", {}],
+  ["String object", "config", new String(API_ROOT)],
+  ["String object", "options", new String(API_ROOT)],
+  ["control character", "config", `${API_ROOT}/\n`],
+  ["control character", "options", `${API_ROOT}/\n`],
+  ["surrounding whitespace", "config", ` ${API_ROOT} `],
+  ["surrounding whitespace", "options", ` ${API_ROOT} `],
+  ["foreign URL with path", "config", "https://outside.invalid/api/v1"],
+  ["foreign URL with path", "options", "https://outside.invalid/api/v1"],
+  ["protocol-relative URL", "config", "//outside.invalid/api/v1"],
+  ["protocol-relative URL", "options", "//outside.invalid/api/v1"],
+];
 
 function responseFor(
   config: InternalAxiosRequestConfig,
@@ -35,9 +61,9 @@ function fixtureFor(adapter: AxiosAdapter): {
 }
 
 it("returns generic data and joins full contract path against root origin once", async () => {
-  let observed: InternalAxiosRequestConfig | null = null;
+  const observed: InternalAxiosRequestConfig[] = [];
   const fixture = fixtureFor(async (config) => {
-    observed = config;
+    observed.push(config);
     return responseFor(config, 200, { result: "fixture" });
   });
 
@@ -45,14 +71,31 @@ it("returns generic data and joins full contract path against root origin once",
     method: "GET",
     url: "/api/v1/fixture",
   });
+  const configuredResult = await fixture.mutator<{ result: string }>({
+    baseURL: API_ROOT,
+    method: "GET",
+    url: "/api/v1/config-root",
+  });
+  const optionResult = await fixture.mutator<{ result: string }>(
+    {
+      method: "GET",
+      url: "/api/v1/options-root",
+    },
+    { baseURL: API_ROOT },
+  );
 
   expect(result).toEqual({ result: "fixture" });
-  expect(observed).not.toBeNull();
-  if (observed === null) {
-    throw new Error("O adapter de fixture não recebeu requisição.");
-  }
-  expect(fixture.client.instance.getUri(observed)).toBe(
+  expect(configuredResult).toEqual({ result: "fixture" });
+  expect(optionResult).toEqual({ result: "fixture" });
+  expect(observed).toHaveLength(3);
+  expect(fixture.client.instance.getUri(observed[0])).toBe(
     `${API_ROOT}/api/v1/fixture`,
+  );
+  expect(fixture.client.instance.getUri(observed[1])).toBe(
+    `${API_ROOT}/api/v1/config-root`,
+  );
+  expect(fixture.client.instance.getUri(observed[2])).toBe(
+    `${API_ROOT}/api/v1/options-root`,
   );
 });
 
@@ -90,6 +133,49 @@ it("rejects foreign destinations before adapter dispatch", async () => {
   ).rejects.toMatchObject({ kind: "unexpected" });
   expect(adapterCalls).toBe(0);
 });
+
+it.each(UNSAFE_BASE_URL_CASES)(
+  "rejects %s baseURL in %s layer before dispatch",
+  async (_caseName, layer, unsafeBaseURL) => {
+    let adapterCalls = 0;
+    const fixture = fixtureFor(async (config) => {
+      adapterCalls += 1;
+      return responseFor(config, 200, null);
+    });
+    const config: AxiosRequestConfig<unknown> = {
+      method: "GET",
+      url: "/api/v1/fixture",
+    };
+    const options: AxiosRequestConfig<unknown> = {};
+
+    if (layer === "config") {
+      Object.defineProperty(config, "baseURL", {
+        enumerable: true,
+        value: unsafeBaseURL,
+      });
+      options.baseURL = API_ROOT;
+    }
+    if (layer === "options") {
+      config.baseURL = API_ROOT;
+      Object.defineProperty(options, "baseURL", {
+        enumerable: true,
+        value: unsafeBaseURL,
+      });
+    }
+
+    let failure: unknown = null;
+    try {
+      await fixture.mutator(config, options);
+    } catch (cause: unknown) {
+      failure = cause;
+    }
+    expect.soft(failure).toMatchObject({
+      kind: "unexpected",
+      message: "Uma resposta inesperada foi recebida.",
+    });
+    expect.soft(adapterCalls).toBe(0);
+  },
+);
 
 it("resets CSRF singleflight on 419 without replay and keeps CSRF path at root", async () => {
   const paths: string[] = [];

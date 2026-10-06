@@ -1,5 +1,9 @@
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
-import { apiBaseUrlFromEnv, createHttpClient } from "@/lib/http";
+import {
+  apiBaseUrlFromEnv,
+  buildHttpError,
+  createHttpClient,
+} from "@/lib/http";
 import type { HttpClient, HttpError } from "@/lib/http";
 
 export type ErrorType<T = unknown> = HttpError & {
@@ -12,6 +16,37 @@ type Mutator = <T>(
   options?: MutatorConfig,
 ) => Promise<T>;
 
+function isTrustedRoot(value: unknown, trustedRoot: string): boolean {
+  if (typeof value !== "string" || value !== trustedRoot) {
+    return false;
+  }
+  try {
+    const parsed = new URL(value);
+    return (
+      parsed.origin === trustedRoot &&
+      parsed.pathname === "/" &&
+      parsed.search === "" &&
+      parsed.hash === ""
+    );
+  } catch {
+    return false;
+  }
+}
+
+function hasTrustedBaseURL(
+  config: MutatorConfig | undefined,
+  trustedRoot: string,
+): boolean {
+  if (config === undefined || !Object.hasOwn(config, "baseURL")) {
+    return true;
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(config, "baseURL");
+  if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) {
+    return false;
+  }
+  return isTrustedRoot(descriptor.value, trustedRoot);
+}
+
 export function createApiMutator(
   client: HttpClient,
   trustedRoot: string,
@@ -20,6 +55,11 @@ export function createApiMutator(
     config: MutatorConfig,
     options?: MutatorConfig,
   ): Promise<T> {
+    const configBaseURLIsTrusted = hasTrustedBaseURL(config, trustedRoot);
+    const optionsBaseURLIsTrusted = hasTrustedBaseURL(options, trustedRoot);
+    if (!configBaseURLIsTrusted || !optionsBaseURLIsTrusted) {
+      throw buildHttpError({ kind: "unexpected" });
+    }
     const response: AxiosResponse<T> = await client.instance.request<
       T,
       AxiosResponse<T>,

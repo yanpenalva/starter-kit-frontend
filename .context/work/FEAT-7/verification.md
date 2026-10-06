@@ -309,3 +309,34 @@ SHA-preserved upstream verifier files were also AST-counted: `contract_cli.py` 1
 - Lock delta versus starting HEAD: 86 new package records, 0 removed, 0 existing package-version changes.
 
 Generation is validated offline against the externally pinned parent policy. No generated output was edited manually; no DTO was authored by hand. Tests use local Axios adapter fixtures only; no MSW/browser/network/cookie evidence is claimed.
+
+## Corrective verification — LUNA capsule findings on source 928db51
+
+- Capsule verdict on source `928db516ac159368bb7f5640c687785ce5b0b814`: FAIL with 1 P1, 2 P2, 1 INFO. Corrective work is local producer evidence only and is not an independent review PASS. Phase A `e080911` PASS remains historical and separate.
+- P1 old-vs-fixed: pre-fix `tests/test_contract_verifier.py` accepted the coherent run/artifact/attempt forgery, missing `run_attempt`, boolean/float pin schema values, and boolean receipt attempt. Strict recursive JSON equality and receipt-to-pin identity checks now reject those fixtures before vendored CLI delegation; the pinned real receipt/bundle still passes.
+- P2 mutator old-vs-fixed: pre-fix focused Vitest had 20/20 baseURL cases fail the rejection expectation; every case reached its synthetic adapter once. Post-fix `orval-mutator.test.ts` rejects all 20 (10 invalid values independently in each layer), confirms zero adapter calls and a localized `unexpected` error; absent and exact-root baseURL controls pass.
+- P2 weekday old-vs-fixed: pre-fix 7/8 weekday regressions failed (six mismatched weekdays accepted; expired date returned 120). Post-fix parser validates the UTC weekday and requires a positive future delay; all seven weekday mapping cases, past/future date controls, leap fixtures, and delay-seconds pass.
+- INFO: added workflow job changed from duplicate ID `verify` to `verify-contract-client`, display name `Verificar contrato OpenAPI (cliente)`; legacy `frontend-checks.yml` untouched.
+
+### Corrective full gates (consolidated, single run)
+
+Fresh named volumes `wave3-feat7-consolidated-nm`/`-dist` in `node:24.15.0-bookworm`, npm 12.2.0, `PYTHONDONTWRITEBYTECODE=1` for Python. One consolidated run passed every gate below; full stdout is `/tmp/opencode/luna-frontend-generation/wrapper-logs/consolidated-final.log`.
+
+| Gate | Result |
+| --- | --- |
+| `npm ci` | PASS; 414 added, 415 audited, 0 vulnerabilities |
+| `npm ls orval esbuild @esbuild/linux-x64` | PASS; orval 8.39.0, esbuild 0.28.2 |
+| `npm audit --audit-level=low` | PASS; 0 vulnerabilities |
+| `npm run format:check`, `npm run lint`, `npm run typecheck` | PASS |
+| `npm test` | PASS; 133/133 across 8 files (95 http-client + 25 mutator + 8 weekday + 5 scaffold) |
+| `npm run contract:verify` | PASS offline on pinned bundle |
+| `npm run client:generate` x2 + deterministic diff | PASS; 24 generated files, 710 lines, byte-identical; tracked tree unchanged, zero untracked generated files |
+| `npm run build` | PASS; 118 modules |
+| `python3 scripts/validate_context.py --strict` | PASS |
+| `python3 scripts/validate_context.py --strict --examples` | PASS; no example suite declared |
+| `python3 -m unittest discover -s tests -v` | PASS; 18/18 (14 existing + 4 receipt strictness/forgery) |
+| `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project` | PASS; healthy 1.2.1 |
+
+Generation manifest convention: `sha256sum` of the `LC_ALL=C sort`ed `sha256sum` listing of the 24 files, measured with paths relative to `src/lib/api/generated`, equals `19ec02e346707d6e7675e6534fe21d5d0196411a0b40c5efe3b1f883b54d53ef`, matching the committed generated tree.
+
+Corrective candidate still awaits parent/peer independent review. No UI/state/auth/E2E lane or PR acceptance is claimed.

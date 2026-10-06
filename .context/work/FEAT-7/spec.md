@@ -78,3 +78,7 @@ and AST-verified CSD compliance.
 11. Pinned contract bytes, receipt identity, archive digest, strict JSON, local-only refs, safe archive extraction, and missing-input generation failure pass offline fixtures.
 12. Two consecutive Orval 8.39.0 generations are byte-identical; generated Vue Query calls propagate `AbortSignal`; HTTP 204 is void and HTTP 200 is typed data.
 13. Existing 100 baseline tests remain unchanged and green; added tests cover mutator and offline contract rejection paths.
+14. Receipt provenance checks use recursive JSON type-strict equality and compare every pinned run/artifact identity field before the vendored verifier; missing identity, coherent forged IDs, duplicates, and wrong primitive types fail closed.
+15. Mutator rejects any own `baseURL` in either request layer unless it is exactly trusted root origin; all 10 invalid categories in both layers dispatch zero adapter requests.
+16. IMF-fixdate parsing verifies weekday against UTC day-of-week; wrong weekday and past timestamps return null, while valid Sunday future date, leap day, and delay-seconds remain valid.
+17. CI workflow job identifier is unique relative to existing frontend workflow and keeps all verification steps unchanged.

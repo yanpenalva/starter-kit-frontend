@@ -8,6 +8,20 @@
 - Parent authorized this continuation and exact source policy in the task prompt. The API bundle does not grant its own policy.
 - Human review remains pending. This candidate does not complete Wave 3; auth state, visual UI and real-API/browser E2E remain later work.
 
+## Corrective capsule review of source 928db51
+
+- Independent fresh LUNA capsule verdict for source `928db516ac159368bb7f5640c687785ce5b0b814`: FAIL with 1 P1 receipt identity forgery, 2 P2 mutator baseURL and Retry-After weekday errors, and 1 INFO CI job-id collision.
+- Corrective scope is exactly those findings. Tests capture old behavior before fixes; this producer's local gates do not constitute an independent review PASS.
+- Earlier Phase A PASS on `e080911` remains historical and does not apply to source 928 or the corrective candidate. Parent/peer review remains pending.
+
+## Corrective local verification
+
+- Receipt pinning now uses recursive strict JSON type equality and checks all required source/workflow/run/artifact identity fields before delegating to the unchanged vendored CLI. Real receipt and bundle positive control passes; forged ID, omitted field, bool/float/string schema/ID and duplicate-key negatives reject.
+- Mutator checks own `baseURL` in config and options independently before any Axios call. All 10 invalid categories in each layer reject with safe normalized `HttpError` and zero synthetic adapter calls; absent and exact-root values pass.
+- Retry-After IMF date now validates weekday against UTC day. Fixed date mapping and expired-date behavior are covered; existing correct Sunday/Tuesday leap-day fixtures and impossible-date/time bounds remain intact.
+- The new workflow job id is `verify-contract-client`, distinct from legacy `verify`; legacy workflow content is untouched.
+- Full corrective gate evidence, old-vs-fixed outcomes and hashes are in `verification.md`. Candidate remains awaiting independent parent/peer review.
+
 ## Approved source pin
 
 | Field | Pinned value |

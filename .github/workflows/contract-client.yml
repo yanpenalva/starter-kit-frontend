@@ -11,7 +11,8 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  verify-contract-client:
+    name: Verificar contrato OpenAPI (cliente)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
