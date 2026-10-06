@@ -108,4 +108,32 @@ describe("LoginPage.vue", () => {
       "Esta conta foi desativada.",
     );
   });
+
+  it("renders links to registration and password recovery", () => {
+    const wrapper = mount(LoginPage);
+
+    const links = wrapper.findAllComponents({ name: "RouterLink" });
+    const targets = links.map((link) => link.props("to"));
+
+    expect(targets).toContain("/register");
+    expect(targets).toContain("/forgot-password");
+  });
+
+  it("displays success message when arriving with registered=1 query param", () => {
+    mockQuery = { registered: "1" };
+    const wrapper = mount(LoginPage);
+
+    expect(wrapper.find("[role='status']").text()).toContain(
+      "Cadastro realizado com sucesso",
+    );
+  });
+
+  it("displays success message when arriving with reset=ok query param", () => {
+    mockQuery = { reset: "ok" };
+    const wrapper = mount(LoginPage);
+
+    expect(wrapper.find("[role='status']").text()).toContain(
+      "Senha redefinida com sucesso",
+    );
+  });
 });

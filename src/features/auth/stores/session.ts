@@ -5,6 +5,21 @@ import type {
   LoginRequest,
   MyProfileResource,
 } from "@/lib/api/generated/models";
+import {
+  registerUser,
+  requestPasswordReset,
+  resetPassword as resetPasswordApi,
+  sendVerificationNotification,
+} from "../api/auth.api";
+import type {
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  RegisterRequest,
+  RegisterResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
+  VerificationNotificationResponse,
+} from "../api/auth.types";
 import { isHttpError, onSessionExpired } from "@/lib/http";
 import { queryClient } from "@/app/providers/query";
 
@@ -162,6 +177,26 @@ export const useSessionStore = defineStore("session", () => {
     }
   }
 
+  async function register(payload: RegisterRequest): Promise<RegisterResponse> {
+    return registerUser(payload);
+  }
+
+  async function resendVerification(): Promise<VerificationNotificationResponse> {
+    return sendVerificationNotification();
+  }
+
+  async function forgotPassword(
+    payload: ForgotPasswordRequest,
+  ): Promise<ForgotPasswordResponse> {
+    return requestPasswordReset(payload);
+  }
+
+  async function resetPassword(
+    payload: ResetPasswordRequest,
+  ): Promise<ResetPasswordResponse> {
+    return resetPasswordApi(payload);
+  }
+
   // Clear session when 401 or 419 occurs on any request, without mutation replay
   onSessionExpired(() => {
     clearSession();
@@ -186,6 +221,10 @@ export const useSessionStore = defineStore("session", () => {
     bootstrap,
     login,
     logout,
+    register,
+    resendVerification,
+    forgotPassword,
+    resetPassword,
     clearSession,
   };
 });

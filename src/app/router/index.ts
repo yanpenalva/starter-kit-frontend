@@ -20,6 +20,29 @@ export const routes: RouteRecordRaw[] = [
     meta: { guestOnly: true },
   },
   {
+    path: "/register",
+    name: "register",
+    component: () => import("@features/auth/pages/RegisterPage.vue"),
+    meta: { guestOnly: true },
+  },
+  {
+    path: "/forgot-password",
+    name: "forgot-password",
+    component: () => import("@features/auth/pages/ForgotPasswordPage.vue"),
+    meta: { guestOnly: true },
+  },
+  {
+    path: "/reset-password",
+    name: "reset-password",
+    component: () => import("@features/auth/pages/ResetPasswordPage.vue"),
+    meta: { guestOnly: true },
+  },
+  {
+    path: "/verify-email",
+    name: "verify-email",
+    component: () => import("@features/auth/pages/VerifyEmailPage.vue"),
+  },
+  {
     path: "/dashboard",
     name: "dashboard",
     component: () => import("@features/auth/pages/DashboardPage.vue"),

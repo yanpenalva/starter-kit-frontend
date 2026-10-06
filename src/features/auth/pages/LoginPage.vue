@@ -5,6 +5,14 @@
     eyebrow="AUTENTICAÇÃO"
   >
     <form class="login-form" @submit.prevent="handleSubmit">
+      <div
+        v-if="successMessage"
+        role="status"
+        class="login-form__alert login-form__alert--success"
+      >
+        {{ successMessage }}
+      </div>
+
       <div v-if="errorMessage" role="alert" class="login-form__alert">
         {{ errorMessage }}
       </div>
@@ -23,7 +31,12 @@
       </div>
 
       <div class="login-form__field">
-        <label for="login-password" class="login-form__label">Senha</label>
+        <div class="login-form__label-row">
+          <label for="login-password" class="login-form__label">Senha</label>
+          <RouterLink to="/forgot-password" class="login-form__link">
+            Esqueci a senha
+          </RouterLink>
+        </div>
         <input
           id="login-password"
           v-model="password"
@@ -44,6 +57,16 @@
         <span v-else>Entrar</span>
       </button>
 
+      <div class="login-form__secondary-links">
+        <span class="login-form__prompt">Não tem uma conta?</span>
+        <RouterLink
+          to="/register"
+          class="login-form__link login-form__link--strong"
+        >
+          Criar conta
+        </RouterLink>
+      </div>
+
       <div class="login-form__help">
         <RouterLink to="/" class="login-form__link">
           Voltar para a página inicial
@@ -54,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import AuthLayout from "@/shared/layouts/AuthLayout.vue";
 import { useSessionStore } from "../stores/session";
@@ -68,6 +91,16 @@ const errorMessage = ref<string | null>(null);
 const session = useSessionStore();
 const router = useRouter();
 const route = useRoute();
+
+const successMessage = computed(() => {
+  if (route.query.registered === "1") {
+    return "Cadastro realizado com sucesso! Verifique seu e-mail para ativar sua conta ou faça login.";
+  }
+  if (route.query.reset === "ok") {
+    return "Senha redefinida com sucesso. Faça login com sua nova senha.";
+  }
+  return null;
+});
 
 function isValidRedirect(redirect: unknown): redirect is string {
   if (typeof redirect !== "string") return false;
@@ -140,10 +173,22 @@ async function handleSubmit() {
   line-height: 1.4;
 }
 
+.login-form__alert--success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
 .login-form__field {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
+}
+
+.login-form__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .login-form__label {
@@ -189,9 +234,27 @@ async function handleSubmit() {
   cursor: not-allowed;
 }
 
+.login-form__secondary-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.login-form__prompt {
+  font-size: 0.8125rem;
+  color: var(--color-muted, #666);
+}
+
+.login-form__link--strong {
+  font-weight: 600;
+  color: var(--color-evergreen, #314830);
+}
+
 .login-form__help {
   text-align: center;
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .login-form__link {

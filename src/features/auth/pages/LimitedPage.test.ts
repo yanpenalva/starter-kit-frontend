@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { useSessionStore } from "../stores/session";
 import LimitedPage from "./LimitedPage.vue";
+import { buildHttpError } from "@/lib/http";
 import type { MyProfileResource } from "@/lib/api/generated/models";
 
 const mockRouterPush = vi.fn();
@@ -68,5 +69,47 @@ describe("LimitedPage.vue", () => {
 
     expect(logoutSpy).toHaveBeenCalledTimes(1);
     expect(mockRouterPush).toHaveBeenCalledWith({ name: "login" });
+  });
+
+  it("triggers resend verification on button click and displays success message", async () => {
+    const session = useSessionStore();
+    session.user = mockLimitedUser;
+    session.status = "limited";
+    const resendSpy = vi
+      .spyOn(session, "resendVerification")
+      .mockResolvedValue({ message: "Link de verificação reenviado." });
+
+    const wrapper = mount(LimitedPage);
+    const resendBtn = wrapper.find(".limited-btn--outline");
+    expect(resendBtn.exists()).toBe(true);
+    expect(resendBtn.text()).toBe("Reenviar e-mail");
+
+    await resendBtn.trigger("click");
+
+    expect(resendSpy).toHaveBeenCalledTimes(1);
+    expect(wrapper.find("[role='status']").text()).toBe(
+      "Link de verificação reenviado.",
+    );
+  });
+
+  it("handles 429 rate limit on resend verification with Retry-After", async () => {
+    const session = useSessionStore();
+    session.user = mockLimitedUser;
+    session.status = "limited";
+    vi.spyOn(session, "resendVerification").mockRejectedValue(
+      buildHttpError({
+        kind: "rate_limited",
+        status: 429,
+        retryAfterHeader: "60",
+      }),
+    );
+
+    const wrapper = mount(LimitedPage);
+    await wrapper.find(".limited-btn--outline").trigger("click");
+
+    expect(wrapper.find("[role='alert']").text()).toContain(
+      "Muitas tentativas",
+    );
+    expect(wrapper.find("[role='alert']").text()).toContain("60 segundos");
   });
 });

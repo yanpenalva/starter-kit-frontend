@@ -78,6 +78,10 @@ describe("router routes and navigation guards", () => {
     const paths = routes.map((r) => r.path);
     expect(paths).toContain("/");
     expect(paths).toContain("/login");
+    expect(paths).toContain("/register");
+    expect(paths).toContain("/forgot-password");
+    expect(paths).toContain("/reset-password");
+    expect(paths).toContain("/verify-email");
     expect(paths).toContain("/dashboard");
     expect(paths).toContain("/users");
     expect(paths).toContain("/roles");
@@ -143,15 +147,36 @@ describe("router routes and navigation guards", () => {
     session.user = verifiedStandardUser;
     session.status = "authenticated";
 
-    const to = createMockRoute({
-      path: "/login",
-      matched: [createMockRecord({ guestOnly: true })],
-    });
+    for (const path of [
+      "/login",
+      "/register",
+      "/forgot-password",
+      "/reset-password",
+    ]) {
+      const to = createMockRoute({
+        path,
+        matched: [createMockRecord({ guestOnly: true })],
+      });
+      const from = createMockRoute({ path: "/" });
+      const next = vi.fn();
+
+      await navigationGuard(to, from, next);
+      expect(next).toHaveBeenCalledWith({ name: "dashboard" });
+    }
+  });
+
+  it("allows unauthenticated guests on public verify-email route", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "unauthenticated";
+    session.user = null;
+
+    const to = createMockRoute({ path: "/verify-email", name: "verify-email" });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
 
     await navigationGuard(to, from, next);
-    expect(next).toHaveBeenCalledWith({ name: "dashboard" });
+    expect(next).toHaveBeenCalledWith();
   });
 
   it("redirects limited user attempting business route to /limited", async () => {
