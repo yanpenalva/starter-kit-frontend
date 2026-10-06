@@ -37,6 +37,26 @@ export interface HttpClient {
   readonly resetCsrfBootstrap: () => void;
 }
 
+export type SessionExpiredListener = (error: HttpError) => void;
+const sessionExpiredListeners = new Set<SessionExpiredListener>();
+
+export function onSessionExpired(listener: SessionExpiredListener): () => void {
+  sessionExpiredListeners.add(listener);
+  return () => {
+    sessionExpiredListeners.delete(listener);
+  };
+}
+
+export function notifySessionExpired(error: HttpError): void {
+  for (const listener of sessionExpiredListeners) {
+    try {
+      listener(error);
+    } catch {
+      // safe ignore listener error
+    }
+  }
+}
+
 function classifyStatus(status: number | null): HttpErrorKind {
   if (status === null) {
     return "network";
@@ -184,13 +204,17 @@ function mapAxiosError(
   if (kind === "csrf_mismatch") {
     resetCsrfBootstrap();
   }
-  return buildHttpError({
+  const httpError = buildHttpError({
     kind,
     status,
     retryAfterHeader: toSingleHeader(cause.response?.headers?.["retry-after"]),
     body: cause.response?.data ?? null,
     timedOut: status === null && cause.code === AXIOS_TIMEOUT_CODE,
   });
+  if (kind === "unauthorized" || kind === "csrf_mismatch") {
+    notifySessionExpired(httpError);
+  }
+  return httpError;
 }
 
 function mapTransportError(
