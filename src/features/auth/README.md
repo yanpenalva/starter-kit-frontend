@@ -22,4 +22,3 @@ Wave C1 implementation of public identity:
   - `ResetPasswordPage.vue` (`/reset-password`, `guestOnly`): sets new password with confirmation.
 - Extended `LimitedPage.vue` with "Reenviar e-mail" action and 429 Retry-After handling.
 - Extended `LoginPage.vue` with "Criar conta" and "Esqueci a senha" links, and `registered=1` / `reset=ok` success alerts.
-
