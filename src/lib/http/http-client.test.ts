@@ -21,6 +21,7 @@ import {
   isHttpError,
   isRateLimitedHttpError,
   isValidationHttpError,
+  onSessionExpired,
   parseFieldErrors,
   parseRetryAfterSeconds,
   resolveApiBaseUrl,
@@ -1142,5 +1143,63 @@ describe("type guards and structural variant validation", () => {
         timedOut: false,
       }),
     ).toBe(false);
+  });
+});
+
+describe("session expiration notifications on 401 and 419", () => {
+  it("notifies listeners on 401 unauthorized", async () => {
+    useFreshHandlers();
+    setErrorEcho(401);
+    const client = createHttpClient(TEST_API_BASE);
+
+    const expiredSpy = vi.fn();
+    const unsubscribe = onSessionExpired(expiredSpy);
+
+    try {
+      await rejectedPost(client);
+      expect(expiredSpy).toHaveBeenCalledTimes(1);
+      const call = expiredSpy.mock.calls[0];
+      expect(call).toBeDefined();
+      expect(call![0]?.kind).toBe("unauthorized");
+      expect(call![0]?.status).toBe(401);
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it("notifies listeners on 419 csrf_mismatch", async () => {
+    useFreshHandlers();
+    setErrorEcho(419);
+    const client = createHttpClient(TEST_API_BASE);
+
+    const expiredSpy = vi.fn();
+    const unsubscribe = onSessionExpired(expiredSpy);
+
+    try {
+      await rejectedPost(client);
+      expect(expiredSpy).toHaveBeenCalledTimes(1);
+      const call = expiredSpy.mock.calls[0];
+      expect(call).toBeDefined();
+      expect(call![0]?.kind).toBe("csrf_mismatch");
+      expect(call![0]?.status).toBe(419);
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it("does not notify listeners on other statuses like 403 or 500", async () => {
+    useFreshHandlers();
+    setErrorEcho(403);
+    const client = createHttpClient(TEST_API_BASE);
+
+    const expiredSpy = vi.fn();
+    const unsubscribe = onSessionExpired(expiredSpy);
+
+    try {
+      await rejectedPost(client);
+      expect(expiredSpy).not.toHaveBeenCalled();
+    } finally {
+      unsubscribe();
+    }
   });
 });

@@ -9,8 +9,12 @@ export {
 } from "./config";
 export { createCsrfCoordinator } from "./csrf";
 export type { CsrfBootstrapper, CsrfCoordinator } from "./csrf";
-export { createHttpClient } from "./client";
-export type { HttpClient } from "./client";
+export {
+  createHttpClient,
+  notifySessionExpired,
+  onSessionExpired,
+} from "./client";
+export type { HttpClient, SessionExpiredListener } from "./client";
 export {
   buildHttpError,
   isCsrfMismatchHttpError,
