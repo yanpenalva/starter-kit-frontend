@@ -48,7 +48,7 @@ No arquivo `.env` da API correspondente:
   1. Instala dependências via `npm ci`.
   2. Executa `npm run build` injetando `VITE_APP_ENV=preview` e `VITE_API_URL` apontando para a API de staging/preview.
   3. Gera o artifact `preview-dist-pr-${{ github.event.pull_request.number }}` com retenção padrão de **7 dias**.
-  4. Publica no ambiente de preview correspondente (ex.: Cloudflare Pages ou GitHub Pages no domínio `https://preview-pr-<PR_NUMBER>.starterkit.pages.dev`).
+  4. Publica no ambiente de preview correspondente (ex.: Cloudflare Pages ou GitHub Pages no domínio `https://preview-pr-NNN.starterkit.pages.dev`).
   5. Expiração: o artefato do build expira em 7 dias ou quando o PR é fechado/mesclado.
 
 ---
@@ -58,7 +58,7 @@ No arquivo `.env` da API correspondente:
 ### 4.1 Padrão de Versionamento e Tags
 Toda release integrada para produção deve ser marcada com uma tag imutável no formato:
 ```text
-fe-<YYYY-MM-DD>-<sha_curto>
+fe-AAAA-MM-DD-abcdef1
 ```
 Exemplo: `fe-2026-10-06-6295768`.
 
@@ -87,7 +87,7 @@ Em caso de degradação crítica após um deploy em produção:
      ```bash
      git checkout main
      git pull origin main
-     git revert -m 1 <MERGE_COMMIT_PROBLEMATICO> # ou git revert <COMMIT_PROBLEMATICO>
+     git revert -m 1 MERGE_COMMIT # ou git revert COMMIT
      git push origin main
      ```
    - Ou disparar o pipeline manual selecionando a tag anterior `fe-<data>-<sha>`.
