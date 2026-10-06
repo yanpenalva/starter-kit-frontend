@@ -17,14 +17,18 @@ import {
   CSRF_HEADER_NAME,
   HTTP_TIMEOUT_MS,
   InvalidApiBaseUrlError,
+  InvalidEnvironmentConfigError,
   isCsrfMismatchHttpError,
   isHttpError,
+  isProductionApiUrl,
   isRateLimitedHttpError,
   isValidationHttpError,
   onSessionExpired,
   parseFieldErrors,
   parseRetryAfterSeconds,
   resolveApiBaseUrl,
+  resolveAppEnvironment,
+  resolveEnvironmentConfig,
 } from "@/lib/http";
 import type { HttpClient } from "@/lib/http";
 
@@ -973,6 +977,67 @@ describe("api base url validation and factory boundary", () => {
     expect(() =>
       apiBaseUrlFromEnv({ VITE_API_URL: "http://localhost:8000\n" }),
     ).toThrow(InvalidApiBaseUrlError);
+  });
+
+  it("resolves app environment with fallback to development or fails on invalid", () => {
+    expect(resolveAppEnvironment({})).toBe("development");
+    expect(resolveAppEnvironment(null)).toBe("development");
+    expect(resolveAppEnvironment({ VITE_APP_ENV: "" })).toBe("development");
+    expect(resolveAppEnvironment({ VITE_APP_ENV: "development" })).toBe(
+      "development",
+    );
+    expect(resolveAppEnvironment({ VITE_APP_ENV: "preview" })).toBe("preview");
+    expect(resolveAppEnvironment({ VITE_APP_ENV: "staging" })).toBe("staging");
+    expect(resolveAppEnvironment({ VITE_APP_ENV: "production" })).toBe(
+      "production",
+    );
+    expect(() =>
+      resolveAppEnvironment({ VITE_APP_ENV: "invalid-env" }),
+    ).toThrow(InvalidEnvironmentConfigError);
+  });
+
+  it("identifies production API hosts correctly", () => {
+    expect(isProductionApiUrl("https://api.starterkit.com")).toBe(true);
+    expect(isProductionApiUrl("https://prod-api.internal.net")).toBe(true);
+    expect(isProductionApiUrl("https://production.example.com")).toBe(true);
+    expect(isProductionApiUrl("http://localhost:8000")).toBe(false);
+    expect(isProductionApiUrl("https://staging-api.starterkit.com")).toBe(
+      false,
+    );
+    expect(isProductionApiUrl("invalid url")).toBe(false);
+  });
+
+  it("enforces that preview builds NEVER point to a production API", () => {
+    // Valid preview config pointing to preview/mock/staging API
+    const validPreview = resolveEnvironmentConfig({
+      VITE_APP_ENV: "preview",
+      VITE_API_URL: "https://staging-api.starterkit.com",
+    });
+    expect(validPreview.environment).toBe("preview");
+    expect(validPreview.apiBaseUrl).toBe("https://staging-api.starterkit.com");
+
+    // Preview pointing to production API MUST throw
+    expect(() =>
+      resolveEnvironmentConfig({
+        VITE_APP_ENV: "preview",
+        VITE_API_URL: "https://api.starterkit.com",
+      }),
+    ).toThrow(InvalidEnvironmentConfigError);
+
+    expect(() =>
+      resolveEnvironmentConfig({
+        VITE_APP_ENV: "preview",
+        VITE_API_URL: "https://prod-api.internal.com",
+      }),
+    ).toThrow(InvalidEnvironmentConfigError);
+
+    // Production environment CAN point to production API
+    const validProd = resolveEnvironmentConfig({
+      VITE_APP_ENV: "production",
+      VITE_API_URL: "https://api.starterkit.com",
+    });
+    expect(validProd.environment).toBe("production");
+    expect(validProd.apiBaseUrl).toBe("https://api.starterkit.com");
   });
 });
 
