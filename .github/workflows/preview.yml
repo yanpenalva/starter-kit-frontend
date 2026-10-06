@@ -1,0 +1,70 @@
+name: Preview Deployment
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  deployments: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-preview:
+    name: Build & Upload Preview Artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.15.0
+          cache: npm
+
+      - name: Pin npm version
+        run: npm install --global npm@12.2.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static preview bundle
+        env:
+          VITE_APP_ENV: preview
+          # Preview builds use staging or mock API — NEVER production
+          VITE_API_URL: ${{ vars.VITE_PREVIEW_API_URL || 'https://staging-api.starterkit.com' }}
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: preview-dist-pr-${{ github.event.pull_request.number }}
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy-preview:
+    name: Deploy PR Preview Environment
+    needs: [build-preview]
+    runs-on: ubuntu-latest
+    environment:
+      name: preview-pr-${{ github.event.pull_request.number }}
+      url: https://preview-pr-${{ github.event.pull_request.number }}.starterkit.pages.dev
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: preview-dist-pr-${{ github.event.pull_request.number }}
+          path: dist/
+
+      - name: Verify static bundle integrity
+        run: |
+          test -f dist/index.html || { echo "index.html missing from artifact"; exit 1; }
+          echo "Preview bundle verified. Ready for preview hosting platform deployment."

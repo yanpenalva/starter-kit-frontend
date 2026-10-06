@@ -8,10 +8,27 @@ const ALLOWED_PROTOCOLS: ReadonlySet<string> = new Set(["http:", "https:"]);
 const HTTP_AUTHORITY_PATTERN = /^https?:\/\/[^/\s?#\\]+/;
 
 const ENV_KEY_API_BASE_URL = "VITE_API_URL";
+const ENV_KEY_APP_ENV = "VITE_APP_ENV";
+
+export type AppEnvironment =
+  "development" | "preview" | "staging" | "production";
+
+export interface EnvironmentConfig {
+  readonly environment: AppEnvironment;
+  readonly apiBaseUrl: string;
+}
+
 export class InvalidApiBaseUrlError extends Error {
   public constructor(reason: string) {
     super(`Invalid ${ENV_KEY_API_BASE_URL}: ${reason}`);
     this.name = "InvalidApiBaseUrlError";
+  }
+}
+
+export class InvalidEnvironmentConfigError extends Error {
+  public constructor(reason: string) {
+    super(`Invalid environment configuration: ${reason}`);
+    this.name = "InvalidEnvironmentConfigError";
   }
 }
 
@@ -86,4 +103,62 @@ export function apiBaseUrlFromEnv(env: unknown): string {
     throw new InvalidApiBaseUrlError("environment is not an object");
   }
   return resolveApiBaseUrl(record[ENV_KEY_API_BASE_URL]);
+}
+
+const VALID_ENVIRONMENTS: ReadonlySet<string> = new Set([
+  "development",
+  "preview",
+  "staging",
+  "production",
+]);
+
+export function resolveAppEnvironment(env: unknown): AppEnvironment {
+  const record = asRecord(env);
+  if (record === null) {
+    return "development";
+  }
+  const rawEnv = record[ENV_KEY_APP_ENV];
+  if (typeof rawEnv !== "string" || rawEnv.trim() === "") {
+    return "development";
+  }
+  const normalized = rawEnv.trim().toLowerCase();
+  if (!VALID_ENVIRONMENTS.has(normalized)) {
+    throw new InvalidEnvironmentConfigError(`unknown environment: ${rawEnv}`);
+  }
+  return normalized as AppEnvironment;
+}
+
+const PRODUCTION_DOMAINS: readonly string[] = [
+  "api.starterkit.com",
+  "api.production.internal",
+];
+
+export function isProductionApiUrl(apiUrl: string): boolean {
+  try {
+    const parsed = new URL(apiUrl);
+    const host = parsed.hostname.toLowerCase();
+    if (PRODUCTION_DOMAINS.includes(host)) {
+      return true;
+    }
+    const tokens = host.split(/[.-]/);
+    return tokens.some((part) => part === "prod" || part === "production");
+  } catch {
+    return false;
+  }
+}
+
+export function resolveEnvironmentConfig(env: unknown): EnvironmentConfig {
+  const appEnv = resolveAppEnvironment(env);
+  const apiBaseUrl = apiBaseUrlFromEnv(env);
+
+  if (appEnv === "preview" && isProductionApiUrl(apiBaseUrl)) {
+    throw new InvalidEnvironmentConfigError(
+      "preview environment must never point to production API",
+    );
+  }
+
+  return {
+    environment: appEnv,
+    apiBaseUrl,
+  };
 }

@@ -1,8 +1,8 @@
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import {
-  apiBaseUrlFromEnv,
   buildHttpError,
   createHttpClient,
+  resolveEnvironmentConfig,
 } from "@/lib/http";
 import type { HttpClient, HttpError } from "@/lib/http";
 
@@ -74,8 +74,8 @@ export function createApiMutator(
 }
 
 function configuredMutator(): Mutator {
-  const configuredRoot = apiBaseUrlFromEnv(import.meta.env);
-  const parsed = new URL(configuredRoot);
+  const envConfig = resolveEnvironmentConfig(import.meta.env);
+  const parsed = new URL(envConfig.apiBaseUrl);
   if (parsed.pathname !== "/") {
     throw new Error(
       "VITE_API_URL precisa apontar somente para origem raiz da API.",
