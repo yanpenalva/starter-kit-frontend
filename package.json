@@ -12,13 +12,17 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "smoke:browser": "node scripts/smoke-browser.mjs",
+    "contract:verify": "python3 scripts/verify_contract.py",
+    "client:generate": "node scripts/generate-client.mjs",
+    "client:check": "npm run client:generate && node scripts/check-client-generated.mjs",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint .",
-    "format": "prettier --write \"src/**/*.{ts,vue,css}\" \"scripts/**/*.{mjs,html}\" package.json tsconfig.json vite.config.ts eslint.config.ts index.html",
-    "format:check": "prettier --check \"src/**/*.{ts,vue,css}\" \"scripts/**/*.{mjs,html}\" package.json tsconfig.json vite.config.ts eslint.config.ts index.html",
+    "format": "prettier --write \"src/**/*.{ts,vue,css}\" \"scripts/**/*.{mjs,html}\" package.json tsconfig.json vite.config.ts eslint.config.ts orval.config.ts index.html",
+    "format:check": "prettier --check \"src/**/*.{ts,vue,css}\" \"scripts/**/*.{mjs,html}\" package.json tsconfig.json vite.config.ts eslint.config.ts orval.config.ts index.html",
     "test": "vitest run"
   },
   "dependencies": {
+    "axios": "1.20.0",
     "@fontsource/dm-sans": "5.3.0",
     "@fontsource/dm-serif-display": "5.3.0",
     "@quasar/extras": "2.1.0",
@@ -39,6 +43,7 @@
     "eslint-plugin-vue": "10.11.1",
     "jsdom": "30.1.1",
     "msw": "3.0.1",
+    "orval": "8.39.0",
     "prettier": "3.9.9",
     "sass-embedded": "1.105.1",
     "tailwindcss": "4.3.3",
@@ -51,6 +56,7 @@
   },
   "allowScripts": {
     "@parcel/watcher@2.6.0": true,
+    "esbuild@0.28.2": true,
     "vue-demi@0.14.10": true,
     "fsevents@2.3.3": false
   }

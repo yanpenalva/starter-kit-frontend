@@ -58,3 +58,9 @@ Quasar CLI shell, file-based routing, SSR/Nuxt, Tailwind Preflight with global o
 ## Integration record
 
 - Accepted content materialized on branch `docs/issue-1-spa-architecture` (base `4c2d5b4` on `main`); commit SHA: NOT FOUND (integration owned by the orchestrator; no commit or PR exists at acceptance time). PR: NOT FOUND.
+
+## FEAT-7 Stage B candidate (2026-10-05)
+
+- Generator selected for this candidate: Orval `8.39.0`, Vue Query v5 client, Axios custom mutator delegated to `src/lib/http`.
+- Input is the pinned API main artifact recorded in `.context/work/FEAT-7/orval-stage-b.md`; committed frontend verification is offline and requires no API credential. Generated schemas/endpoints are Orval-owned and never edited manually.
+- Candidate review is pending on PR #26. This record does not claim integration, Wave 3 completion, auth-state wiring, UI delivery or real-browser cookie verification.

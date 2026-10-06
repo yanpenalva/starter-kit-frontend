@@ -9,7 +9,7 @@
 - State: TanStack Query owns server state/cache incl. the session profile; Pinia owns UI state only; no duplication, no tokens or profile data persisted client-side.
 - CSS: Quasar component CSS + normalize; Tailwind 4 theme/utilities only, Preflight disabled, `tw` prefix, no global `!important`; real interaction smoke-tested at scaffold; design tokens and actual styling are SPA #6 (designer lane).
 - HTTP: central client with credentials, CSRF bootstrap via `GET /sanctum/csrf-cookie`, `X-XSRF-TOKEN`, typed status mapping; endpoints only from the API canonical contract.
-- Transport/typed client: pinned durable OpenAPI artifact + generated types via trusted separate sync, read-only API access, fail-closed SHA/run/hash, no `latest`, no credential in PRs; implementation deferred to SPA #7 (generator: Orval/Hey API candidates, not chosen); credential provision is wave 3.
+- Transport/typed client: committed OpenAPI/receipt/ZIP pin and generated Orval 8.39.0 types, verified offline against fixed source identity/hash; no `latest`, API credential or CI fetch. The FEAT-7 candidate implements the central mutator and Vue Query client; review remains pending. Artifact refresh uses the separately authorized read-only publication path.
 - Authentication: first-party SPA session via Sanctum cookies/session/CSRF (API ADR 0002). Limited session: profile 200 with `email_verified_at: null` (API `openapi.yaml` lines 193–218) is authenticated-limited — empty roles/permissions by contract, logout/minimal profile/verification only; the limited state is never inferred from empty permissions alone; deactivated accounts stay blocked (403), never auto-reactivated by verification.
 - UI authorization is user experience only; the API is the enforcement boundary.
 
