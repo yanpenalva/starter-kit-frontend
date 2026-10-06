@@ -323,4 +323,100 @@ describe("useSessionStore", () => {
       store.isAuthorized({ roles: ["editor"], permissions: ["users.view"] }),
     ).toBe(false);
   });
+
+  it("register creates account without authenticating or persisting sensitive credentials", async () => {
+    server.use(
+      http.post(`${TEST_API_BASE}/api/v1/register`, ({ request }) =>
+        HttpResponse.json(
+          {
+            id: 15,
+            name: "Novo Usuário",
+            email: "novo@example.com",
+            email_verified_at: null,
+          },
+          { status: 201, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    const store = useSessionStore();
+    const result = await store.register({
+      name: "Novo Usuário",
+      email: "novo@example.com",
+      password: "password12345",
+      password_confirmation: "password12345",
+    });
+
+    expect(result).toEqual({
+      id: 15,
+      name: "Novo Usuário",
+      email: "novo@example.com",
+      email_verified_at: null,
+    });
+    // Crucial requirement: register DOES NOT authenticate
+    expect(store.user).toBeNull();
+    expect(store.status).toBe("idle");
+    expect(store.isAuthenticated).toBe(false);
+    expect(JSON.stringify(store.$state)).not.toContain("password12345");
+  });
+
+  it("resendVerification requests verification notification email", async () => {
+    server.use(
+      http.post(
+        `${TEST_API_BASE}/api/v1/email/verification-notification`,
+        ({ request }) =>
+          HttpResponse.json(
+            { message: "Link reenviado." },
+            { status: 202, headers: makeCorsHeaders(request) },
+          ),
+      ),
+    );
+
+    const store = useSessionStore();
+    const result = await store.resendVerification();
+
+    expect(result).toEqual({ message: "Link reenviado." });
+  });
+
+  it("forgotPassword requests reset link and returns neutral message", async () => {
+    server.use(
+      http.post(`${TEST_API_BASE}/api/v1/forgot-password`, ({ request }) =>
+        HttpResponse.json(
+          { message: "Se o email existir, enviamos o link." },
+          { status: 202, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    const store = useSessionStore();
+    const result = await store.forgotPassword({ email: "user@example.com" });
+
+    expect(result).toEqual({
+      message: "Se o email existir, enviamos o link.",
+    });
+  });
+
+  it("resetPassword sends new credentials and returns confirmation message", async () => {
+    server.use(
+      http.post(`${TEST_API_BASE}/api/v1/reset-password`, ({ request }) =>
+        HttpResponse.json(
+          { message: "Senha redefinida com sucesso." },
+          { status: 200, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    const store = useSessionStore();
+    const result = await store.resetPassword({
+      token: "valid-token",
+      email: "user@example.com",
+      password: "newPassword12345",
+      password_confirmation: "newPassword12345",
+    });
+
+    expect(result).toEqual({
+      message: "Senha redefinida com sucesso.",
+    });
+    expect(JSON.stringify(store.$state)).not.toContain("newPassword12345");
+  });
 });

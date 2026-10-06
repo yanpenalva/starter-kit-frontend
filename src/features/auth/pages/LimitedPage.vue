@@ -15,14 +15,39 @@
         enviado pela API.
       </p>
 
+      <div
+        v-if="resendSuccessMessage"
+        role="status"
+        class="limited-card__alert limited-card__alert--success"
+      >
+        {{ resendSuccessMessage }}
+      </div>
+
+      <div
+        v-if="resendErrorMessage"
+        role="alert"
+        class="limited-card__alert limited-card__alert--danger"
+      >
+        {{ resendErrorMessage }}
+      </div>
+
       <div class="limited-card__actions">
         <button
           type="button"
           class="limited-btn limited-btn--primary"
-          :disabled="isChecking"
+          :disabled="isChecking || isResending"
           @click="checkStatus"
         >
           {{ isChecking ? "Verificando..." : "Já confirmei meu e-mail" }}
+        </button>
+
+        <button
+          type="button"
+          class="limited-btn limited-btn--outline"
+          :disabled="isChecking || isResending"
+          @click="handleResend"
+        >
+          {{ isResending ? "Reenviando..." : "Reenviar e-mail" }}
         </button>
 
         <button
@@ -41,12 +66,16 @@
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useSessionStore } from "../stores/session";
+import { isHttpError, isRateLimitedHttpError } from "@/lib/http";
 
 const session = useSessionStore();
 const router = useRouter();
 
 const user = computed(() => session.user);
 const isChecking = ref(false);
+const isResending = ref(false);
+const resendSuccessMessage = ref<string | null>(null);
+const resendErrorMessage = ref<string | null>(null);
 
 async function checkStatus() {
   isChecking.value = true;
@@ -57,6 +86,34 @@ async function checkStatus() {
     }
   } finally {
     isChecking.value = false;
+  }
+}
+
+async function handleResend() {
+  isResending.value = true;
+  resendSuccessMessage.value = null;
+  resendErrorMessage.value = null;
+
+  try {
+    const response = await session.resendVerification();
+    resendSuccessMessage.value =
+      response.message || "E-mail de verificação reenviado com sucesso.";
+  } catch (error: unknown) {
+    if (isRateLimitedHttpError(error)) {
+      if (error.retryAfterSeconds !== null) {
+        resendErrorMessage.value = `Muitas tentativas. Tente novamente em ${error.retryAfterSeconds} segundos.`;
+      } else {
+        resendErrorMessage.value =
+          "Muitas tentativas. Aguarde antes de tentar novamente.";
+      }
+    } else if (isHttpError(error)) {
+      resendErrorMessage.value = error.message;
+    } else {
+      resendErrorMessage.value =
+        "Não foi possível conectar ao serviço. Verifique sua conexão.";
+    }
+  } finally {
+    isResending.value = false;
   }
 }
 
@@ -139,9 +196,36 @@ async function handleLogout() {
   transition: opacity var(--motion-quick, 150ms) ease;
 }
 
+.limited-card__alert {
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.limited-card__alert--success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.limited-card__alert--danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
 .limited-btn--primary {
   background: var(--color-evergreen, #314830);
   color: white;
+}
+
+.limited-btn--outline {
+  border: 1px solid var(--color-evergreen, #314830);
+  background: transparent;
+  color: var(--color-evergreen, #314830);
 }
 
 .limited-btn--secondary {
