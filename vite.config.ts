@@ -31,12 +31,14 @@ export default defineConfig({
     clearMocks: true,
     coverage: {
       provider: "v8",
+      include: ["src/**/*.ts", "src/**/*.vue"],
+      exclude: ["src/lib/api/generated/**", "src/test/**", "**/*.test.ts"],
       reporter: ["text", "lcov"],
       thresholds: {
-        lines: 78,
-        functions: 68,
-        branches: 68,
-        statements: 79,
+        lines: 87,
+        functions: 83,
+        branches: 80,
+        statements: 87,
       },
     },
   },

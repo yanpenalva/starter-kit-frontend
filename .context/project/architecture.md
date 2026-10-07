@@ -1,7 +1,7 @@
 # Architecture Context
 
 - Independent SPA using Vue 3, TypeScript and Quasar; independent deployment and versioning.
-- Accepted architecture: [ADR 0001](../../docs/adr/0001-vue-spa-architecture.md) (accepted by yanpenalva 2026-10-03; implementation pending). Compatibility research: `.context/work/FEAT-1/compatibility-matrix.md` — researched from official documentation, NOT lock-tested or installed.
+- Accepted architecture: [ADR 0001](../../docs/adr/0001-vue-spa-architecture.md) (accepted by yanpenalva 2026-10-03; implemented and covered by CI gates). Compatibility research: `.context/work/FEAT-1/compatibility-matrix.md` — researched from official documentation, NOT lock-tested or installed.
 - Rendering: client-side SPA, no SSR; immutable static build.
 - Build: plain Vite with `@quasar/vite-plugin`; Quasar keeps components, Sass variables, component CSS and normalize.
 - Language: TypeScript strict via `@vue/tsconfig`, vue-tsc on the TypeScript 6.x line.
@@ -13,4 +13,4 @@
 - Authentication: first-party SPA session via Sanctum cookies/session/CSRF (API ADR 0002). Limited session: profile 200 with `email_verified_at: null` (API `openapi.yaml` lines 193–218) is authenticated-limited — empty roles/permissions by contract, logout/minimal profile/verification only; the limited state is never inferred from empty permissions alone; deactivated accounts stay blocked (403), never auto-reactivated by verification.
 - UI authorization is user experience only; the API is the enforcement boundary.
 
-Consume the independent REST API under `/api/v1`; first detailed contracts and runtime evidence arrive with API #13/#11 and SPA #7. Hosting, production URLs, CI and detailed screen requirements: `NOT FOUND`. Business module detail beyond the four roadmap features: `NOT FOUND`; revisit after the first scaffold.
+Consume the independent REST API under `/api/v1`; detailed contracts arrive via the versioned OpenAPI pin with Orval-generated types. Hosting, production URLs and detailed screen requirements beyond the four roadmap features: see `docs/`. Business module detail beyond the four roadmap features: `NOT FOUND`; revisit after the first scaffold.
