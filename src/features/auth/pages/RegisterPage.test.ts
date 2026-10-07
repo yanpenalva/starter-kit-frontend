@@ -174,6 +174,54 @@ describe("RegisterPage.vue", () => {
     expect(wrapper.find(".register-form__field-error").text()).toBe(
       "O campo email já está em uso.",
     );
+    expect(wrapper.find("#register-email").attributes("aria-invalid")).toBe(
+      "true",
+    );
+    expect(wrapper.find("#register-email").attributes("aria-describedby")).toBe(
+      "register-email-error",
+    );
+    expect(wrapper.find("#register-email-error").exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it("focuses the first invalid field in form order after validation failure", async () => {
+    const session = useSessionStore();
+    vi.spyOn(session, "register").mockRejectedValue(
+      buildHttpError({
+        kind: "validation",
+        status: 422,
+        body: {
+          message: "Dados inválidos.",
+          errors: {
+            password_confirmation: ["A confirmação não confere."],
+            email: ["E-mail já está em uso."],
+          },
+        },
+      }),
+    );
+
+    const wrapper = mount(RegisterPage, { attachTo: document.body });
+    await wrapper.find("input[id='register-name']").setValue("Carlos");
+    await wrapper
+      .find("input[id='register-email']")
+      .setValue("duplicate@example.com");
+    await wrapper
+      .find("input[id='register-password']")
+      .setValue("password12345");
+    await wrapper
+      .find("input[id='register-password-confirmation']")
+      .setValue("password12345");
+    await wrapper.find("form").trigger("submit.prevent");
+
+    expect(document.activeElement).toBe(
+      wrapper.find("#register-email").element,
+    );
+    expect(
+      wrapper
+        .find("#register-password-confirmation")
+        .attributes("aria-describedby"),
+    ).toBe("register-password-confirmation-error");
+    wrapper.unmount();
   });
 
   it("displays rate limit message when backend returns 429", async () => {

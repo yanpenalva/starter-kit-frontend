@@ -4,7 +4,7 @@
     description="Preencha seus dados para ter acesso ao painel do Starter Kit."
     eyebrow="CADASTRO"
   >
-    <form class="register-form" @submit.prevent="handleSubmit">
+    <form ref="formRef" class="register-form" @submit.prevent="handleSubmit">
       <div v-if="errorMessage" role="alert" class="register-form__alert">
         {{ errorMessage }}
       </div>
@@ -22,8 +22,16 @@
           autocomplete="name"
           class="register-form__input"
           placeholder="Seu nome completo"
+          :aria-invalid="fieldErrors.name ? 'true' : undefined"
+          :aria-describedby="
+            fieldErrors.name ? 'register-name-error' : undefined
+          "
         />
-        <span v-if="fieldErrors.name" class="register-form__field-error">
+        <span
+          v-if="fieldErrors.name"
+          id="register-name-error"
+          class="register-form__field-error"
+        >
           {{ fieldErrors.name[0] }}
         </span>
       </div>
@@ -39,8 +47,16 @@
           autocomplete="email"
           class="register-form__input"
           placeholder="seu@email.com"
+          :aria-invalid="fieldErrors.email ? 'true' : undefined"
+          :aria-describedby="
+            fieldErrors.email ? 'register-email-error' : undefined
+          "
         />
-        <span v-if="fieldErrors.email" class="register-form__field-error">
+        <span
+          v-if="fieldErrors.email"
+          id="register-email-error"
+          class="register-form__field-error"
+        >
           {{ fieldErrors.email[0] }}
         </span>
       </div>
@@ -57,8 +73,14 @@
           autocomplete="off"
           class="register-form__input"
           placeholder="000.000.000-00"
+          :aria-invalid="fieldErrors.cpf ? 'true' : undefined"
+          :aria-describedby="fieldErrors.cpf ? 'register-cpf-error' : undefined"
         />
-        <span v-if="fieldErrors.cpf" class="register-form__field-error">
+        <span
+          v-if="fieldErrors.cpf"
+          id="register-cpf-error"
+          class="register-form__field-error"
+        >
           {{ fieldErrors.cpf[0] }}
         </span>
       </div>
@@ -76,8 +98,16 @@
           autocomplete="new-password"
           class="register-form__input"
           placeholder="Pelo menos 12 caracteres"
+          :aria-invalid="fieldErrors.password ? 'true' : undefined"
+          :aria-describedby="
+            fieldErrors.password ? 'register-password-error' : undefined
+          "
         />
-        <span v-if="fieldErrors.password" class="register-form__field-error">
+        <span
+          v-if="fieldErrors.password"
+          id="register-password-error"
+          class="register-form__field-error"
+        >
           {{ fieldErrors.password[0] }}
         </span>
       </div>
@@ -98,7 +128,20 @@
           autocomplete="new-password"
           class="register-form__input"
           placeholder="Repita a senha"
+          :aria-invalid="fieldErrors.password_confirmation ? 'true' : undefined"
+          :aria-describedby="
+            fieldErrors.password_confirmation
+              ? 'register-password-confirmation-error'
+              : undefined
+          "
         />
+        <span
+          v-if="fieldErrors.password_confirmation"
+          id="register-password-confirmation-error"
+          class="register-form__field-error"
+        >
+          {{ fieldErrors.password_confirmation[0] }}
+        </span>
       </div>
 
       <button
@@ -120,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { nextTick, ref, useTemplateRef } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import AuthLayout from "@/shared/layouts/AuthLayout.vue";
 import { useSessionStore } from "../stores/session";
@@ -141,6 +184,13 @@ const errorMessage = ref<string | null>(null);
 const fieldErrors = ref<Record<string, readonly string[]>>({});
 const session = useSessionStore();
 const router = useRouter();
+const formRef = useTemplateRef<HTMLFormElement>("formRef");
+const focusFirstInvalidField = async () => {
+  await nextTick();
+  formRef.value
+    ?.querySelector<HTMLInputElement>('[aria-invalid="true"]')
+    ?.focus();
+};
 const handleSubmit = async () => {
   errorMessage.value = null;
   fieldErrors.value = {};
@@ -187,6 +237,7 @@ const handleSubmit = async () => {
         ? error.fieldErrors[firstField]?.[0]
         : undefined;
       errorMessage.value = firstError ?? "Verifique os dados informados.";
+      await focusFirstInvalidField();
     } else if (isRateLimitedHttpError(error)) {
       if (error.retryAfterSeconds !== null) {
         errorMessage.value = `Muitas tentativas. Tente novamente em ${error.retryAfterSeconds} segundos.`;

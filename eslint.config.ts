@@ -26,14 +26,28 @@ export default tseslint.config(
     },
   },
   {
+    files: ["src/**/*.test.ts"],
+    languageOptions: {
+      globals: {
+        document: "readonly",
+        window: "readonly",
+      },
+    },
+  },
+  {
     files: ["**/*.vue"],
     languageOptions: {
       parser: vueParser,
       parserOptions: {
         parser: tseslint.parser,
       },
+      globals: {
+        document: "readonly",
+        window: "readonly",
+      },
     },
     rules: {
+      "no-undef": "off",
       "vue/max-attributes-per-line": "off",
       "vue/html-closing-bracket-newline": "off",
       "vue/html-indent": "off",
