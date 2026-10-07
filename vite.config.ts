@@ -29,5 +29,15 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     restoreMocks: true,
     clearMocks: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      thresholds: {
+        lines: 78,
+        functions: 68,
+        branches: 68,
+        statements: 79,
+      },
+    },
   },
 });
