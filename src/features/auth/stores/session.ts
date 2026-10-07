@@ -10,7 +10,7 @@ import {
   requestPasswordReset as forgotPassword,
   resetPassword as resetPasswordApi,
   sendVerificationNotification,
-} from "../api/auth.api";
+} from "@/features/auth/api/auth.api";
 import { isHttpError, onSessionExpired } from "@/lib/http";
 import { queryClient } from "@/app/providers/query";
 import { createSessionBootstrap } from "./session-bootstrap";

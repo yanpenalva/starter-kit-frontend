@@ -166,8 +166,8 @@
 import { nextTick, ref, useTemplateRef } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import AuthLayout from "@/shared/layouts/AuthLayout.vue";
-import { useSessionStore } from "../stores/session";
-import { normalizeCpf, validateCpf } from "../utils/cpf";
+import { useSessionStore } from "@/features/auth/stores/session";
+import { normalizeCpf, validateCpf } from "@/features/auth/utils/cpf";
 import {
   isCsrfMismatchHttpError,
   isHttpError,

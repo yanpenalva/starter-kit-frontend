@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { useSessionStore } from "../stores/session";
+import { useSessionStore } from "@/features/auth/stores/session";
 const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();

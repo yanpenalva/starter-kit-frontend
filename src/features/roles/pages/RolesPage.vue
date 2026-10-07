@@ -107,8 +107,8 @@ import {
   CATALOGUE_PERMISSION_LABELS,
   type CataloguePermission,
 } from "@/shared/types/contract";
-import { isRoleImmutable } from "../api/roles.types";
-import { useRolesList } from "../composables/useRolesList";
+import { isRoleImmutable } from "@/features/roles/api/roles.types";
+import { useRolesList } from "@/features/roles/composables/useRolesList";
 
 const { filters, query, permissionMutation } = useRolesList();
 const editedPermissions = reactive<Record<number, CataloguePermission[]>>({});

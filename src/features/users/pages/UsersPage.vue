@@ -129,7 +129,7 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from "vue";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
-import { useUsersList } from "../composables/useUsersList";
+import { useUsersList } from "@/features/users/composables/useUsersList";
 
 const { filters, query, updateMutation, statusMutation, rolesMutation } =
   useUsersList();

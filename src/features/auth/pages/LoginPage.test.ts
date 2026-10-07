@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
-import { useSessionStore } from "../stores/session";
+import { useSessionStore } from "@/features/auth/stores/session";
 import LoginPage from "./LoginPage.vue";
 import { buildHttpError } from "@/lib/http";
 import type { MyProfileResource } from "@/lib/api/generated/models";

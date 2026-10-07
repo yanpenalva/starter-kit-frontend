@@ -80,7 +80,7 @@
 import { computed, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import AuthLayout from "@/shared/layouts/AuthLayout.vue";
-import { useSessionStore } from "../stores/session";
+import { useSessionStore } from "@/features/auth/stores/session";
 import { isHttpError } from "@/lib/http";
 const email = ref("");
 const password = ref("");

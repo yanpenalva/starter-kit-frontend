@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
-import { useSessionStore } from "../stores/session";
+import { useSessionStore } from "@/features/auth/stores/session";
 import { useAuthorization } from "./useAuthorization";
 import type { MyProfileResource } from "@/lib/api/generated/models";
 

@@ -65,7 +65,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import { useSessionStore } from "../stores/session";
+import { useSessionStore } from "@/features/auth/stores/session";
 import { isHttpError, isRateLimitedHttpError } from "@/lib/http";
 const session = useSessionStore();
 const router = useRouter();
