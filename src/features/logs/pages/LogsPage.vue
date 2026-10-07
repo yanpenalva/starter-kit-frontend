@@ -110,7 +110,7 @@
 import { computed, reactive } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
-import { listActivities } from "../api/audit.api";
+import { listActivities } from "@/features/logs/api/audit.api";
 import {
   AUDIT_EVENTS,
   AUDIT_EVENT_LABELS,
@@ -118,7 +118,7 @@ import {
   AUDIT_SUBJECT_TYPES,
   type ActivityFilters,
   type AuditSubjectType,
-} from "../api/audit.types";
+} from "@/features/logs/api/audit.types";
 
 const filters = reactive<ActivityFilters>({ page: 1, per_page: 15 });
 const query = useQuery({

@@ -1,10 +1,13 @@
 import { computed, reactive } from "vue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import { listRoles, updateRolePermissions } from "../api/roles.api";
+import {
+  listRoles,
+  updateRolePermissions,
+} from "@/features/roles/api/roles.api";
 import type {
   RoleFilters,
   UpdateRolePermissionsPayload,
-} from "../api/roles.types";
+} from "@/features/roles/api/roles.types";
 
 export const ROLES_QUERY_KEY = "roles";
 

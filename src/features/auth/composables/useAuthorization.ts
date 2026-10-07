@@ -1,5 +1,5 @@
 import { computed, toRef } from "vue";
-import { useSessionStore } from "../stores/session";
+import { useSessionStore } from "@/features/auth/stores/session";
 export interface NavMenuItem {
   key: string;
   label: string;

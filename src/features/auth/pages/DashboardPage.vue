@@ -114,7 +114,7 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
 import AppLayout from "@/shared/layouts/AppLayout.vue";
-import { useAuthorization } from "../composables/useAuthorization";
+import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 
 const { user, isLimited, roles, permissions, can, hasRole } =
   useAuthorization();

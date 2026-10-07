@@ -6,13 +6,13 @@ import {
   setUserStatus,
   showUser,
   updateUser,
-} from "../api/users.api";
+} from "@/features/users/api/users.api";
 import type {
   AssignUserRolesPayload,
   SetUserStatusPayload,
   UpdateUserPayload,
   UserFilters,
-} from "../api/users.types";
+} from "@/features/users/api/users.types";
 export const USERS_QUERY_KEY = "users";
 export const USER_QUERY_KEY = "user";
 export const useUsersList = () => {
