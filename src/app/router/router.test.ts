@@ -61,7 +61,7 @@ const createMockRoute = (
   return {
     fullPath: overrides.fullPath ?? "/",
     path: overrides.path ?? "/",
-    name: overrides.name ?? "public-home",
+    name: overrides.name ?? "login",
     params: overrides.params ?? {},
     query: overrides.query ?? {},
     hash: "",
@@ -105,38 +105,9 @@ describe("router routes and navigation guards", () => {
     expect(bootstrapSpy).toHaveBeenCalledTimes(1);
     expect(next).toHaveBeenCalledWith();
   });
-  it("redirects unauthenticated guest from root to login", async () => {
-    const session = useSessionStore();
-    session.isInitialized = true;
-    session.status = "unauthenticated";
-    session.user = null;
-    const to = createMockRoute({ path: "/", name: "public-home" });
-    const from = createMockRoute({ path: "/" });
-    const next = vi.fn();
-    await navigationGuard(to, from, next);
-    expect(next).toHaveBeenCalledWith({ name: "login" });
-  });
-  it("redirects authenticated user from root to dashboard", async () => {
-    const session = useSessionStore();
-    session.isInitialized = true;
-    session.user = verifiedStandardUser;
-    session.status = "authenticated";
-    const to = createMockRoute({ path: "/", name: "public-home" });
-    const from = createMockRoute({ path: "/" });
-    const next = vi.fn();
-    await navigationGuard(to, from, next);
-    expect(next).toHaveBeenCalledWith({ name: "dashboard" });
-  });
-  it("redirects limited user from root to dashboard", async () => {
-    const session = useSessionStore();
-    session.isInitialized = true;
-    session.user = limitedUser;
-    session.status = "limited";
-    const to = createMockRoute({ path: "/", name: "public-home" });
-    const from = createMockRoute({ path: "/" });
-    const next = vi.fn();
-    await navigationGuard(to, from, next);
-    expect(next).toHaveBeenCalledWith({ name: "dashboard" });
+  it("redirects root to login via route record", () => {
+    const root = routes.find((r) => r.path === "/");
+    expect(root?.redirect).toEqual({ name: "login" });
   });
   it("redirects unauthenticated user from protected route to login with redirect query", async () => {
     const session = useSessionStore();

@@ -9,8 +9,7 @@ import { useSessionStore } from "@/features/auth/stores/session";
 export const routes: RouteRecordRaw[] = [
   {
     path: "/",
-    name: "public-home",
-    component: () => import("@features/auth/pages/PublicHomePage.vue"),
+    redirect: { name: "login" },
   },
   {
     path: "/login",
@@ -109,12 +108,6 @@ export const navigationGuard = async (
     return next();
   }
   const guestOnly = to.matched.some((record) => record.meta.guestOnly);
-  if (to.path === "/") {
-    if (!session.isAuthenticated) {
-      return next({ name: "login" });
-    }
-    return next({ name: "dashboard" });
-  }
   if (guestOnly && session.isAuthenticated) {
     return next({ name: "dashboard" });
   }
