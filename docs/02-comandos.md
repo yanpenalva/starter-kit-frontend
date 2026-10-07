@@ -74,3 +74,11 @@ Abre a aplicação em um Chrome headless real via protocolo de depuração, carr
 ## `npm run contract:verify` → `python3 scripts/verify_contract.py`
 
 Valida o contrato pinado em `openapi/` localmente, sem rede: confere o pin registrado em `contract-pin.json` contra o artefato e o recibo recebidos. É executado automaticamente dentro do `client:generate`, mas pode ser rodado sozinho para diagnosticar problemas de contrato. Use quando a geração falhar ou ao receber um pacote de contrato novo. Saída esperada: confirmação de verificação; erro explícito se o artefato ou o recibo divergirem do pin.
+
+## Problemas comuns
+
+- `npm ci` rejeita a versão do npm/node → alinhe com `npm install --global npm@12.2.0` e Node 24.15+.
+- `InvalidEnvironmentConfigError: preview environment must never point to production API` → `VITE_APP_ENV` e `VITE_API_URL` inconsistentes.
+- `client:generate` bloqueia com "Contrato aprovado ausente" → o artefato `openapi/` precisa estar commitado e passar em `npm run contract:verify`.
+- `Client Orval gerado diverge dos arquivos revisados e pinados` → regenere com `npm run client:generate`; se persistir, o diff é real e precisa de review — não edite a mão.
+- Login falha com 419 → origem da SPA ausente em `SANCTUM_STATEFUL_DOMAINS` / CORS da API.

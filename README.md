@@ -4,25 +4,25 @@ SPA administrativa em Vue 3 + Quasar que consome a API do Starter Kit por sessã
 
 ## Stack
 
-| Camada | Tecnologia | Versão |
-|---|---|---|
-| Framework UI | Vue | 3.5.43 |
-| Componentes e estilo | Quasar | 2.34.0 |
-| Build e dev server | Vite | 8.3.2 |
-| Linguagem | TypeScript estrito | 6.0.3 |
-| Runtime / pacote | Node.js / npm | 24.15.0 / 12.2.0 |
-| Estado de UI e sessão | Pinia | 4.0.3 |
-| Estado de servidor | TanStack Vue Query | 5.104.1 |
-| Rotas | Vue Router | 5.3.1 |
-| Transporte HTTP | axios | 1.20.0 |
-| Cliente gerado | Orval | 8.39.0 |
-| Testes | Vitest + jsdom + MSW | 5.0.3 / 3.0.2 |
-| Lint / formato | ESLint flat / Prettier | 10.12.0 / 3.9.9 |
-| Produção | nginx alpine / node alpine | 1.29 / 26 |
+| Camada                | Tecnologia                 | Versão           |
+| --------------------- | -------------------------- | ---------------- |
+| Framework UI          | Vue                        | 3.5.43           |
+| Componentes e estilo  | Quasar                     | 2.34.0           |
+| Build e dev server    | Vite                       | 8.3.2            |
+| Linguagem             | TypeScript estrito         | 6.0.3            |
+| Runtime / pacote      | Node.js / npm              | 24.15.0 / 12.2.0 |
+| Estado de UI e sessão | Pinia                      | 4.0.3            |
+| Estado de servidor    | TanStack Vue Query         | 5.104.1          |
+| Rotas                 | Vue Router                 | 5.3.1            |
+| Transporte HTTP       | axios                      | 1.20.0           |
+| Cliente gerado        | Orval                      | 8.39.0           |
+| Testes                | Vitest + jsdom + MSW       | 5.0.3 / 3.0.2    |
+| Lint / formato        | ESLint flat / Prettier     | 10.12.0 / 3.9.9  |
+| Produção              | nginx alpine / node alpine | 1.29 / 26        |
 
 ## Documentação
 
-Guia numerado, do zero ao deploy. Páginas existentes anteriores (`architecture.md`, `onboarding.md`, `smoke-checklist.md`, `deployment-preview-rollback.md`, `adr/`) continuam valendo como referência complementar.
+Guia numerado, do zero ao deploy. Referência complementar: `smoke-checklist.md`, `deployment-preview-rollback.md`, `adr/`.
 
 - [`docs/01-instalacao.md`](docs/01-instalacao.md)
   Pré-requisitos de Node/npm travados por `engines` e `.nvmrc`, criação do `.env` a partir do exemplo certo e como apontar a SPA para a API local com CORS e Sanctum.

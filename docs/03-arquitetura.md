@@ -1,6 +1,43 @@
 # 03 — Arquitetura
 
-Expansão do `architecture.md`: como as pastas se organizam por domínio, como os dois gestores de estado dividem o trabalho, como o código gerado chega até as telas, como o router protege cada rota e quais estados uma sessão pode assumir.
+Como as pastas se organizam por domínio, como os dois gestores de estado dividem o trabalho, como o código gerado chega até as telas, como o router protege cada rota e quais estados uma sessão pode assumir.
+
+## Visão geral
+
+```mermaid
+flowchart LR
+    subgraph Browser["Navegador"]
+        Router["Vue Router<br/>guards 401/403"]
+        Pages["Páginas<br/>auth, users, roles, logs"]
+        Session["Pinia session store<br/>bootstrap + csrf"]
+        Query["TanStack Query<br/>server state"]
+        Http["Cliente HTTP<br/>baseURL + withCredentials"]
+    end
+    subgraph API["API Laravel"]
+        Sanctum["Sanctum<br/>csrf-cookie"]
+        V1["REST /api/v1"]
+    end
+    subgraph Contract["Contrato"]
+        Pin["openapi.json pinado<br/>+ receipt"]
+        Orval["Tipos Orval gerados"]
+    end
+
+    Router --> Pages
+    Pages --> Session
+    Pages --> Query
+    Session --> Http
+    Query --> Http
+    Http -->|csrf-cookie| Sanctum
+    Http -->|sessão cookie| V1
+    Pin --> Orval
+    Orval --> Query
+    Orval --> Http
+```
+
+Fluxo de autenticação: `GET /sanctum/csrf-cookie` → `POST /api/v1/login` →
+`bootstrap()` (`GET /api/v1/my-profile`) → guards liberam rotas por
+`permissions`. Sessão limitada (`email_verified_at: null`) só acessa
+logout, perfil mínimo e verificação.
 
 ## Mapa das pastas por funcionalidade
 
@@ -108,23 +145,23 @@ flowchart TD
 
 Tabela completa das rotas e o que cada proteção faz na prática:
 
-| Rota | Nome | Exige login | convidado-somente | Permissão | allowLimited | Anônimo cai em | Sem credencial cai em |
-|---|---|---|---|---|---|---|---|
-| `/` | public-home | não | não | — | — | abre direto | abre direto |
-| `/login` | login | não | sim | — | — | abre direto | autenticado vai ao painel |
-| `/register` | register | não | sim | — | — | abre direto | autenticado vai ao painel |
-| `/forgot-password` | forgot-password | não | sim | — | — | abre direto | autenticado vai ao painel |
-| `/reset-password` | reset-password | não | sim | — | — | abre direto | autenticado vai ao painel |
-| `/verify-email` | verify-email | não | não | — | — | abre direto | abre direto |
-| `/dashboard` | dashboard | sim | não | — | não | `/login` com `redirect` | — |
-| `/users` | users | sim | não | `users.view` | não | `/login` com `redirect` | `/403` |
-| `/roles` | roles | sim | não | `roles.view` | não | `/login` com `redirect` | `/403` |
-| `/logs` | logs | sim | não | `logs.view` | não | `/login` com `redirect` | `/403` |
-| `/manual` | manual | sim | não | — | sim | `/login` com `redirect` | abre (limitada entra) |
-| `/limited` | limited | sim | não | — | sim | `/login` com `redirect` | abre (limitada entra) |
-| `/403` | forbidden | não | não | — | — | abre direto | abre direto |
-| `/404` | not-found | não | não | — | — | abre direto | abre direto |
-| `/:pathMatch(.*)*` | catch-all | não | não | — | — | página 404 | página 404 |
+| Rota               | Nome            | Exige login | convidado-somente | Permissão    | allowLimited | Anônimo cai em          | Sem credencial cai em     |
+| ------------------ | --------------- | ----------- | ----------------- | ------------ | ------------ | ----------------------- | ------------------------- |
+| `/`                | public-home     | não         | não               | —            | —            | abre direto             | abre direto               |
+| `/login`           | login           | não         | sim               | —            | —            | abre direto             | autenticado vai ao painel |
+| `/register`        | register        | não         | sim               | —            | —            | abre direto             | autenticado vai ao painel |
+| `/forgot-password` | forgot-password | não         | sim               | —            | —            | abre direto             | autenticado vai ao painel |
+| `/reset-password`  | reset-password  | não         | sim               | —            | —            | abre direto             | autenticado vai ao painel |
+| `/verify-email`    | verify-email    | não         | não               | —            | —            | abre direto             | abre direto               |
+| `/dashboard`       | dashboard       | sim         | não               | —            | não          | `/login` com `redirect` | —                         |
+| `/users`           | users           | sim         | não               | `users.view` | não          | `/login` com `redirect` | `/403`                    |
+| `/roles`           | roles           | sim         | não               | `roles.view` | não          | `/login` com `redirect` | `/403`                    |
+| `/logs`            | logs            | sim         | não               | `logs.view`  | não          | `/login` com `redirect` | `/403`                    |
+| `/manual`          | manual          | sim         | não               | —            | sim          | `/login` com `redirect` | abre (limitada entra)     |
+| `/limited`         | limited         | sim         | não               | —            | sim          | `/login` com `redirect` | abre (limitada entra)     |
+| `/403`             | forbidden       | não         | não               | —            | —            | abre direto             | abre direto               |
+| `/404`             | not-found       | não         | não               | —            | —            | abre direto             | abre direto               |
+| `/:pathMatch(.*)*` | catch-all       | não         | não               | —            | —            | página 404              | página 404                |
 
 Sobre 401 e 403 vindos da rede (não do guard): respostas 401 e 419 disparam o evento de sessão expirada, que limpa a sessão em memória sem repetir a mutação que falhou — o 419 ainda reinicia o bootstrap CSRF antes de devolver o erro tipado. Já um 403 de API vira `HttpError` de proibido na tela correspondente, com mensagem fixa segura.
 
