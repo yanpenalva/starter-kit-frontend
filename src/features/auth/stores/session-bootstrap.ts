@@ -2,6 +2,7 @@ import type { Ref } from "vue";
 import { authMyProfile } from "@/lib/api/generated";
 import type { MyProfileResource } from "@/lib/api/generated/models";
 import { isHttpError } from "@/lib/http";
+import { ensureApiCsrfCookie } from "@/lib/http/orval-mutator";
 import type { SessionStatus } from "./session-model";
 
 interface BootstrapState {
@@ -78,7 +79,10 @@ export const createSessionBootstrap = (state: BootstrapState) => {
     }
     state.errorMessage.value = null;
     const requestGeneration = generation;
-    const request = authMyProfile()
+    const request = Promise.resolve()
+      .then(() => ensureApiCsrfCookie())
+      .catch(() => undefined)
+      .then(() => authMyProfile())
       .then(({ data }) => hydrateProfile(data, requestGeneration))
       .catch((error: unknown) =>
         handleBootstrapError(error, requestGeneration),

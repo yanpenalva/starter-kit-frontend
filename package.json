@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "npm run client:check && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "smoke:browser": "node scripts/smoke-browser.mjs",
     "contract:verify": "python3 scripts/verify_contract.py",
