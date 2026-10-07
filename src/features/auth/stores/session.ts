@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import { defineStore } from "pinia";
 import { authLogin, authLogout, authMyProfile } from "@/lib/api/generated";
 import type {
@@ -7,145 +7,79 @@ import type {
 } from "@/lib/api/generated/models";
 import {
   registerUser,
-  requestPasswordReset,
+  requestPasswordReset as forgotPassword,
   resetPassword as resetPasswordApi,
   sendVerificationNotification,
 } from "../api/auth.api";
-import type {
-  ForgotPasswordRequest,
-  ForgotPasswordResponse,
-  RegisterRequest,
-  RegisterResponse,
-  ResetPasswordRequest,
-  ResetPasswordResponse,
-  VerificationNotificationResponse,
-} from "../api/auth.types";
 import { isHttpError, onSessionExpired } from "@/lib/http";
 import { queryClient } from "@/app/providers/query";
-export type SessionStatus =
-  | "idle"
-  | "loading"
-  | "authenticated"
-  | "unauthenticated"
-  | "limited"
-  | "blocked";
+import { createSessionBootstrap } from "./session-bootstrap";
+import {
+  createSessionAuthorization,
+  createSessionState,
+  type SessionStatus,
+} from "./session-model";
+export type { SessionStatus } from "./session-model";
+
 export const useSessionStore = defineStore("session", () => {
   const user = ref<MyProfileResource | null>(null);
   const status = ref<SessionStatus>("idle");
   const isInitialized = ref(false);
   const errorMessage = ref<string | null>(null);
-  const isAuthenticated = computed(() => {
-    return (
-      (status.value === "authenticated" || status.value === "limited") &&
-      user.value !== null
-    );
-  });
-  const isLimited = computed(() => {
-    return (
-      status.value === "limited" ||
-      (user.value !== null && user.value.email_verified_at === null)
-    );
-  });
-  const isBlocked = computed(() => status.value === "blocked");
-  const roles = computed<string[]>(() => user.value?.roles ?? []);
-  const permissions = computed<string[]>(() => user.value?.permissions ?? []);
-  const hasRole = (role: string): boolean => {
-    return roles.value.includes(role);
-  };
-  const hasAnyRole = (rolesToCheck: string[]): boolean => {
-    return rolesToCheck.some((r) => roles.value.includes(r));
-  };
-  const hasPermission = (permission: string): boolean => {
-    return permissions.value.includes(permission);
-  };
-  const hasAnyPermission = (permissionsToCheck: string[]): boolean => {
-    return permissionsToCheck.some((p) => permissions.value.includes(p));
-  };
-  const can = (permission: string): boolean => {
-    return hasPermission(permission);
-  };
-  const isAuthorized = (criteria: {
-    roles?: string[];
-    permissions?: string[];
-  }): boolean => {
-    if (criteria.roles && criteria.roles.length > 0) {
-      if (!hasAnyRole(criteria.roles)) {
-        return false;
-      }
-    }
-    if (criteria.permissions && criteria.permissions.length > 0) {
-      if (!hasAnyPermission(criteria.permissions)) {
-        return false;
-      }
-    }
-    return true;
-  };
+  const {
+    isAuthenticated,
+    isLimited,
+    isBlocked,
+    roles,
+    permissions,
+    authenticatedStatus,
+  } = createSessionState(user, status);
+  const {
+    hasRole,
+    hasAnyRole,
+    hasPermission,
+    hasAnyPermission,
+    can,
+    isAuthorized,
+  } = createSessionAuthorization(roles, permissions);
+  let invalidateBootstrap = (): void => undefined;
   const clearSession = (): void => {
+    invalidateBootstrap();
     user.value = null;
     status.value = "unauthenticated";
     errorMessage.value = null;
     isInitialized.value = true;
     queryClient.clear();
   };
-  const bootstrap = async (
-    force = false,
-  ): Promise<MyProfileResource | null> => {
-    if (isInitialized.value && !force) {
-      return user.value;
-    }
-    status.value = "loading";
-    errorMessage.value = null;
-    try {
-      const response = await authMyProfile();
-      user.value = response.data;
-      if (response.data.email_verified_at === null) {
-        status.value = "limited";
-      } else {
-        status.value = "authenticated";
-      }
-      isInitialized.value = true;
-      return response.data;
-    } catch (error: unknown) {
-      isInitialized.value = true;
-      if (isHttpError(error)) {
-        if (error.kind === "forbidden") {
-          user.value = null;
-          status.value = "blocked";
-          errorMessage.value = error.message;
-          return null;
-        }
-        if (error.kind === "unauthorized" || error.kind === "csrf_mismatch") {
-          clearSession();
-          return null;
-        }
-      }
-      clearSession();
-      return null;
-    }
-  };
+  const bootstrapCoordinator = createSessionBootstrap({
+    user,
+    status,
+    isInitialized,
+    errorMessage,
+    authenticatedStatus,
+    clearSession,
+  });
+  invalidateBootstrap = bootstrapCoordinator.invalidate;
+  const bootstrap = bootstrapCoordinator.bootstrap;
   const login = async (
     credentials: LoginRequest,
   ): Promise<MyProfileResource> => {
+    bootstrapCoordinator.invalidate();
     status.value = "loading";
     errorMessage.value = null;
     try {
       await authLogin(credentials);
       const response = await authMyProfile();
       user.value = response.data;
-      if (response.data.email_verified_at === null) {
-        status.value = "limited";
-      } else {
-        status.value = "authenticated";
-      }
+      status.value = authenticatedStatus(response.data);
       isInitialized.value = true;
       return response.data;
     } catch (error: unknown) {
       user.value = null;
       isInitialized.value = true;
+      status.value = "unauthenticated";
       if (isHttpError(error) && error.kind === "forbidden") {
         status.value = "blocked";
-      } else {
-        status.value = "unauthenticated";
       }
       if (isHttpError(error)) {
         errorMessage.value = error.message;
@@ -154,31 +88,25 @@ export const useSessionStore = defineStore("session", () => {
     }
   };
   const logout = async (): Promise<void> => {
+    bootstrapCoordinator.invalidate();
     status.value = "loading";
+    let failure: unknown;
+    let failed = false;
     try {
       await authLogout();
+    } catch (error: unknown) {
+      failure = error;
+      failed = true;
     } finally {
       clearSession();
     }
-  };
-  const register = async (
-    payload: RegisterRequest,
-  ): Promise<RegisterResponse> => {
-    return registerUser(payload);
-  };
-  const resendVerification =
-    async (): Promise<VerificationNotificationResponse> => {
-      return sendVerificationNotification();
-    };
-  const forgotPassword = async (
-    payload: ForgotPasswordRequest,
-  ): Promise<ForgotPasswordResponse> => {
-    return requestPasswordReset(payload);
-  };
-  const resetPassword = async (
-    payload: ResetPasswordRequest,
-  ): Promise<ResetPasswordResponse> => {
-    return resetPasswordApi(payload);
+    if (!failed) {
+      return;
+    }
+    errorMessage.value = isHttpError(failure)
+      ? failure.message
+      : "Não foi possível concluir a solicitação de saída.";
+    throw failure;
   };
   onSessionExpired(() => {
     clearSession();
@@ -202,10 +130,10 @@ export const useSessionStore = defineStore("session", () => {
     bootstrap,
     login,
     logout,
-    register,
-    resendVerification,
+    register: registerUser,
+    resendVerification: sendVerificationNotification,
     forgotPassword,
-    resetPassword,
+    resetPassword: resetPasswordApi,
     clearSession,
   };
 });

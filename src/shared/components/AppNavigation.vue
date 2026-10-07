@@ -64,6 +64,9 @@
         </template>
       </div>
     </div>
+    <p v-if="logoutError" class="app-navigation__error" role="alert">
+      {{ logoutError }}
+    </p>
   </nav>
 </template>
 
@@ -78,6 +81,7 @@ const session = useSessionStore();
 const router = useRouter();
 const route = useRoute();
 const isLoggingOut = ref(false);
+const logoutError = ref<string | null>(null);
 const isRouteActive = (path: string): boolean => {
   if (!route) return false;
   if (path === "/") {
@@ -87,12 +91,15 @@ const isRouteActive = (path: string): boolean => {
 };
 const handleLogout = async () => {
   isLoggingOut.value = true;
+  logoutError.value = null;
   try {
     await session.logout();
+  } catch {
+    logoutError.value = "Não foi possível concluir a solicitação de saída.";
+  } finally {
     if (router) {
       await router.push({ name: "login" });
     }
-  } finally {
     isLoggingOut.value = false;
   }
 };
@@ -241,5 +248,13 @@ const handleLogout = async () => {
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
+}
+
+.app-navigation__error {
+  width: min(100%, var(--layout-width, 72rem));
+  padding: 0.5rem var(--layout-gutter, 1.5rem);
+  margin: 0 auto;
+  color: #b42318;
+  font-size: 0.8125rem;
 }
 </style>

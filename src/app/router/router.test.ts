@@ -20,6 +20,14 @@ const verifiedStandardUser: MyProfileResource = {
   roles: ["member"],
   permissions: [],
 };
+const verifiedRoleViewer: MyProfileResource = {
+  id: 4,
+  name: "Role Viewer",
+  email: "role-viewer@example.com",
+  email_verified_at: "2026-10-01T00:00:00Z",
+  roles: ["member"],
+  permissions: ["roles.view"],
+};
 const limitedUser: MyProfileResource = {
   id: 3,
   name: "Limited User",
@@ -213,6 +221,22 @@ describe("router routes and navigation guards", () => {
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
     await navigationGuard(to, from, next);
+    expect(next).toHaveBeenCalledWith();
+  });
+  it("allows user with roles.view permission without the admin role", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.user = verifiedRoleViewer;
+    session.status = "authenticated";
+    const to = createMockRoute({
+      path: "/roles",
+      matched: [createMockRecord({ requiresAuth: true })],
+      meta: { requiresAuth: true, permissions: ["roles.view"] },
+    });
+    const next = vi.fn();
+
+    await navigationGuard(to, createMockRoute({ path: "/" }), next);
+
     expect(next).toHaveBeenCalledWith();
   });
   it("redirects user without required permission to 403 forbidden", async () => {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/server";
@@ -130,6 +130,108 @@ describe("useSessionStore", () => {
     expect(store.user).toBeNull();
     expect(store.status).toBe("unauthenticated");
     expect(store.isAuthenticated).toBe(false);
+  });
+
+  it("keeps the current session and allows retry after a server error", async () => {
+    let calls = 0;
+    server.use(
+      http.get(PROFILE_URL, ({ request }) => {
+        calls += 1;
+        if (calls === 1) {
+          return HttpResponse.json(
+            { message: "Erro interno." },
+            { status: 500, headers: makeCorsHeaders(request) },
+          );
+        }
+        return HttpResponse.json(
+          { data: mockVerifiedProfile },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+
+    const store = useSessionStore();
+    store.user = mockVerifiedProfile;
+    store.status = "authenticated";
+    const firstResult = await store.bootstrap();
+
+    expect(firstResult).toBeNull();
+    expect(store.user).toEqual(mockVerifiedProfile);
+    expect(store.status).toBe("authenticated");
+    expect(store.isInitialized).toBe(false);
+
+    const retryResult = await store.bootstrap();
+
+    expect(retryResult).toEqual(mockVerifiedProfile);
+    expect(store.isInitialized).toBe(true);
+    expect(calls).toBe(2);
+  });
+
+  it("shares concurrent bootstrap requests", async () => {
+    let calls = 0;
+    server.use(
+      http.get(PROFILE_URL, async ({ request }) => {
+        calls += 1;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return HttpResponse.json(
+          { data: mockVerifiedProfile },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+
+    const store = useSessionStore();
+    const requests = [store.bootstrap(), store.bootstrap(), store.bootstrap()];
+
+    await expect(Promise.all(requests)).resolves.toEqual([
+      mockVerifiedProfile,
+      mockVerifiedProfile,
+      mockVerifiedProfile,
+    ]);
+    expect(calls).toBe(1);
+  });
+
+  it("discards a bootstrap response that completes after logout", async () => {
+    let releaseResponse: (() => void) | undefined;
+    server.use(
+      http.get(PROFILE_URL, async ({ request }) => {
+        await new Promise<void>((resolve) => {
+          releaseResponse = resolve;
+        });
+        return HttpResponse.json(
+          { data: mockVerifiedProfile },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+      http.get(
+        CSRF_COOKIE_URL,
+        ({ request }) =>
+          new HttpResponse(null, {
+            status: 204,
+            headers: makeCorsHeaders(request, {
+              "Set-Cookie": `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`,
+            }),
+          }),
+      ),
+      http.post(
+        LOGOUT_URL,
+        ({ request }) =>
+          new HttpResponse(null, {
+            status: 204,
+            headers: makeCorsHeaders(request),
+          }),
+      ),
+    );
+
+    const store = useSessionStore();
+    const bootstrapRequest = store.bootstrap();
+    await vi.waitFor(() => expect(releaseResponse).toBeTypeOf("function"));
+    await store.logout();
+    releaseResponse?.();
+    await bootstrapRequest;
+
+    expect(store.user).toBeNull();
+    expect(store.status).toBe("unauthenticated");
   });
 
   it("sets blocked on 403 during bootstrap (account deactivated)", async () => {
@@ -276,6 +378,40 @@ describe("useSessionStore", () => {
     expect(store.user).toBeNull();
     expect(store.status).toBe("unauthenticated");
     expect(store.isAuthenticated).toBe(false);
+  });
+
+  it("clears session and retains an actionable error when logout fails", async () => {
+    server.use(
+      http.get(
+        CSRF_COOKIE_URL,
+        ({ request }) =>
+          new HttpResponse(null, {
+            status: 204,
+            headers: makeCorsHeaders(request, {
+              "Set-Cookie": `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`,
+            }),
+          }),
+      ),
+      http.post(LOGOUT_URL, ({ request }) =>
+        HttpResponse.json(
+          { message: "Erro interno." },
+          { status: 500, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    const store = useSessionStore();
+    store.user = mockVerifiedProfile;
+    store.status = "authenticated";
+
+    await expect(store.logout()).rejects.toMatchObject({
+      kind: "server_error",
+      status: 500,
+    });
+
+    expect(store.user).toBeNull();
+    expect(store.status).toBe("unauthenticated");
+    expect(store.errorMessage).toContain("indisponível");
   });
 
   it("clears session immediately on 401/419 error notification without replaying mutations", () => {

@@ -57,7 +57,7 @@ export const routes: RouteRecordRaw[] = [
     path: "/roles",
     name: "roles",
     component: () => import("@features/roles/pages/RolesPage.vue"),
-    meta: { requiresAuth: true, roles: ["admin"] },
+    meta: { requiresAuth: true, permissions: ["roles.view"] },
   },
   {
     path: "/logs",
