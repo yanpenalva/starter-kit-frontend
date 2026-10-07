@@ -29,18 +29,27 @@ export const STATUS_TO_KIND: Readonly<Record<number, HttpErrorKind>> = {
 };
 
 export const SAFE_MESSAGES: Readonly<Record<HttpErrorKind, string>> = {
-  unauthorized: "Sua sessão não está autenticada ou expirou.",
-  forbidden: "Você não tem permissão para realizar esta ação.",
-  not_found: "O recurso solicitado não foi encontrado.",
-  conflict: "A requisição conflita com o estado atual do recurso.",
-  csrf_mismatch: "Seu token de segurança expirou e a ação não foi concluída.",
-  validation: "Alguns campos precisam da sua atenção.",
-  rate_limited: "Muitas requisições. Aguarde antes de tentar novamente.",
+  unauthorized:
+    "Sua sessão expirou ou não está autenticada. Entre novamente para continuar.",
+  forbidden:
+    "Sua conta não tem permissão para esta ação. Solicite acesso a um administrador.",
+  not_found:
+    "Não encontramos o recurso solicitado. Atualize a página e tente novamente.",
+  conflict:
+    "A ação conflita com o estado atual do registro. Recarregue os dados e tente novamente.",
+  csrf_mismatch:
+    "Sua sessão de segurança expirou e a ação não foi concluída. Recarregue a página e repita a operação.",
+  validation:
+    "Alguns campos precisam de correção. Revise os itens indicados e envie novamente.",
+  rate_limited:
+    "Muitas tentativas em pouco tempo. Aguarde alguns instantes e tente novamente.",
   server_error:
-    "O serviço está temporariamente indisponível. Tente novamente mais tarde.",
-  network: "Não foi possível conectar ao serviço. Verifique sua conexão.",
-  cancelled: "A requisição foi cancelada.",
-  unexpected: "Uma resposta inesperada foi recebida.",
+    "O serviço está temporariamente indisponível. Tente novamente em alguns instantes.",
+  network:
+    "Não foi possível conectar ao serviço. Verifique sua conexão e tente novamente.",
+  cancelled: "A solicitação foi cancelada antes de ser concluída.",
+  unexpected:
+    "Recebemos uma resposta inesperada do serviço. Atualize a página e tente novamente.",
 };
 
 export const KNOWN_KINDS_SET: ReadonlySet<string> = new Set(

@@ -761,7 +761,7 @@ describe("typed error mapping", () => {
     if (isHttpError(cause)) {
       expect(cause.message).not.toContain(PII_PROBE);
       expect(cause.message).toBe(
-        "O serviço está temporariamente indisponível. Tente novamente mais tarde.",
+        "O serviço está temporariamente indisponível. Tente novamente em alguns instantes.",
       );
       return;
     }
@@ -923,7 +923,8 @@ describe("type guards and structural variant validation", () => {
     const validUnauthorized = {
       kind: "unauthorized" as const,
       status: 401,
-      message: "Sua sessão não está autenticada ou expirou.",
+      message:
+        "Sua sessão expirou ou não está autenticada. Entre novamente para continuar.",
     };
     expect(isHttpError(validUnauthorized)).toBe(true);
     expect(isHttpError(null)).toBe(false);
@@ -939,7 +940,8 @@ describe("type guards and structural variant validation", () => {
       isHttpError({
         kind: "validation",
         status: 422,
-        message: "Alguns campos precisam da sua atenção.",
+        message:
+          "Alguns campos precisam de correção. Revise os itens indicados e envie novamente.",
         fieldErrors: "not-an-object",
       }),
     ).toBe(false);
@@ -947,7 +949,8 @@ describe("type guards and structural variant validation", () => {
       isHttpError({
         kind: "validation",
         status: 422,
-        message: "Alguns campos precisam da sua atenção.",
+        message:
+          "Alguns campos precisam de correção. Revise os itens indicados e envie novamente.",
         fieldErrors: { email: [123] },
       }),
     ).toBe(false);
@@ -955,7 +958,8 @@ describe("type guards and structural variant validation", () => {
       isHttpError({
         kind: "rate_limited",
         status: 429,
-        message: "Muitas requisições. Aguarde antes de tentar novamente.",
+        message:
+          "Muitas tentativas em pouco tempo. Aguarde alguns instantes e tente novamente.",
         retryAfterSeconds: -5,
       }),
     ).toBe(false);
@@ -980,7 +984,7 @@ describe("type guards and structural variant validation", () => {
         kind: "server_error",
         status: 700,
         message:
-          "O serviço está temporariamente indisponível. Tente novamente mais tarde.",
+          "O serviço está temporariamente indisponível. Tente novamente em alguns instantes.",
       }),
     ).toBe(false);
   });
@@ -988,19 +992,22 @@ describe("type guards and structural variant validation", () => {
     const valid422 = {
       kind: "validation" as const,
       status: 422 as const,
-      message: "Alguns campos precisam da sua atenção.",
+      message:
+        "Alguns campos precisam de correção. Revise os itens indicados e envie novamente.",
       fieldErrors: {},
     };
     const valid429 = {
       kind: "rate_limited" as const,
       status: 429 as const,
-      message: "Muitas requisições. Aguarde antes de tentar novamente.",
+      message:
+        "Muitas tentativas em pouco tempo. Aguarde alguns instantes e tente novamente.",
       retryAfterSeconds: 30,
     };
     const valid419 = {
       kind: "csrf_mismatch" as const,
       status: 419,
-      message: "Seu token de segurança expirou e a ação não foi concluída.",
+      message:
+        "Sua sessão de segurança expirou e a ação não foi concluída. Recarregue a página e repita a operação.",
     };
     expect(isValidationHttpError(valid422)).toBe(true);
     expect(isValidationHttpError(valid429)).toBe(false);
@@ -1062,7 +1069,8 @@ describe("type guards and structural variant validation", () => {
       isHttpError({
         kind: "unexpected",
         status: 50,
-        message: "Uma resposta inesperada foi recebida.",
+        message:
+          "Recebemos uma resposta inesperada do serviço. Atualize a página e tente novamente.",
         timedOut: false,
       }),
     ).toBe(false);
@@ -1070,7 +1078,8 @@ describe("type guards and structural variant validation", () => {
       isHttpError({
         kind: "unexpected",
         status: 600,
-        message: "Uma resposta inesperada foi recebida.",
+        message:
+          "Recebemos uma resposta inesperada do serviço. Atualize a página e tente novamente.",
         timedOut: false,
       }),
     ).toBe(false);

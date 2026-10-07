@@ -66,6 +66,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, permissions: ["logs.view"] },
   },
   {
+    path: "/manual",
+    name: "manual",
+    component: () => import("@features/manual/pages/ManualPage.vue"),
+    meta: { requiresAuth: true, allowLimited: true },
+  },
+  {
     path: "/limited",
     name: "limited",
     component: () => import("@features/auth/pages/LimitedPage.vue"),
@@ -142,5 +148,6 @@ export const navigationGuard = async (
 export const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior: (to) => (to.hash ? { el: to.hash } : { top: 0 }),
 });
 router.beforeEach(navigationGuard);

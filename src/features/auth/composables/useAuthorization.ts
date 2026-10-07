@@ -45,6 +45,12 @@ export const APP_NAV_ITEMS: readonly NavMenuItem[] = [
     permissions: ["logs.view"],
   },
   {
+    key: "manual",
+    label: "Manual",
+    to: "/manual",
+    requiresAuth: true,
+  },
+  {
     key: "limited",
     label: "Verificação",
     to: "/limited",
