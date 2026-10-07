@@ -1,0 +1,12 @@
+/**
+ * Gerado por Orval 8.39.0 a partir do contrato OpenAPI aprovado e pinado.
+ * Não editar manualmente; use npm run client:generate.
+ */
+
+export type ActivityLogIndexEvent =
+  (typeof ActivityLogIndexEvent)[keyof typeof ActivityLogIndexEvent];
+
+export const ActivityLogIndexEvent = {
+  clibootstrap: "cli.bootstrap",
+  privilegedchange: "privileged.change",
+} as const;
