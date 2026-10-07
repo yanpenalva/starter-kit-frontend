@@ -58,9 +58,14 @@
               <button
                 type="button"
                 :aria-label="`Salvar nome de ${user.name}`"
+                :disabled="isMutating"
                 @click="saveName(user.id)"
               >
-                Salvar nome
+                {{
+                  isActionPending("name", user.id)
+                    ? "Salvando..."
+                    : "Salvar nome"
+                }}
               </button>
             </td>
             <td>{{ user.email }}</td>
@@ -73,18 +78,30 @@
               <button
                 type="button"
                 :aria-label="`Salvar papéis de ${user.name}`"
+                :disabled="isMutating"
                 @click="saveRoles(user.id)"
               >
-                Salvar papéis
+                {{
+                  isActionPending("roles", user.id)
+                    ? "Salvando..."
+                    : "Salvar papéis"
+                }}
               </button>
             </td>
             <td>
               <button
                 type="button"
                 :aria-label="`${user.deactivated_at === null ? 'Desativar' : 'Ativar'} ${user.name}`"
+                :disabled="isMutating"
                 @click="toggleStatus(user.id, user.deactivated_at === null)"
               >
-                {{ user.deactivated_at === null ? "Desativar" : "Ativar" }}
+                {{
+                  isActionPending("status", user.id)
+                    ? "Atualizando..."
+                    : user.deactivated_at === null
+                      ? "Desativar"
+                      : "Ativar"
+                }}
               </button>
             </td>
           </tr>
@@ -127,15 +144,26 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import { useUsersList } from "@/features/users/composables/useUsersList";
+
+type PendingActionKind = "name" | "roles" | "status";
+
+interface PendingAction {
+  kind: PendingActionKind;
+  userId: number;
+}
 
 const { filters, query, updateMutation, statusMutation, rolesMutation } =
   useUsersList();
 const editedNames = reactive<Record<number, string>>({});
 const editedRoles = reactive<Record<number, string>>({});
 const mutationError = ref<string | null>(null);
+const pendingAction = ref<PendingAction | null>(null);
+const isMutating = computed(() => pendingAction.value !== null);
+const isActionPending = (kind: PendingActionKind, userId: number): boolean =>
+  pendingAction.value?.kind === kind && pendingAction.value?.userId === userId;
 watch([() => filters.search, () => filters.status, () => filters.role], () => {
   filters.page = 1;
 });
@@ -151,7 +179,9 @@ watch(
 );
 
 const saveName = async (userId: number): Promise<void> => {
+  if (pendingAction.value !== null) return;
   mutationError.value = null;
+  pendingAction.value = { kind: "name", userId };
   try {
     await updateMutation.mutateAsync({
       userId,
@@ -159,10 +189,14 @@ const saveName = async (userId: number): Promise<void> => {
     });
   } catch {
     mutationError.value = "Não foi possível atualizar o usuário.";
+  } finally {
+    pendingAction.value = null;
   }
 };
 const saveRoles = async (userId: number): Promise<void> => {
+  if (pendingAction.value !== null) return;
   mutationError.value = null;
+  pendingAction.value = { kind: "roles", userId };
   try {
     const roles = (editedRoles[userId] ?? "")
       .split(",")
@@ -171,13 +205,17 @@ const saveRoles = async (userId: number): Promise<void> => {
     await rolesMutation.mutateAsync({ userId, payload: { roles } });
   } catch {
     mutationError.value = "Não foi possível atualizar os papéis do usuário.";
+  } finally {
+    pendingAction.value = null;
   }
 };
 const toggleStatus = async (
   userId: number,
   isActive: boolean,
 ): Promise<void> => {
+  if (pendingAction.value !== null) return;
   mutationError.value = null;
+  pendingAction.value = { kind: "status", userId };
   try {
     await statusMutation.mutateAsync({
       userId,
@@ -185,6 +223,8 @@ const toggleStatus = async (
     });
   } catch {
     mutationError.value = "Não foi possível atualizar o status do usuário.";
+  } finally {
+    pendingAction.value = null;
   }
 };
 </script>

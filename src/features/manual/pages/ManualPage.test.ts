@@ -73,4 +73,28 @@ describe("ManualPage.vue", () => {
     expect(text).toContain("logs.view");
     expect(text).toContain("último administrador ativo");
   });
+
+  it("explains the session lifetime without hardcoding backend values", () => {
+    const text = mountManual().text();
+
+    expect(text).toContain("Quanto tempo dura a sessão?");
+    expect(text).toContain("inatividade");
+    expect(text).toContain("servidor");
+    expect(text).toContain("login");
+    expect(text).toMatch(/renovar/i);
+  });
+
+  it("keeps the manual content in a separate data module", async () => {
+    const data = await import("../data/manual-content");
+
+    expect(data.MANUAL_SECTIONS.map((section) => section.id)).toEqual(
+      REQUIRED_SECTION_IDS,
+    );
+    const sessionEntry = data.MANUAL_FAQ.find((faq) =>
+      faq.question.includes("Quanto tempo dura a sessão?"),
+    );
+    expect(sessionEntry).toBeDefined();
+    expect(sessionEntry?.answer).not.toMatch(/\d/);
+    expect(mountManual().text()).toContain(sessionEntry?.answer ?? "");
+  });
 });

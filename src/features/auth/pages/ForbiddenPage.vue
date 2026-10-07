@@ -10,9 +10,10 @@
           <button
             type="button"
             class="forbidden-btn forbidden-btn--danger"
+            :disabled="isLoggingOut"
             @click="handleLogout"
           >
-            Encerrar sessão
+            {{ isLoggingOut ? "Encerrando..." : "Encerrar sessão" }}
           </button>
         </template>
         <template v-else>
@@ -32,12 +33,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useSessionStore } from "@/features/auth/stores/session";
 const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();
+const isLoggingOut = ref(false);
 const isBlocked = computed(() => {
   return session.isBlocked || route.query.reason === "blocked";
 });
@@ -51,8 +53,14 @@ const message = computed(() => {
   return "Você não tem permissão para realizar esta ação ou acessar esta página.";
 });
 const handleLogout = async () => {
-  await session.logout();
-  await router.push({ name: "login" });
+  if (isLoggingOut.value) return;
+  isLoggingOut.value = true;
+  try {
+    await session.logout();
+    await router.push({ name: "login" });
+  } finally {
+    isLoggingOut.value = false;
+  }
 };
 </script>
 

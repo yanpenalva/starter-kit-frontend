@@ -52,4 +52,28 @@ describe("ForbiddenPage.vue", () => {
     expect(wrapper.get("h1").text()).toBe("Conta Desativada");
     expect(wrapper.text()).toContain("Esta conta foi desativada.");
   });
+
+  it("disables the logout button and shows loading while logging out", async () => {
+    mockQuery = { reason: "blocked" };
+    const session = useSessionStore();
+    let resolveLogout!: () => void;
+    vi.spyOn(session, "logout").mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveLogout = resolve;
+        }),
+    );
+
+    const wrapper = mount(ForbiddenPage);
+    const button = wrapper.get("button");
+    void button.trigger("click");
+
+    await vi.waitFor(() => expect(button.attributes("disabled")).toBeDefined());
+    expect(button.text()).toBe("Encerrando...");
+
+    resolveLogout();
+    await vi.waitFor(() =>
+      expect(wrapper.get("button").text()).toBe("Encerrar sessão"),
+    );
+  });
 });

@@ -71,6 +71,36 @@ describe("LimitedPage.vue", () => {
     expect(mockRouterPush).toHaveBeenCalledWith({ name: "login" });
   });
 
+  it("disables the logout button and shows loading while logging out", async () => {
+    const session = useSessionStore();
+    session.user = mockLimitedUser;
+    session.status = "limited";
+    let resolveLogout!: () => void;
+    const logoutSpy = vi.spyOn(session, "logout").mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveLogout = resolve;
+        }),
+    );
+
+    const wrapper = mount(LimitedPage);
+    const logoutButton = wrapper.get(".limited-btn--secondary");
+    void logoutButton.trigger("click");
+
+    await vi.waitFor(() =>
+      expect(logoutButton.attributes("disabled")).toBeDefined(),
+    );
+    expect(logoutButton.text()).toBe("Saindo...");
+    expect(logoutSpy).toHaveBeenCalledTimes(1);
+
+    resolveLogout();
+    await vi.waitFor(() =>
+      expect(wrapper.get(".limited-btn--secondary").text()).toBe(
+        "Sair da conta",
+      ),
+    );
+  });
+
   it("triggers resend verification on button click and displays success message", async () => {
     const session = useSessionStore();
     session.user = mockLimitedUser;

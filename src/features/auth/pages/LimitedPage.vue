@@ -35,7 +35,7 @@
         <button
           type="button"
           class="limited-btn limited-btn--primary"
-          :disabled="isChecking || isResending"
+          :disabled="isChecking || isResending || isLoggingOut"
           @click="checkStatus"
         >
           {{ isChecking ? "Verificando..." : "Já confirmei meu e-mail" }}
@@ -44,7 +44,7 @@
         <button
           type="button"
           class="limited-btn limited-btn--outline"
-          :disabled="isChecking || isResending"
+          :disabled="isChecking || isResending || isLoggingOut"
           @click="handleResend"
         >
           {{ isResending ? "Reenviando..." : "Reenviar e-mail" }}
@@ -53,9 +53,10 @@
         <button
           type="button"
           class="limited-btn limited-btn--secondary"
+          :disabled="isLoggingOut"
           @click="handleLogout"
         >
-          Sair da conta
+          {{ isLoggingOut ? "Saindo..." : "Sair da conta" }}
         </button>
       </div>
     </main>
@@ -72,6 +73,7 @@ const router = useRouter();
 const user = computed(() => session.user);
 const isChecking = ref(false);
 const isResending = ref(false);
+const isLoggingOut = ref(false);
 const resendSuccessMessage = ref<string | null>(null);
 const resendErrorMessage = ref<string | null>(null);
 const checkStatus = async () => {
@@ -114,8 +116,14 @@ const handleResend = async () => {
   }
 };
 const handleLogout = async () => {
-  await session.logout();
-  await router.push({ name: "login" });
+  if (isLoggingOut.value) return;
+  isLoggingOut.value = true;
+  try {
+    await session.logout();
+    await router.push({ name: "login" });
+  } finally {
+    isLoggingOut.value = false;
+  }
 };
 </script>
 
