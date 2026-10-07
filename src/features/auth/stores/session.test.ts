@@ -210,7 +210,6 @@ describe("useSessionStore", () => {
     expect(user).toEqual(mockVerifiedProfile);
     expect(store.isAuthenticated).toBe(true);
     expect(store.status).toBe("authenticated");
-    // Ensure no password is stored on the state
     expect(JSON.stringify(store.$state)).not.toContain("secret-password");
   });
 
@@ -284,14 +283,12 @@ describe("useSessionStore", () => {
     store.user = mockVerifiedProfile;
     store.status = "authenticated";
 
-    // Simulate 401 notification from http layer
     notifySessionExpired(buildHttpError({ kind: "unauthorized", status: 401 }));
 
     expect(store.user).toBeNull();
     expect(store.status).toBe("unauthenticated");
     expect(store.isAuthenticated).toBe(false);
 
-    // Re-populate and simulate 419 notification
     store.user = mockVerifiedProfile;
     store.status = "authenticated";
 
@@ -353,7 +350,6 @@ describe("useSessionStore", () => {
       email: "novo@example.com",
       email_verified_at: null,
     });
-    // Crucial requirement: register DOES NOT authenticate
     expect(store.user).toBeNull();
     expect(store.status).toBe("idle");
     expect(store.isAuthenticated).toBe(false);

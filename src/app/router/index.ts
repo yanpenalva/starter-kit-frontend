@@ -6,7 +6,6 @@ import {
   type RouteRecordRaw,
 } from "vue-router";
 import { useSessionStore } from "@/features/auth/stores/session";
-
 export const routes: RouteRecordRaw[] = [
   {
     path: "/",
@@ -88,33 +87,25 @@ export const routes: RouteRecordRaw[] = [
     component: () => import("@features/auth/pages/NotFoundPage.vue"),
   },
 ];
-
-export async function navigationGuard(
+export const navigationGuard = async (
   to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
   next: NavigationGuardNext,
-) {
+) => {
   const session = useSessionStore();
-
   if (!session.isInitialized) {
     await session.bootstrap();
   }
-
-  // 1. Account blocked (deactivated)
   if (session.isBlocked) {
     if (to.name !== "forbidden") {
       return next({ name: "forbidden", query: { reason: "blocked" } });
     }
     return next();
   }
-
-  // 2. Guest-only routes when authenticated
   const guestOnly = to.matched.some((record) => record.meta.guestOnly);
   if (guestOnly && session.isAuthenticated) {
     return next({ name: "dashboard" });
   }
-
-  // 3. Protected routes when unauthenticated
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
   if (requiresAuth && !session.isAuthenticated) {
     return next({
@@ -122,16 +113,12 @@ export async function navigationGuard(
       query: { redirect: to.fullPath !== "/" ? to.fullPath : undefined },
     });
   }
-
-  // 4. Limited (unverified email) session restrictions
   if (requiresAuth && session.isLimited) {
     const allowLimited = to.matched.some((record) => record.meta.allowLimited);
     if (!allowLimited) {
       return next({ name: "limited" });
     }
   }
-
-  // 5. Role restrictions
   const requiredRoles = to.meta.roles as string[] | undefined;
   if (requiresAuth && requiredRoles && requiredRoles.length > 0) {
     if (!session.hasAnyRole(requiredRoles)) {
@@ -141,8 +128,6 @@ export async function navigationGuard(
       });
     }
   }
-
-  // 6. Permission restrictions
   const requiredPermissions = to.meta.permissions as string[] | undefined;
   if (requiresAuth && requiredPermissions && requiredPermissions.length > 0) {
     if (!session.hasAnyPermission(requiredPermissions)) {
@@ -152,13 +137,10 @@ export async function navigationGuard(
       });
     }
   }
-
   return next();
-}
-
+};
 export const router = createRouter({
   history: createWebHistory(),
   routes,
 });
-
 router.beforeEach(navigationGuard);

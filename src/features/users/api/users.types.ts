@@ -1,5 +1,4 @@
 import type { UserStatus } from "@/shared/types/contract";
-
 export interface AdminUser {
   id: number;
   name: string;
@@ -9,7 +8,6 @@ export interface AdminUser {
   roles: string[];
   cpf?: string;
 }
-
 export interface UserFilters {
   page?: number;
   per_page?: number;
@@ -17,21 +15,17 @@ export interface UserFilters {
   status?: UserStatus;
   role?: string;
 }
-
 export interface UpdateUserPayload {
   name?: string;
   email?: string;
   cpf?: string | null;
 }
-
 export interface SetUserStatusPayload {
   status: UserStatus;
 }
-
 export interface AssignUserRolesPayload {
   roles: string[];
 }
-
-export function userStatusOf(user: AdminUser): UserStatus {
+export const userStatusOf = (user: AdminUser): UserStatus => {
   return user.deactivated_at === null ? "active" : "deactivated";
-}
+};

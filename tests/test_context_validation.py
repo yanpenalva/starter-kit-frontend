@@ -1,4 +1,3 @@
-"""Regression checks for consuming-project validation and source integrity."""
 import hashlib
 import json
 from pathlib import Path

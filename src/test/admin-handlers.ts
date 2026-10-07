@@ -9,8 +9,9 @@ import {
 import type { AdminUser } from "@/features/users/api/users.types";
 import type { AdminRole } from "@/features/roles/api/roles.types";
 import type { AdminActivity } from "@/features/logs/api/audit.types";
-
-export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
+export const makeAdminUser = (
+  overrides: Partial<AdminUser> = {},
+): AdminUser => {
   return {
     id: 1,
     name: "Maria Silva",
@@ -20,9 +21,10 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     roles: ["user"],
     ...overrides,
   };
-}
-
-export function makeAdminRole(overrides: Partial<AdminRole> = {}): AdminRole {
+};
+export const makeAdminRole = (
+  overrides: Partial<AdminRole> = {},
+): AdminRole => {
   return {
     id: 1,
     name: "admin",
@@ -39,11 +41,10 @@ export function makeAdminRole(overrides: Partial<AdminRole> = {}): AdminRole {
     ],
     ...overrides,
   };
-}
-
-export function makeAdminActivity(
+};
+export const makeAdminActivity = (
   overrides: Partial<AdminActivity> = {},
-): AdminActivity {
+): AdminActivity => {
   return {
     id: 1,
     event: "privileged.change",
@@ -54,9 +55,8 @@ export function makeAdminActivity(
     created_at: "2026-10-06T12:00:00Z",
     ...overrides,
   };
-}
-
-export function makePaginated<T>(
+};
+export const makePaginated = <T>(
   data: T[],
   meta: {
     current_page: number;
@@ -81,7 +81,7 @@ export function makePaginated<T>(
     to: number | null;
     total: number;
   };
-} {
+} => {
   const {
     current_page: currentPage,
     last_page: lastPage,
@@ -110,16 +110,14 @@ export function makePaginated<T>(
       total,
     },
   };
-}
-
+};
 export interface RecordedApiCall {
   readonly method: string;
   readonly path: string;
   readonly query: URLSearchParams;
   readonly body: unknown;
 }
-
-function parseBody(body: unknown): unknown {
+const parseBody = (body: unknown): unknown => {
   if (typeof body !== "string" || body === "") {
     return null;
   }
@@ -128,9 +126,8 @@ function parseBody(body: unknown): unknown {
   } catch {
     return body;
   }
-}
-
-async function record(request: Request): Promise<RecordedApiCall> {
+};
+const record = async (request: Request): Promise<RecordedApiCall> => {
   const url = new URL(request.url);
   let raw: unknown = null;
   if (request.method !== "GET" && request.method !== "HEAD") {
@@ -142,9 +139,8 @@ async function record(request: Request): Promise<RecordedApiCall> {
     query: url.searchParams,
     body: raw,
   };
-}
-
-function recordSync(request: Request): RecordedApiCall {
+};
+const recordSync = (request: Request): RecordedApiCall => {
   const url = new URL(request.url);
   return {
     method: request.method,
@@ -152,20 +148,18 @@ function recordSync(request: Request): RecordedApiCall {
     query: url.searchParams,
     body: null,
   };
-}
-
-function json(
+};
+const json = (
   request: Request,
   body: unknown,
   status = 200,
-): HttpResponse<never> {
+): HttpResponse<never> => {
   return HttpResponse.json(body as never, {
     status,
     headers: makeCorsHeaders(request),
   });
-}
-
-function csrfHandler(): RequestHandler {
+};
+const csrfHandler = (): RequestHandler => {
   return http.get(
     `${TEST_API_BASE}/sanctum/csrf-cookie`,
     ({ request }) =>
@@ -176,9 +170,8 @@ function csrfHandler(): RequestHandler {
         }),
       }),
   );
-}
-
-function preflightHandler(): RequestHandler {
+};
+const preflightHandler = (): RequestHandler => {
   return http.options(
     "*",
     ({ request }) =>
@@ -187,16 +180,15 @@ function preflightHandler(): RequestHandler {
         headers: makeCorsHeaders(request),
       }),
   );
-}
-
+};
 export interface UsersRouteMocks {
   readonly handlers: readonly RequestHandler[];
   readonly calls: readonly RecordedApiCall[];
 }
-
-export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
+export const makeUsersRouteMocks = (
+  users: AdminUser[] = [],
+): UsersRouteMocks => {
   const calls: RecordedApiCall[] = [];
-
   const handlers: readonly RequestHandler[] = [
     preflightHandler(),
     csrfHandler(),
@@ -208,7 +200,6 @@ export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
       const role = url.searchParams.get("role");
       const page = Number(url.searchParams.get("page") ?? "1");
       const perPage = Number(url.searchParams.get("per_page") ?? "15");
-
       const filtered = users.filter((user) => {
         const matchesSearch =
           search === "" ||
@@ -222,10 +213,8 @@ export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
           role === null || role === "" || user.roles.includes(role);
         return matchesSearch && matchesStatus && matchesRole;
       });
-
       const start = (page - 1) * perPage;
       const pageData = filtered.slice(start, start + perPage);
-
       return json(
         request,
         makePaginated(pageData, {
@@ -236,7 +225,6 @@ export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
         }),
       );
     }),
-
     http.get(
       `${TEST_API_BASE}/api/v1/users/:userId`,
       async ({ request, params }) => {
@@ -250,7 +238,6 @@ export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
         return json(request, { data: user });
       },
     ),
-
     http.patch(
       `${TEST_API_BASE}/api/v1/users/:userId`,
       async ({ request, params }) => {
@@ -265,7 +252,6 @@ export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
         return json(request, { data: { ...user, ...payload } });
       },
     ),
-
     http.post(
       `${TEST_API_BASE}/api/v1/users/:userId/status`,
       async ({ request, params }) => {
@@ -276,7 +262,9 @@ export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
         if (user === undefined) {
           return json(request, { message: "Não encontrado." }, 404);
         }
-        const payload = (await request.json()) as { status?: string };
+        const payload = (await request.json()) as {
+          status?: string;
+        };
         if (payload.status === "active") {
           return json(request, { data: { ...user, deactivated_at: null } });
         }
@@ -288,7 +276,6 @@ export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
         return json(request, { message: "Dados inválidos." }, 422);
       },
     ),
-
     http.put(
       `${TEST_API_BASE}/api/v1/users/:userId/roles`,
       async ({ request, params }) => {
@@ -299,7 +286,9 @@ export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
         if (user === undefined) {
           return json(request, { message: "Não encontrado." }, 404);
         }
-        const payload = (await request.json()) as { roles?: string[] };
+        const payload = (await request.json()) as {
+          roles?: string[];
+        };
         if (!Array.isArray(payload.roles) || payload.roles.length === 0) {
           return json(request, { message: "Dados inválidos." }, 422);
         }
@@ -309,18 +298,16 @@ export function makeUsersRouteMocks(users: AdminUser[] = []): UsersRouteMocks {
       },
     ),
   ];
-
   return { handlers, calls };
-}
-
+};
 export interface RolesRouteMocks {
   readonly handlers: readonly RequestHandler[];
   readonly calls: readonly RecordedApiCall[];
 }
-
-export function makeRolesRouteMocks(roles: AdminRole[] = []): RolesRouteMocks {
+export const makeRolesRouteMocks = (
+  roles: AdminRole[] = [],
+): RolesRouteMocks => {
   const calls: RecordedApiCall[] = [];
-
   const handlers: readonly RequestHandler[] = [
     preflightHandler(),
     csrfHandler(),
@@ -330,7 +317,6 @@ export function makeRolesRouteMocks(roles: AdminRole[] = []): RolesRouteMocks {
       const search = (url.searchParams.get("search") ?? "").toLowerCase();
       const page = Number(url.searchParams.get("page") ?? "1");
       const perPage = Number(url.searchParams.get("per_page") ?? "15");
-
       const filtered = roles.filter(
         (role) =>
           search === "" ||
@@ -339,10 +325,8 @@ export function makeRolesRouteMocks(roles: AdminRole[] = []): RolesRouteMocks {
             permission.toLowerCase().includes(search),
           ),
       );
-
       const start = (page - 1) * perPage;
       const pageData = filtered.slice(start, start + perPage);
-
       return json(
         request,
         makePaginated(pageData, {
@@ -353,7 +337,6 @@ export function makeRolesRouteMocks(roles: AdminRole[] = []): RolesRouteMocks {
         }),
       );
     }),
-
     http.put(
       `${TEST_API_BASE}/api/v1/roles/:roleId/permissions`,
       async ({ request, params }) => {
@@ -371,7 +354,9 @@ export function makeRolesRouteMocks(roles: AdminRole[] = []): RolesRouteMocks {
             403,
           );
         }
-        const payload = (await request.json()) as { permissions?: string[] };
+        const payload = (await request.json()) as {
+          permissions?: string[];
+        };
         if (!Array.isArray(payload.permissions)) {
           return json(request, { message: "Dados inválidos." }, 422);
         }
@@ -381,26 +366,21 @@ export function makeRolesRouteMocks(roles: AdminRole[] = []): RolesRouteMocks {
       },
     ),
   ];
-
   return { handlers, calls };
-}
-
+};
 export interface AuditRouteMocks {
   readonly handlers: readonly RequestHandler[];
   readonly calls: readonly RecordedApiCall[];
 }
-
 export interface AuditRouteOptions {
   readonly status?: number;
   readonly message?: string;
 }
-
-export function makeAuditRouteMocks(
+export const makeAuditRouteMocks = (
   activities: AdminActivity[] = [],
   options: AuditRouteOptions = {},
-): AuditRouteMocks {
+): AuditRouteMocks => {
   const calls: RecordedApiCall[] = [];
-
   const handlers: readonly RequestHandler[] = [
     http.get(`${TEST_API_BASE}/api/v1/activity-log`, ({ request }) => {
       calls.push(recordSync(request));
@@ -416,7 +396,6 @@ export function makeAuditRouteMocks(
       const subjectType = url.searchParams.get("subject_type");
       const page = Number(url.searchParams.get("page") ?? "1");
       const perPage = Number(url.searchParams.get("per_page") ?? "15");
-
       const filtered = activities.filter(
         (activity) =>
           (event === null || event === "" || activity.event === event) &&
@@ -424,10 +403,8 @@ export function makeAuditRouteMocks(
             subjectType === "" ||
             activity.subject_type === subjectType),
       );
-
       const start = (page - 1) * perPage;
       const pageData = filtered.slice(start, start + perPage);
-
       return json(
         request,
         makePaginated(pageData, {
@@ -439,6 +416,5 @@ export function makeAuditRouteMocks(
       );
     }),
   ];
-
   return { handlers, calls };
-}
+};

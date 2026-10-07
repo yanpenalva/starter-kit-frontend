@@ -13,8 +13,7 @@ import {
   resolveServerErrorStatus,
 } from "./error-parsers";
 import type { HttpError, HttpErrorKind, MappedStatusKind } from "./error-types";
-
-function buildUnexpectedError(statusCandidate: unknown): HttpError {
+const buildUnexpectedError = (statusCandidate: unknown): HttpError => {
   const status = isValidHttpStatus(statusCandidate)
     ? (statusCandidate as number)
     : null;
@@ -24,12 +23,11 @@ function buildUnexpectedError(statusCandidate: unknown): HttpError {
     message: SAFE_MESSAGES.unexpected,
     timedOut: false,
   };
-}
-
-function buildStatusError(
+};
+const buildStatusError = (
   kind: HttpErrorKind,
   rec: Record<string, unknown>,
-): HttpError {
+): HttpError => {
   if (kind === "server_error") {
     const rawStatus = typeof rec["status"] === "number" ? rec["status"] : null;
     return {
@@ -44,12 +42,11 @@ function buildStatusError(
     status,
     message: SAFE_MESSAGES[kind],
   };
-}
-
-function buildCustomPayloadError(
+};
+const buildCustomPayloadError = (
   kind: "validation" | "rate_limited",
   rec: Record<string, unknown>,
-): HttpError {
+): HttpError => {
   if (kind === "validation") {
     return {
       kind: "validation",
@@ -68,12 +65,11 @@ function buildCustomPayloadError(
     message: SAFE_MESSAGES.rate_limited,
     retryAfterSeconds: parseRetryAfterSeconds(rawHeader),
   };
-}
-
-function buildTransportKindError(
+};
+const buildTransportKindError = (
   kind: HttpErrorKind,
   rec: Record<string, unknown>,
-): HttpError {
+): HttpError => {
   if (kind === "network") {
     const timedOut =
       typeof rec["timedOut"] === "boolean" ? rec["timedOut"] : false;
@@ -93,12 +89,11 @@ function buildTransportKindError(
     };
   }
   return buildUnexpectedError(rec["status"]);
-}
-
-function dispatchBuild(
+};
+const dispatchBuild = (
   kind: HttpErrorKind,
   rec: Record<string, unknown>,
-): HttpError {
+): HttpError => {
   if (kind in STATUS_BY_KIND || kind === "server_error") {
     return buildStatusError(kind, rec);
   }
@@ -106,9 +101,8 @@ function dispatchBuild(
     return buildCustomPayloadError(kind, rec);
   }
   return buildTransportKindError(kind, rec);
-}
-
-export function buildHttpError(input: unknown): HttpError {
+};
+export const buildHttpError = (input: unknown): HttpError => {
   const record = asRecord(input);
   if (record === null) {
     return buildUnexpectedError(null);
@@ -118,4 +112,4 @@ export function buildHttpError(input: unknown): HttpError {
     return buildUnexpectedError(record["status"]);
   }
   return dispatchBuild(kind as HttpErrorKind, record);
-}
+};

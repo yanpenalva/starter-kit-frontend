@@ -1,42 +1,36 @@
 import { http, HttpResponse } from "msw";
 import type { RequestHandler, ResponseResolver } from "msw";
 import { CSRF_COOKIE_NAME } from "@/lib/http/config";
-
 export const TEST_API_BASE = "http://localhost:8000";
 export const TEST_CSRF_TOKEN = "test-csrf-token-value";
 export const TEST_ECHO_PATH = "/api/v1/__test-echo";
-
 export interface RecordedRequest {
   readonly method: string;
   readonly path: string;
   readonly headers: Headers;
 }
-
 export interface RecordedHandlers {
   readonly handlers: readonly RequestHandler[];
   readonly calls: readonly RecordedRequest[];
 }
-
 export interface HandlerOptions {
   readonly csrfStatus?: number;
   readonly echoStatus?: number;
   readonly echoBody?: unknown;
   readonly echoHeaders?: Readonly<Record<string, string>>;
 }
-
-function recordCall(calls: RecordedRequest[], request: Request): void {
+const recordCall = (calls: RecordedRequest[], request: Request): void => {
   const url = new URL(request.url);
   calls.push({
     method: request.method,
     path: `${url.pathname}${url.search}`,
     headers: request.headers,
   });
-}
-
-export function makeCorsHeaders(
+};
+export const makeCorsHeaders = (
   request: Request,
   extra?: Readonly<Record<string, string>>,
-): Record<string, string> {
+): Record<string, string> => {
   const origin = request.headers.get("origin") ?? "http://localhost:3000";
   return {
     "Access-Control-Allow-Origin": origin,
@@ -46,12 +40,11 @@ export function makeCorsHeaders(
     "Access-Control-Expose-Headers": "Retry-After,Set-Cookie",
     ...(extra ?? {}),
   };
-}
-
-function echoResolver(
+};
+const echoResolver = (
   calls: RecordedRequest[],
   options: HandlerOptions,
-): ResponseResolver {
+): ResponseResolver => {
   return ({ request }) => {
     recordCall(calls, request);
     return HttpResponse.json(options.echoBody ?? null, {
@@ -59,11 +52,10 @@ function echoResolver(
       headers: makeCorsHeaders(request, options.echoHeaders),
     });
   };
-}
-
-export function createHttpTestHandlers(
+};
+export const createHttpTestHandlers = (
   options: HandlerOptions = {},
-): RecordedHandlers {
+): RecordedHandlers => {
   const calls: RecordedRequest[] = [];
   const handlers: readonly RequestHandler[] = [
     http.options(
@@ -99,4 +91,4 @@ export function createHttpTestHandlers(
     http.get(`${TEST_API_BASE}${TEST_ECHO_PATH}`, echoResolver(calls, options)),
   ];
   return { handlers, calls };
-}
+};

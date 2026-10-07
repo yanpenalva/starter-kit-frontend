@@ -69,20 +69,15 @@ import {
   isRateLimitedHttpError,
   isValidationHttpError,
 } from "@/lib/http";
-
 const email = ref("");
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const submittedMessage = ref<string | null>(null);
-
 const session = useSessionStore();
-
-async function handleSubmit() {
+const handleSubmit = async () => {
   if (!email.value) return;
-
   isLoading.value = true;
   errorMessage.value = null;
-
   try {
     const response = await session.forgotPassword({ email: email.value });
     submittedMessage.value =
@@ -108,7 +103,7 @@ async function handleSubmit() {
   } finally {
     isLoading.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

@@ -15,5 +15,3 @@
   --font-sans: "DM Sans", sans-serif;
   --font-display: "DM Serif Display", Georgia, serif;
 }
-
-/* Deliberately no Tailwind Preflight: Quasar normalize and component styles own reset. */

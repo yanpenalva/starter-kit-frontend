@@ -10,7 +10,6 @@ describe("CPF utility", () => {
   });
 
   it("validates valid CPF strings with or without punctuation", () => {
-    // Valid test CPFs
     expect(validateCpf("52998224725")).toBe(true);
     expect(validateCpf("529.982.247-25")).toBe(true);
     expect(validateCpf("00000000191")).toBe(true);

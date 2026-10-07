@@ -5,11 +5,9 @@ import {
   HTTP_STATUS_SERVER_ERROR_MIN,
   MAX_RETRY_AFTER_SECONDS,
 } from "./error-constants";
-
 const SECONDS_PATTERN = /^[0-9]+$/;
 const IMF_FIXDATE_PATTERN =
   /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+GMT$/;
-
 const WEEKDAY_BY_NAME: Readonly<Record<string, number>> = {
   Mon: 1,
   Tue: 2,
@@ -19,7 +17,6 @@ const WEEKDAY_BY_NAME: Readonly<Record<string, number>> = {
   Sat: 6,
   Sun: 0,
 };
-
 const MONTH_BY_NAME: Readonly<Record<string, number>> = {
   Jan: 0,
   Feb: 1,
@@ -34,15 +31,13 @@ const MONTH_BY_NAME: Readonly<Record<string, number>> = {
   Nov: 10,
   Dec: 11,
 };
-
-export function asRecord(value: unknown): Record<string, unknown> | null {
+export const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return null;
   }
   return value as Record<string, unknown>;
-}
-
-export function toStringArray(value: unknown): readonly string[] {
+};
+export const toStringArray = (value: unknown): readonly string[] => {
   if (typeof value === "string") {
     return [value];
   }
@@ -57,11 +52,10 @@ export function toStringArray(value: unknown): readonly string[] {
     return list;
   }
   return [];
-}
-
-export function parseFieldErrors(
+};
+export const parseFieldErrors = (
   body: unknown,
-): Readonly<Record<string, readonly string[]>> {
+): Readonly<Record<string, readonly string[]>> => {
   const envelope = asRecord(body);
   if (envelope === null) {
     return {};
@@ -78,17 +72,15 @@ export function parseFieldErrors(
     }
   }
   return result;
-}
-
-function parseDelaySeconds(value: string): number | null {
+};
+const parseDelaySeconds = (value: string): number | null => {
   const parsed = Number.parseInt(value, 10);
   if (Number.isSafeInteger(parsed) && parsed <= MAX_RETRY_AFTER_SECONDS) {
     return parsed;
   }
   return null;
-}
-
-function parseHttpDate(value: string): number | null {
+};
+const parseHttpDate = (value: string): number | null => {
   const match = IMF_FIXDATE_PATTERN.exec(value);
   if (match === null) {
     return null;
@@ -100,7 +92,6 @@ function parseHttpDate(value: string): number | null {
   const expectedHour = Number.parseInt(match[5] as string, 10);
   const expectedMinute = Number.parseInt(match[6] as string, 10);
   const expectedSecond = Number.parseInt(match[7] as string, 10);
-
   const when = Date.parse(value);
   const date = new Date(when);
   if (
@@ -124,11 +115,10 @@ function parseHttpDate(value: string): number | null {
     delay <= MAX_RETRY_AFTER_SECONDS
     ? delay
     : null;
-}
-
-export function parseRetryAfterSeconds(
+};
+export const parseRetryAfterSeconds = (
   headerValue: string | null,
-): number | null {
+): number | null => {
   if (headerValue === null) {
     return null;
   }
@@ -137,11 +127,10 @@ export function parseRetryAfterSeconds(
     return parseDelaySeconds(trimmed);
   }
   return parseHttpDate(trimmed);
-}
-
-export function resolveServerErrorStatus(
+};
+export const resolveServerErrorStatus = (
   reportedStatus: number | null,
-): number {
+): number => {
   if (
     reportedStatus !== null &&
     Number.isInteger(reportedStatus) &&
@@ -151,13 +140,12 @@ export function resolveServerErrorStatus(
     return reportedStatus;
   }
   return HTTP_STATUS_SERVER_ERROR_MIN;
-}
-
-export function isValidHttpStatus(status: unknown): boolean {
+};
+export const isValidHttpStatus = (status: unknown): boolean => {
   return (
     typeof status === "number" &&
     Number.isInteger(status) &&
     status >= HTTP_STATUS_MIN &&
     status <= HTTP_STATUS_MAX
   );
-}
+};

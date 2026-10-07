@@ -1,7 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import PublicLayout from "./PublicLayout.vue";
-
 describe("public layout", () => {
   it("keeps page content in place and provides a keyboard skip link", () => {
     const wrapper = mount(PublicLayout, {
@@ -9,7 +8,6 @@ describe("public layout", () => {
         default: '<main id="main-content">Conteúdo sintético</main>',
       },
     });
-
     expect(wrapper.get(".public-layout__skip").attributes("href")).toBe(
       "#main-content",
     );

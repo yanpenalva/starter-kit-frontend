@@ -5,18 +5,15 @@ import {
   resolveEnvironmentConfig,
 } from "@/lib/http";
 import type { HttpClient, HttpError } from "@/lib/http";
-
 export type ErrorType<T = unknown> = HttpError & {
   readonly contractError?: T;
 };
-
 type MutatorConfig = AxiosRequestConfig<unknown>;
 type Mutator = <T>(
   config: MutatorConfig,
   options?: MutatorConfig,
 ) => Promise<T>;
-
-function isTrustedRoot(value: unknown, trustedRoot: string): boolean {
+const isTrustedRoot = (value: unknown, trustedRoot: string): boolean => {
   if (typeof value !== "string" || value !== trustedRoot) {
     return false;
   }
@@ -31,12 +28,11 @@ function isTrustedRoot(value: unknown, trustedRoot: string): boolean {
   } catch {
     return false;
   }
-}
-
-function hasTrustedBaseURL(
+};
+const hasTrustedBaseURL = (
   config: MutatorConfig | undefined,
   trustedRoot: string,
-): boolean {
+): boolean => {
   if (config === undefined || !Object.hasOwn(config, "baseURL")) {
     return true;
   }
@@ -45,12 +41,11 @@ function hasTrustedBaseURL(
     return false;
   }
   return isTrustedRoot(descriptor.value, trustedRoot);
-}
-
-export function createApiMutator(
+};
+export const createApiMutator = (
   client: HttpClient,
   trustedRoot: string,
-): Mutator {
+): Mutator => {
   return async function transportApi<T>(
     config: MutatorConfig,
     options?: MutatorConfig,
@@ -71,9 +66,8 @@ export function createApiMutator(
     });
     return response.data;
   };
-}
-
-function configuredMutator(): Mutator {
+};
+const configuredMutator = (): Mutator => {
   const envConfig = resolveEnvironmentConfig(import.meta.env);
   const parsed = new URL(envConfig.apiBaseUrl);
   if (parsed.pathname !== "/") {
@@ -84,10 +78,8 @@ function configuredMutator(): Mutator {
   const trustedRoot = parsed.origin;
   const client = createHttpClient(trustedRoot);
   return createApiMutator(client, trustedRoot);
-}
-
+};
 let sharedMutator: Mutator | null = null;
-
 export const transportApi = <T>(
   config: MutatorConfig,
   options?: MutatorConfig,
