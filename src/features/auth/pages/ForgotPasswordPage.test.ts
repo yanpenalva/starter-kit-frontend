@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { useSessionStore } from "@/features/auth/stores/session";
 import ForgotPasswordPage from "./ForgotPasswordPage.vue";
@@ -84,5 +84,40 @@ describe("ForgotPasswordPage.vue", () => {
     expect(wrapper.find("[role='alert']").text()).toBe(
       "Informe um endereço de e-mail válido.",
     );
+  });
+
+  it("disables submit button and blocks duplicate submits while request is pending", async () => {
+    const session = useSessionStore();
+    let resolveForgot!: (
+      value: Awaited<ReturnType<typeof session.forgotPassword>>,
+    ) => void;
+    const pendingForgot = new Promise<
+      Awaited<ReturnType<typeof session.forgotPassword>>
+    >((resolve) => {
+      resolveForgot = resolve;
+    });
+    const forgotSpy = vi
+      .spyOn(session, "forgotPassword")
+      .mockReturnValue(pendingForgot);
+
+    const wrapper = mount(ForgotPasswordPage);
+    await wrapper.find("input[type='email']").setValue("user@example.com");
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    const submitButton = wrapper.find("button[type='submit']");
+    expect(submitButton.attributes("disabled")).toBeDefined();
+    expect(submitButton.text()).toBe("Enviando...");
+
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+    expect(forgotSpy).toHaveBeenCalledTimes(1);
+
+    resolveForgot({ message: "Se o email existir, enviamos o link." });
+    await flushPromises();
+    expect(wrapper.find("[role='status']").text()).toBe(
+      "Se o email existir, enviamos o link.",
+    );
+    wrapper.unmount();
   });
 });

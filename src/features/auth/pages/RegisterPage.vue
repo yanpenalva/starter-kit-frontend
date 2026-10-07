@@ -192,6 +192,7 @@ const focusFirstInvalidField = async () => {
     ?.focus();
 };
 const handleSubmit = async () => {
+  if (isLoading.value) return;
   errorMessage.value = null;
   fieldErrors.value = {};
   if (

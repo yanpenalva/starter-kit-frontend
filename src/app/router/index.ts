@@ -109,6 +109,12 @@ export const navigationGuard = async (
     return next();
   }
   const guestOnly = to.matched.some((record) => record.meta.guestOnly);
+  if (to.path === "/") {
+    if (!session.isAuthenticated) {
+      return next({ name: "login" });
+    }
+    return next({ name: "dashboard" });
+  }
   if (guestOnly && session.isAuthenticated) {
     return next({ name: "dashboard" });
   }

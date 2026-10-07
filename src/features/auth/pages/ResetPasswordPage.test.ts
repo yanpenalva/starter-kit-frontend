@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { useSessionStore } from "@/features/auth/stores/session";
 import ResetPasswordPage from "./ResetPasswordPage.vue";
@@ -148,5 +148,46 @@ describe("ResetPasswordPage.vue", () => {
     expect(wrapper.find("[role='alert']").text()).toBe(
       "Este token de redefinição de senha é inválido.",
     );
+  });
+
+  it("disables submit button and blocks duplicate submits while request is pending", async () => {
+    const session = useSessionStore();
+    let resolveReset!: (
+      value: Awaited<ReturnType<typeof session.resetPassword>>,
+    ) => void;
+    const pendingReset = new Promise<
+      Awaited<ReturnType<typeof session.resetPassword>>
+    >((resolve) => {
+      resolveReset = resolve;
+    });
+    const resetSpy = vi
+      .spyOn(session, "resetPassword")
+      .mockReturnValue(pendingReset);
+
+    const wrapper = mount(ResetPasswordPage);
+    await wrapper
+      .find("input[id='reset-password']")
+      .setValue("newPassword12345");
+    await wrapper
+      .find("input[id='reset-password-confirmation']")
+      .setValue("newPassword12345");
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    const submitButton = wrapper.find("button[type='submit']");
+    expect(submitButton.attributes("disabled")).toBeDefined();
+    expect(submitButton.text()).toBe("Redefinindo senha...");
+
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+    expect(resetSpy).toHaveBeenCalledTimes(1);
+
+    resolveReset({ message: "Senha redefinida com sucesso." });
+    await flushPromises();
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      name: "login",
+      query: { reset: "ok" },
+    });
+    wrapper.unmount();
   });
 });

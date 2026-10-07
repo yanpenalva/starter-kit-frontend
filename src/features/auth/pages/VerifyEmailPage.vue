@@ -100,6 +100,7 @@ onMounted(async () => {
   }
 });
 const handleResend = async () => {
+  if (isResending.value) return;
   isResending.value = true;
   resendSuccessMessage.value = null;
   resendErrorMessage.value = null;
