@@ -107,6 +107,7 @@ const isValidRedirect = (redirect: unknown): redirect is string => {
   );
 };
 const handleSubmit = async () => {
+  if (isLoading.value) return;
   if (!email.value || !password.value) return;
   isLoading.value = true;
   errorMessage.value = null;

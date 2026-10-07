@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { useSessionStore } from "@/features/auth/stores/session";
 import LoginPage from "./LoginPage.vue";
@@ -135,5 +135,37 @@ describe("LoginPage.vue", () => {
     expect(wrapper.find("[role='status']").text()).toContain(
       "Senha redefinida com sucesso",
     );
+  });
+
+  it("disables submit button and blocks duplicate submits while login is pending", async () => {
+    const session = useSessionStore();
+    let resolveLogin!: (
+      value: Awaited<ReturnType<typeof session.login>>,
+    ) => void;
+    const pendingLogin = new Promise<Awaited<ReturnType<typeof session.login>>>(
+      (resolve) => {
+        resolveLogin = resolve;
+      },
+    );
+    const loginSpy = vi.spyOn(session, "login").mockReturnValue(pendingLogin);
+
+    const wrapper = mount(LoginPage);
+    await wrapper.find("input[type='email']").setValue("maria@example.com");
+    await wrapper.find("input[type='password']").setValue("supersecret");
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    const submitButton = wrapper.find("button[type='submit']");
+    expect(submitButton.attributes("disabled")).toBeDefined();
+    expect(submitButton.text()).toBe("Entrando...");
+
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+    expect(loginSpy).toHaveBeenCalledTimes(1);
+
+    resolveLogin(mockProfile);
+    await flushPromises();
+    expect(mockRouterPush).toHaveBeenCalledWith({ name: "dashboard" });
+    wrapper.unmount();
   });
 });

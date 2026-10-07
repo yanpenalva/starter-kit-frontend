@@ -75,6 +75,7 @@ const isResending = ref(false);
 const resendSuccessMessage = ref<string | null>(null);
 const resendErrorMessage = ref<string | null>(null);
 const checkStatus = async () => {
+  if (isChecking.value || isResending.value) return;
   isChecking.value = true;
   try {
     const updated = await session.bootstrap(true);
@@ -86,6 +87,7 @@ const checkStatus = async () => {
   }
 };
 const handleResend = async () => {
+  if (isChecking.value || isResending.value) return;
   isResending.value = true;
   resendSuccessMessage.value = null;
   resendErrorMessage.value = null;

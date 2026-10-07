@@ -75,6 +75,7 @@ const errorMessage = ref<string | null>(null);
 const submittedMessage = ref<string | null>(null);
 const session = useSessionStore();
 const handleSubmit = async () => {
+  if (isLoading.value) return;
   if (!email.value) return;
   isLoading.value = true;
   errorMessage.value = null;

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { useSessionStore } from "@/features/auth/stores/session";
 import RegisterPage from "./RegisterPage.vue";
@@ -250,5 +250,55 @@ describe("RegisterPage.vue", () => {
     expect(wrapper.find("[role='alert']").text()).toContain(
       "Muitas tentativas",
     );
+  });
+
+  it("disables submit button and blocks duplicate submits while registration is pending", async () => {
+    const session = useSessionStore();
+    let resolveRegister!: (
+      value: Awaited<ReturnType<typeof session.register>>,
+    ) => void;
+    const pendingRegister = new Promise<
+      Awaited<ReturnType<typeof session.register>>
+    >((resolve) => {
+      resolveRegister = resolve;
+    });
+    const registerSpy = vi
+      .spyOn(session, "register")
+      .mockReturnValue(pendingRegister);
+
+    const wrapper = mount(RegisterPage);
+    await wrapper.find("input[id='register-name']").setValue("Carlos");
+    await wrapper
+      .find("input[id='register-email']")
+      .setValue("carlos@example.com");
+    await wrapper
+      .find("input[id='register-password']")
+      .setValue("password12345");
+    await wrapper
+      .find("input[id='register-password-confirmation']")
+      .setValue("password12345");
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    const submitButton = wrapper.find("button[type='submit']");
+    expect(submitButton.attributes("disabled")).toBeDefined();
+    expect(submitButton.text()).toBe("Criando conta...");
+
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+    expect(registerSpy).toHaveBeenCalledTimes(1);
+
+    resolveRegister({
+      id: 20,
+      name: "Carlos",
+      email: "carlos@example.com",
+      email_verified_at: null,
+    });
+    await flushPromises();
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      name: "login",
+      query: { registered: "1" },
+    });
+    wrapper.unmount();
   });
 });

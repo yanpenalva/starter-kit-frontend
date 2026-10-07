@@ -167,4 +167,49 @@ describe("VerifyEmailPage.vue", () => {
     );
     expect(wrapper.find("[role='alert']").text()).toContain("45 segundos");
   });
+
+  it("disables resend button and blocks duplicate resends while request is pending", async () => {
+    mockQuery = {};
+    const session = useSessionStore();
+    session.user = {
+      id: 2,
+      name: "Carlos",
+      email: "carlos@example.com",
+      email_verified_at: null,
+      roles: [],
+      permissions: [],
+    };
+    session.status = "limited";
+
+    let resolveResend!: (
+      value: Awaited<ReturnType<typeof session.resendVerification>>,
+    ) => void;
+    const pendingResend = new Promise<
+      Awaited<ReturnType<typeof session.resendVerification>>
+    >((resolve) => {
+      resolveResend = resolve;
+    });
+    const resendSpy = vi
+      .spyOn(session, "resendVerification")
+      .mockReturnValue(pendingResend);
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    await wrapper.find("button").trigger("click");
+    await flushPromises();
+
+    const resendButton = wrapper.find("button");
+    expect(resendButton.attributes("disabled")).toBeDefined();
+    expect(resendButton.text()).toBe("Reenviando...");
+
+    await wrapper.find("button").trigger("click");
+    await flushPromises();
+    expect(resendSpy).toHaveBeenCalledTimes(1);
+
+    resolveResend({ message: "Link reenviado." });
+    await flushPromises();
+    expect(wrapper.find("[role='status']").text()).toBe("Link reenviado.");
+    wrapper.unmount();
+  });
 });

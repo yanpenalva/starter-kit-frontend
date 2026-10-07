@@ -106,6 +106,7 @@ const passwordConfirmation = ref("");
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const handleSubmit = async () => {
+  if (isLoading.value) return;
   if (!password.value || !passwordConfirmation.value) {
     errorMessage.value = "Preencha todos os campos.";
     return;

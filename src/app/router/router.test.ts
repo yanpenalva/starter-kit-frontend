@@ -95,14 +95,17 @@ describe("router routes and navigation guards", () => {
   it("bootstraps session on initial route navigation if not initialized", async () => {
     const session = useSessionStore();
     const bootstrapSpy = vi.spyOn(session, "bootstrap").mockResolvedValue(null);
-    const to = createMockRoute({ path: "/" });
-    const from = createMockRoute({ path: "/" });
+    const to = createMockRoute({
+      path: "/verify-email",
+      name: "verify-email",
+    });
+    const from = createMockRoute({ path: "/verify-email" });
     const next = vi.fn();
     await navigationGuard(to, from, next);
     expect(bootstrapSpy).toHaveBeenCalledTimes(1);
     expect(next).toHaveBeenCalledWith();
   });
-  it("allows unauthenticated guest on public routes", async () => {
+  it("redirects unauthenticated guest from root to login", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.status = "unauthenticated";
@@ -111,7 +114,29 @@ describe("router routes and navigation guards", () => {
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
     await navigationGuard(to, from, next);
-    expect(next).toHaveBeenCalledWith();
+    expect(next).toHaveBeenCalledWith({ name: "login" });
+  });
+  it("redirects authenticated user from root to dashboard", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.user = verifiedStandardUser;
+    session.status = "authenticated";
+    const to = createMockRoute({ path: "/", name: "public-home" });
+    const from = createMockRoute({ path: "/" });
+    const next = vi.fn();
+    await navigationGuard(to, from, next);
+    expect(next).toHaveBeenCalledWith({ name: "dashboard" });
+  });
+  it("redirects limited user from root to dashboard", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.user = limitedUser;
+    session.status = "limited";
+    const to = createMockRoute({ path: "/", name: "public-home" });
+    const from = createMockRoute({ path: "/" });
+    const next = vi.fn();
+    await navigationGuard(to, from, next);
+    expect(next).toHaveBeenCalledWith({ name: "dashboard" });
   });
   it("redirects unauthenticated user from protected route to login with redirect query", async () => {
     const session = useSessionStore();
