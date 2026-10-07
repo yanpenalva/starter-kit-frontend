@@ -26,6 +26,15 @@ export default tseslint.config(
     },
   },
   {
+    files: ["src/**/*.test.ts"],
+    languageOptions: {
+      globals: {
+        document: "readonly",
+        window: "readonly",
+      },
+    },
+  },
+  {
     files: ["**/*.vue"],
     languageOptions: {
       parser: vueParser,

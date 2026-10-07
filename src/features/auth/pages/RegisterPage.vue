@@ -4,7 +4,7 @@
     description="Preencha seus dados para ter acesso ao painel do Starter Kit."
     eyebrow="CADASTRO"
   >
-    <form class="register-form" @submit.prevent="handleSubmit">
+    <form ref="formRef" class="register-form" @submit.prevent="handleSubmit">
       <div v-if="errorMessage" role="alert" class="register-form__alert">
         {{ errorMessage }}
       </div>
@@ -163,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref } from "vue";
+import { nextTick, ref, useTemplateRef } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import AuthLayout from "@/shared/layouts/AuthLayout.vue";
 import { useSessionStore } from "../stores/session";
@@ -184,12 +184,12 @@ const errorMessage = ref<string | null>(null);
 const fieldErrors = ref<Record<string, readonly string[]>>({});
 const session = useSessionStore();
 const router = useRouter();
+const formRef = useTemplateRef<HTMLFormElement>("formRef");
 const focusFirstInvalidField = async () => {
   await nextTick();
-  const firstInvalidField = document
-    .querySelector<HTMLFormElement>(".register-form")
-    ?.querySelector<HTMLInputElement>('[aria-invalid="true"]');
-  firstInvalidField?.focus();
+  formRef.value
+    ?.querySelector<HTMLInputElement>('[aria-invalid="true"]')
+    ?.focus();
 };
 const handleSubmit = async () => {
   errorMessage.value = null;
