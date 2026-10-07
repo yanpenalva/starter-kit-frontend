@@ -165,7 +165,8 @@ it.each(UNSAFE_BASE_URL_CASES)(
     }
     expect.soft(failure).toMatchObject({
       kind: "unexpected",
-      message: "Uma resposta inesperada foi recebida.",
+      message:
+        "Recebemos uma resposta inesperada do serviço. Atualize a página e tente novamente.",
     });
     expect.soft(adapterCalls).toBe(0);
   },

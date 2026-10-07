@@ -86,6 +86,7 @@ describe("router routes and navigation guards", () => {
     expect(paths).toContain("/users");
     expect(paths).toContain("/roles");
     expect(paths).toContain("/logs");
+    expect(paths).toContain("/manual");
     expect(paths).toContain("/limited");
     expect(paths).toContain("/403");
     expect(paths).toContain("/404");
@@ -285,5 +286,42 @@ describe("router routes and navigation guards", () => {
       name: "forbidden",
       query: { reason: "blocked" },
     });
+  });
+  it("redirects unauthenticated user away from the manual to login", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "unauthenticated";
+    session.user = null;
+    const to = createMockRoute({
+      fullPath: "/manual",
+      path: "/manual",
+      name: "manual",
+      matched: [createMockRecord({ requiresAuth: true, allowLimited: true })],
+    });
+    const next = vi.fn();
+
+    await navigationGuard(to, createMockRoute({ path: "/" }), next);
+
+    expect(next).toHaveBeenCalledWith({
+      name: "login",
+      query: { redirect: "/manual" },
+    });
+  });
+  it("lets a limited account read the manual while awaiting confirmation", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.user = limitedUser;
+    session.status = "limited";
+    const to = createMockRoute({
+      fullPath: "/manual",
+      path: "/manual",
+      name: "manual",
+      matched: [createMockRecord({ requiresAuth: true, allowLimited: true })],
+    });
+    const next = vi.fn();
+
+    await navigationGuard(to, createMockRoute({ path: "/" }), next);
+
+    expect(next).toHaveBeenCalledWith();
   });
 });

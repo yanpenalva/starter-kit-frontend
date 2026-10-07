@@ -65,6 +65,7 @@ describe("AppNavigation.vue", () => {
     expect(wrapper.text()).toContain("Usuários");
     expect(wrapper.text()).toContain("Papéis");
     expect(wrapper.text()).toContain("Auditoria");
+    expect(wrapper.text()).toContain("Manual");
   });
 
   it("calls session.logout and navigates to login when clicking logout", async () => {

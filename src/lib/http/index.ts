@@ -39,3 +39,9 @@ export type {
   TransportKind,
   ValidationHttpError,
 } from "./errors";
+export {
+  describeHttpError,
+  firstValidationMessage,
+  rateLimitedMessage,
+  UNKNOWN_ERROR_MESSAGE,
+} from "./user-messages";

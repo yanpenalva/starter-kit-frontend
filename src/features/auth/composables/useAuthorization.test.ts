@@ -80,6 +80,7 @@ describe("useAuthorization", () => {
       "users",
       "roles",
       "logs",
+      "manual",
     ]);
 
     expect(auth.can("users.view")).toBe(true);
@@ -96,10 +97,22 @@ describe("useAuthorization", () => {
     const auth = useAuthorization();
 
     const visibleKeys = auth.visibleNavItems.value.map((i) => i.key);
-    expect(visibleKeys).toEqual(["home", "dashboard"]);
+    expect(visibleKeys).toEqual(["home", "dashboard", "manual"]);
     expect(auth.can("users.view")).toBe(false);
     expect(auth.hasRole("admin")).toBe(false);
     expect(auth.hasRole("member")).toBe(true);
+  });
+
+  it("keeps the manual reachable for an authenticated account without permissions", () => {
+    const session = useSessionStore();
+    session.status = "authenticated";
+    session.user = standardUser;
+
+    const auth = useAuthorization();
+    const manual = auth.visibleNavItems.value.find((i) => i.key === "manual");
+
+    expect(manual?.to).toBe("/manual");
+    expect(auth.permissions.value).toEqual([]);
   });
 
   it("hides all navigation items when session is blocked (403)", () => {
