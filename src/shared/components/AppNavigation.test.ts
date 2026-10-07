@@ -28,7 +28,7 @@ const adminUser: MyProfileResource = {
   email: "admin@example.com",
   email_verified_at: "2026-10-01T00:00:00Z",
   roles: ["admin"],
-  permissions: ["users.view", "logs.view"],
+  permissions: ["users.view", "roles.view", "logs.view"],
 };
 
 describe("AppNavigation.vue", () => {
@@ -79,5 +79,26 @@ describe("AppNavigation.vue", () => {
 
     expect(logoutSpy).toHaveBeenCalledTimes(1);
     expect(mockRouterPush).toHaveBeenCalledWith({ name: "login" });
+  });
+
+  it("clears session, navigates to login and shows feedback when logout fails", async () => {
+    const session = useSessionStore();
+    session.status = "authenticated";
+    session.user = adminUser;
+    vi.spyOn(session, "logout").mockImplementation(async () => {
+      session.clearSession();
+      throw new Error("Offline");
+    });
+
+    const wrapper = mount(AppNavigation);
+
+    await wrapper.find(".app-navigation__logout-btn").trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(session.user).toBeNull();
+    expect(mockRouterPush).toHaveBeenCalledWith({ name: "login" });
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      "Não foi possível concluir a solicitação de saída.",
+    );
   });
 });

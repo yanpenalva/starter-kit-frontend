@@ -10,7 +10,7 @@ const adminUser: MyProfileResource = {
   email: "admin@example.com",
   email_verified_at: "2026-10-01T00:00:00Z",
   roles: ["admin"],
-  permissions: ["users.view", "logs.view"],
+  permissions: ["users.view", "roles.view", "logs.view"],
 };
 
 const standardUser: MyProfileResource = {

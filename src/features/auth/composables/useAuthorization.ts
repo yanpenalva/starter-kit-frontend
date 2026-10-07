@@ -1,4 +1,4 @@
-import { computed } from "vue";
+import { computed, toRef } from "vue";
 import { useSessionStore } from "../stores/session";
 export interface NavMenuItem {
   key: string;
@@ -35,7 +35,7 @@ export const APP_NAV_ITEMS: readonly NavMenuItem[] = [
     label: "Papéis",
     to: "/roles",
     requiresAuth: true,
-    roles: ["admin"],
+    permissions: ["roles.view"],
   },
   {
     key: "logs",
@@ -54,12 +54,12 @@ export const APP_NAV_ITEMS: readonly NavMenuItem[] = [
 ];
 export const useAuthorization = () => {
   const session = useSessionStore();
-  const isAuthenticated = computed(() => session.isAuthenticated);
-  const isLimited = computed(() => session.isLimited);
-  const isBlocked = computed(() => session.isBlocked);
-  const user = computed(() => session.user);
-  const roles = computed(() => session.roles);
-  const permissions = computed(() => session.permissions);
+  const isAuthenticated = toRef(session, "isAuthenticated");
+  const isLimited = toRef(session, "isLimited");
+  const isBlocked = toRef(session, "isBlocked");
+  const user = toRef(session, "user");
+  const roles = toRef(session, "roles");
+  const permissions = toRef(session, "permissions");
   const can = (permission: string): boolean => {
     if (session.isLimited) {
       return false;
@@ -100,32 +100,19 @@ export const useAuthorization = () => {
     return session.isAuthorized(criteria);
   };
   const isItemVisible = (item: NavMenuItem): boolean => {
-    if (session.isBlocked) {
-      return false;
-    }
-    if (item.guestOnly && session.isAuthenticated) {
-      return false;
-    }
-    if (item.requiresAuth && !session.isAuthenticated) {
-      return false;
-    }
-    if (session.isAuthenticated && session.isLimited) {
-      return Boolean(item.allowLimited || !item.requiresAuth);
-    }
-    if (session.isAuthenticated && !session.isLimited && item.allowLimited) {
-      return false;
-    }
-    if (item.roles && item.roles.length > 0) {
-      if (!hasAnyRole(item.roles)) {
-        return false;
-      }
-    }
-    if (item.permissions && item.permissions.length > 0) {
-      if (!canAny(item.permissions)) {
-        return false;
-      }
-    }
-    return true;
+    const authenticated = session.isAuthenticated;
+    const limited = authenticated && session.isLimited;
+    const sessionAllowsItem =
+      !session.isBlocked &&
+      !(item.guestOnly && authenticated) &&
+      !(item.requiresAuth && !authenticated) &&
+      (!limited || Boolean(item.allowLimited || !item.requiresAuth)) &&
+      !(authenticated && !session.isLimited && item.allowLimited);
+    const authorizationAllowsItem =
+      limited ||
+      ((!item.roles?.length || hasAnyRole(item.roles)) &&
+        (!item.permissions?.length || canAny(item.permissions)));
+    return sessionAllowsItem && authorizationAllowsItem;
   };
   const visibleNavItems = computed(() => {
     return APP_NAV_ITEMS.filter((item) => isItemVisible(item));
