@@ -1,6 +1,6 @@
 # starter-kit-frontend
 
-Greenfield Vue/Quasar SPA for the Starter Kit ecosystem. The initial scaffold and public foundation page are implemented; authentication, API client and administrative features remain later-wave work.
+Greenfield Vue/Quasar SPA for the Starter Kit ecosystem. The scaffold, authentication (Sanctum session + CSRF), generated API client and administrative features are implemented and covered by Vitest suites with CI gates.
 Known stack and pending decisions: [.context/project/stack.md](.context/project/stack.md) and [.context/project/architecture.md](.context/project/architecture.md).
 
 ## Application development

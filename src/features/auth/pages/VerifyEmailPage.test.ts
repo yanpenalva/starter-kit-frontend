@@ -53,6 +53,18 @@ describe("VerifyEmailPage.vue", () => {
     expect(mockRouterPush).toHaveBeenCalledWith({ name: "dashboard" });
   });
 
+  it("renders failure message when bootstrap returns null", async () => {
+    mockQuery = { ok: "1" };
+    const session = useSessionStore();
+    vi.spyOn(session, "bootstrap").mockResolvedValue(null);
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Não foi possível verificar o e-mail");
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
   it("renders failure message when ?ok is missing or not 1", async () => {
     mockQuery = { ok: "0" };
     const wrapper = mount(VerifyEmailPage);

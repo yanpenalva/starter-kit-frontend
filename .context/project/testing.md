@@ -1,9 +1,7 @@
 # Testing Context
 
-- Automated application tests are required from the first scaffold; none exist yet.
-- API plans Pest; frontend runner and test levels: `NOT FOUND`.
-- Isolated test database; engine/version, connection and safe reset procedure: `NOT FOUND`.
-- Never run tests against production or shared data. Real test commands must be established and verified during scaffold work.
-- No test, lint or application build command is asserted as operational before the corresponding config exists.
-- This onboarding runs context validation, adapter regression checks and official installer doctor. Evidence: `onboarding.md` in this directory.
-- CI is progressive; provider configuration and application jobs: `NOT FOUND`.
+- Automated application tests run from the first scaffold; Vitest suites cover stores, pages, router guards and the HTTP transport.
+- Frontend runner: Vitest with v8 coverage thresholds enforced in CI (`npm run test:coverage`).
+- Isolated test database backend-side (pgsql ephemeral in CI); frontend mocks the API over MSW.
+- Never run tests against production or shared data.
+- CI runs lint, typecheck, coverage-gated tests and build on every PR.

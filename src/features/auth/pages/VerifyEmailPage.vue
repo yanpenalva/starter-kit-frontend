@@ -85,12 +85,15 @@ onMounted(async () => {
   if (route.query.ok === "1") {
     isProcessing.value = true;
     try {
-      await session.bootstrap(true);
-      isSuccess.value = true;
-      await router.push({ name: "dashboard" });
+      const profile = await session.bootstrap(true);
+      if (profile === null) {
+        isSuccess.value = false;
+      } else {
+        isSuccess.value = true;
+        await router.push({ name: "dashboard" });
+      }
     } catch {
-      isSuccess.value = true;
-      await router.push({ name: "dashboard" });
+      isSuccess.value = false;
     } finally {
       isProcessing.value = false;
     }
