@@ -164,7 +164,8 @@ const MANUAL_FAQ: readonly ManualFaq[] = [
       "Entre novamente para continuar. Alterações que não foram enviadas não são reenviadas automaticamente, então revise os dados antes de repetir a operação.",
   },
   {
-    question: "Por que não consigo desativar um usuário ou retirar os papéis dele?",
+    question:
+      "Por que não consigo desativar um usuário ou retirar os papéis dele?",
     answer:
       "O serviço impede desativar a própria conta e remover o último administrador ativo, para o painel não ficar sem acesso. A tela mostra o motivo retornado pelo servidor.",
   },
