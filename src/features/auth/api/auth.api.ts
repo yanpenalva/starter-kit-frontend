@@ -1,4 +1,9 @@
-import { transportApi } from "@/lib/http/orval-mutator";
+import {
+  authRegister,
+  passwordEmail,
+  passwordUpdate,
+  verificationSend,
+} from "@/lib/api/generated";
 import type {
   ForgotPasswordRequest,
   ForgotPasswordResponse,
@@ -11,34 +16,19 @@ import type {
 export const registerUser = (
   payload: RegisterRequest,
 ): Promise<RegisterResponse> => {
-  return transportApi<RegisterResponse>({
-    url: "/api/v1/register",
-    method: "POST",
-    data: payload,
-  });
+  return authRegister(payload);
 };
 export const sendVerificationNotification =
   (): Promise<VerificationNotificationResponse> => {
-    return transportApi<VerificationNotificationResponse>({
-      url: "/api/v1/email/verification-notification",
-      method: "POST",
-    });
+    return verificationSend();
   };
 export const requestPasswordReset = (
   payload: ForgotPasswordRequest,
 ): Promise<ForgotPasswordResponse> => {
-  return transportApi<ForgotPasswordResponse>({
-    url: "/api/v1/forgot-password",
-    method: "POST",
-    data: payload,
-  });
+  return passwordEmail(payload);
 };
 export const resetPassword = (
   payload: ResetPasswordRequest,
 ): Promise<ResetPasswordResponse> => {
-  return transportApi<ResetPasswordResponse>({
-    url: "/api/v1/reset-password",
-    method: "POST",
-    data: payload,
-  });
+  return passwordUpdate(payload);
 };
