@@ -213,7 +213,9 @@ describe("RegisterPage.vue", () => {
       .setValue("password12345");
     await wrapper.find("form").trigger("submit.prevent");
 
-    expect(document.activeElement).toBe(wrapper.find("#register-email").element);
+    expect(document.activeElement).toBe(
+      wrapper.find("#register-email").element,
+    );
     expect(
       wrapper
         .find("#register-password-confirmation")

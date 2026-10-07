@@ -23,7 +23,9 @@
           class="register-form__input"
           placeholder="Seu nome completo"
           :aria-invalid="fieldErrors.name ? 'true' : undefined"
-          :aria-describedby="fieldErrors.name ? 'register-name-error' : undefined"
+          :aria-describedby="
+            fieldErrors.name ? 'register-name-error' : undefined
+          "
         />
         <span
           v-if="fieldErrors.name"
@@ -46,7 +48,9 @@
           class="register-form__input"
           placeholder="seu@email.com"
           :aria-invalid="fieldErrors.email ? 'true' : undefined"
-          :aria-describedby="fieldErrors.email ? 'register-email-error' : undefined"
+          :aria-describedby="
+            fieldErrors.email ? 'register-email-error' : undefined
+          "
         />
         <span
           v-if="fieldErrors.email"
@@ -95,7 +99,9 @@
           class="register-form__input"
           placeholder="Pelo menos 12 caracteres"
           :aria-invalid="fieldErrors.password ? 'true' : undefined"
-          :aria-describedby="fieldErrors.password ? 'register-password-error' : undefined"
+          :aria-describedby="
+            fieldErrors.password ? 'register-password-error' : undefined
+          "
         />
         <span
           v-if="fieldErrors.password"
@@ -123,7 +129,11 @@
           class="register-form__input"
           placeholder="Repita a senha"
           :aria-invalid="fieldErrors.password_confirmation ? 'true' : undefined"
-          :aria-describedby="fieldErrors.password_confirmation ? 'register-password-confirmation-error' : undefined"
+          :aria-describedby="
+            fieldErrors.password_confirmation
+              ? 'register-password-confirmation-error'
+              : undefined
+          "
         />
         <span
           v-if="fieldErrors.password_confirmation"
