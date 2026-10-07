@@ -91,6 +91,32 @@ describe("useSessionStore", () => {
     expect(store.can("users.delete")).toBe(false);
   });
 
+  it("requests csrf cookie before profile during bootstrap", async () => {
+    const requested: string[] = [];
+    server.use(
+      http.get(CSRF_COOKIE_URL, ({ request }) => {
+        requested.push("csrf");
+        return new HttpResponse(null, {
+          status: 204,
+          headers: makeCorsHeaders(request),
+        });
+      }),
+      http.get(PROFILE_URL, ({ request }) => {
+        requested.push("profile");
+        return HttpResponse.json(
+          { data: mockVerifiedProfile },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+
+    const store = useSessionStore();
+    const result = await store.bootstrap();
+
+    expect(result).toEqual(mockVerifiedProfile);
+    expect(requested).toEqual(["csrf", "profile"]);
+  });
+
   it("bootstraps limited session when email_verified_at is null", async () => {
     server.use(
       http.get(PROFILE_URL, ({ request }) =>

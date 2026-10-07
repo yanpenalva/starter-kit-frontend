@@ -77,13 +77,23 @@ const configuredMutator = (): Mutator => {
   }
   const trustedRoot = parsed.origin;
   const client = createHttpClient(trustedRoot);
+  sharedClient = client;
   return createApiMutator(client, trustedRoot);
 };
 let sharedMutator: Mutator | null = null;
+let sharedClient: HttpClient | null = null;
 export const transportApi = <T>(
   config: MutatorConfig,
   options?: MutatorConfig,
 ): Promise<T> => {
   sharedMutator ??= configuredMutator();
   return sharedMutator<T>(config, options);
+};
+export const ensureApiCsrfCookie = (): Promise<void> => {
+  sharedMutator ??= configuredMutator();
+  const client = sharedClient;
+  if (client === null) {
+    return Promise.reject(new Error("Cliente HTTP indisponível."));
+  }
+  return client.ensureCsrfCookie();
 };
