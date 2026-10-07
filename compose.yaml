@@ -1,0 +1,16 @@
+name: starter-kit-frontend
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    image: ${FE_IMAGE:-starter-kit-frontend-dev:local}
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-4173}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
