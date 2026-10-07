@@ -11,3 +11,5 @@ dist/
 !.env.*.example
 .context/work/**/progress.md
 .context/work/**/.local/
+
+coverage/
