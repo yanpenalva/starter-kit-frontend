@@ -73,17 +73,14 @@ import { onMounted, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useSessionStore } from "../stores/session";
 import { isHttpError, isRateLimitedHttpError } from "@/lib/http";
-
 const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();
-
 const isProcessing = ref(false);
 const isSuccess = ref(false);
 const isResending = ref(false);
 const resendSuccessMessage = ref<string | null>(null);
 const resendErrorMessage = ref<string | null>(null);
-
 onMounted(async () => {
   if (route.query.ok === "1") {
     isProcessing.value = true;
@@ -99,12 +96,10 @@ onMounted(async () => {
     }
   }
 });
-
-async function handleResend() {
+const handleResend = async () => {
   isResending.value = true;
   resendSuccessMessage.value = null;
   resendErrorMessage.value = null;
-
   try {
     const response = await session.resendVerification();
     resendSuccessMessage.value =
@@ -126,7 +121,7 @@ async function handleResend() {
   } finally {
     isResending.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

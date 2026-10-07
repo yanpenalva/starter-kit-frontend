@@ -21,43 +21,38 @@ import {
   STATUS_TO_KIND,
 } from "./errors";
 import type { HttpError, HttpErrorKind } from "./errors";
-
 const MUTATING_METHODS: ReadonlySet<string> = new Set([
   "post",
   "put",
   "patch",
   "delete",
 ]);
-
 const AXIOS_TIMEOUT_CODE = "ECONNABORTED";
-
 export interface HttpClient {
   readonly instance: AxiosInstance;
   readonly ensureCsrfCookie: CsrfBootstrapper;
   readonly resetCsrfBootstrap: () => void;
 }
-
 export type SessionExpiredListener = (error: HttpError) => void;
 const sessionExpiredListeners = new Set<SessionExpiredListener>();
-
-export function onSessionExpired(listener: SessionExpiredListener): () => void {
+export const onSessionExpired = (
+  listener: SessionExpiredListener,
+): (() => void) => {
   sessionExpiredListeners.add(listener);
   return () => {
     sessionExpiredListeners.delete(listener);
   };
-}
-
-export function notifySessionExpired(error: HttpError): void {
+};
+export const notifySessionExpired = (error: HttpError): void => {
   for (const listener of sessionExpiredListeners) {
     try {
       listener(error);
     } catch {
-      // safe ignore listener error
+      continue;
     }
   }
-}
-
-function classifyStatus(status: number | null): HttpErrorKind {
+};
+const classifyStatus = (status: number | null): HttpErrorKind => {
   if (status === null) {
     return "network";
   }
@@ -68,9 +63,8 @@ function classifyStatus(status: number | null): HttpErrorKind {
     return "server_error";
   }
   return STATUS_TO_KIND[status] ?? "unexpected";
-}
-
-function toSingleHeader(value: unknown): string | null {
+};
+const toSingleHeader = (value: unknown): string | null => {
   const candidate = Array.isArray(value) ? value[0] : value;
   if (typeof candidate === "string") {
     return candidate;
@@ -79,18 +73,16 @@ function toSingleHeader(value: unknown): string | null {
     return String(candidate);
   }
   return null;
-}
-
-function combineUrls(baseURL: string, relativeURL: string): string {
+};
+const combineUrls = (baseURL: string, relativeURL: string): string => {
   const cleanBase = baseURL.replace(/\/+$/, "");
   const cleanRelative = relativeURL.replace(/^\/+/, "");
   return `${cleanBase}/${cleanRelative}`;
-}
-
-function resolveEffectiveBaseUrl(
+};
+const resolveEffectiveBaseUrl = (
   rawBase: unknown,
   trustedOrigin: string,
-): string {
+): string => {
   if (typeof rawBase !== "string") {
     throw buildHttpError({ kind: "unexpected" });
   }
@@ -113,9 +105,11 @@ function resolveEffectiveBaseUrl(
     throw buildHttpError({ kind: "unexpected" });
   }
   return trimmed;
-}
-
-function validateAbsoluteUrl(rawUrl: string, trustedOrigin: string): boolean {
+};
+const validateAbsoluteUrl = (
+  rawUrl: string,
+  trustedOrigin: string,
+): boolean => {
   if (!/^[a-z][a-z\d+\-.]*:\/\//i.test(rawUrl)) {
     return false;
   }
@@ -134,13 +128,12 @@ function validateAbsoluteUrl(rawUrl: string, trustedOrigin: string): boolean {
     throw buildHttpError({ kind: "unexpected" });
   }
   return true;
-}
-
-function validateRelativeUrl(
+};
+const validateRelativeUrl = (
   rawUrl: string,
   baseToUse: string,
   trustedOrigin: string,
-): void {
+): void => {
   const combined = combineUrls(baseToUse, rawUrl);
   let parsed: URL;
   try {
@@ -156,18 +149,16 @@ function validateRelativeUrl(
   ) {
     throw buildHttpError({ kind: "unexpected" });
   }
-}
-
-function validateRequestOrigin(
+};
+const validateRequestOrigin = (
   config: InternalAxiosRequestConfig,
   trustedOrigin: string,
-): void {
+): void => {
   if (config.url !== undefined && typeof config.url !== "string") {
     throw buildHttpError({ kind: "unexpected" });
   }
   const rawUrl = typeof config.url === "string" ? config.url.trim() : "";
   const effectiveBase = resolveEffectiveBaseUrl(config.baseURL, trustedOrigin);
-
   if (
     rawUrl.startsWith("//") ||
     rawUrl.startsWith("\\\\") ||
@@ -184,12 +175,11 @@ function validateRequestOrigin(
     throw buildHttpError({ kind: "unexpected" });
   }
   validateRelativeUrl(rawUrl, effectiveBase, trustedOrigin);
-}
-
-function mapAxiosError(
+};
+const mapAxiosError = (
   cause: AxiosError,
   resetCsrfBootstrap: () => void,
-): HttpError {
+): HttpError => {
   if (axios.isCancel(cause)) {
     return buildHttpError({
       kind: "cancelled",
@@ -215,12 +205,11 @@ function mapAxiosError(
     notifySessionExpired(httpError);
   }
   return httpError;
-}
-
-function mapTransportError(
+};
+const mapTransportError = (
   cause: unknown,
   resetCsrfBootstrap: () => void,
-): HttpError {
+): HttpError => {
   if (isHttpError(cause)) {
     return cause;
   }
@@ -234,31 +223,27 @@ function mapTransportError(
     });
   }
   return mapAxiosError(cause, resetCsrfBootstrap);
-}
-
-async function attachCsrf(
+};
+const attachCsrf = async (
   config: InternalAxiosRequestConfig,
   ensureCsrfCookie: CsrfBootstrapper,
-): Promise<InternalAxiosRequestConfig> {
+): Promise<InternalAxiosRequestConfig> => {
   const method = config.method?.toLowerCase() ?? "";
   if (MUTATING_METHODS.has(method)) {
     await ensureCsrfCookie();
   }
   return config;
-}
-
-function rejectWithHttpError(
+};
+const rejectWithHttpError = (
   cause: unknown,
   resetCsrfBootstrap: () => void,
-): Promise<AxiosResponse> {
+): Promise<AxiosResponse> => {
   return Promise.reject(mapTransportError(cause, resetCsrfBootstrap));
-}
-
-export function createHttpClient(baseURL: string): HttpClient {
+};
+export const createHttpClient = (baseURL: string): HttpClient => {
   const validatedBaseUrl = resolveApiBaseUrl(baseURL);
   const trustedUrl = new URL(validatedBaseUrl);
   const trustedOrigin = trustedUrl.origin;
-
   const instance: AxiosInstance = axios.create({
     baseURL: validatedBaseUrl,
     withCredentials: true,
@@ -270,7 +255,6 @@ export function createHttpClient(baseURL: string): HttpClient {
   });
   const coordinator: CsrfCoordinator = createCsrfCoordinator(instance);
   const resetCsrfBootstrap = coordinator.resetCsrfBootstrap;
-
   instance.interceptors.request.use((config) => {
     validateRequestOrigin(config, trustedOrigin);
     return attachCsrf(config, coordinator.ensureCsrfCookie);
@@ -278,10 +262,9 @@ export function createHttpClient(baseURL: string): HttpClient {
   instance.interceptors.response.use(undefined, (cause: unknown) =>
     rejectWithHttpError(cause, resetCsrfBootstrap),
   );
-
   return {
     instance,
     ensureCsrfCookie: coordinator.ensureCsrfCookie,
     resetCsrfBootstrap,
   };
-}
+};

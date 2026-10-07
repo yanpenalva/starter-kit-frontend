@@ -5,24 +5,26 @@ import type {
   RoleFilters,
   UpdateRolePermissionsPayload,
 } from "./roles.types";
-
-export function listRoles(
+export const listRoles = (
   filters: RoleFilters = {},
-): Promise<Paginated<AdminRole>> {
+): Promise<Paginated<AdminRole>> => {
   return transportApi<Paginated<AdminRole>>({
     url: "/api/v1/roles",
     method: "GET",
     params: filters,
   });
-}
-
-export function updateRolePermissions(
+};
+export const updateRolePermissions = (
   roleId: number,
   payload: UpdateRolePermissionsPayload,
-): Promise<{ data: AdminRole }> {
-  return transportApi<{ data: AdminRole }>({
+): Promise<{
+  data: AdminRole;
+}> => {
+  return transportApi<{
+    data: AdminRole;
+  }>({
     url: `/api/v1/roles/${roleId}/permissions`,
     method: "PUT",
     data: payload,
   });
-}
+};

@@ -22,7 +22,6 @@ import type {
 } from "../api/auth.types";
 import { isHttpError, onSessionExpired } from "@/lib/http";
 import { queryClient } from "@/app/providers/query";
-
 export type SessionStatus =
   | "idle"
   | "loading"
@@ -30,56 +29,45 @@ export type SessionStatus =
   | "unauthenticated"
   | "limited"
   | "blocked";
-
 export const useSessionStore = defineStore("session", () => {
   const user = ref<MyProfileResource | null>(null);
   const status = ref<SessionStatus>("idle");
   const isInitialized = ref(false);
   const errorMessage = ref<string | null>(null);
-
   const isAuthenticated = computed(() => {
     return (
       (status.value === "authenticated" || status.value === "limited") &&
       user.value !== null
     );
   });
-
   const isLimited = computed(() => {
     return (
       status.value === "limited" ||
       (user.value !== null && user.value.email_verified_at === null)
     );
   });
-
   const isBlocked = computed(() => status.value === "blocked");
-
   const roles = computed<string[]>(() => user.value?.roles ?? []);
   const permissions = computed<string[]>(() => user.value?.permissions ?? []);
-
-  function hasRole(role: string): boolean {
+  const hasRole = (role: string): boolean => {
     return roles.value.includes(role);
-  }
-
-  function hasAnyRole(rolesToCheck: string[]): boolean {
+  };
+  const hasAnyRole = (rolesToCheck: string[]): boolean => {
     return rolesToCheck.some((r) => roles.value.includes(r));
-  }
-
-  function hasPermission(permission: string): boolean {
+  };
+  const hasPermission = (permission: string): boolean => {
     return permissions.value.includes(permission);
-  }
-
-  function hasAnyPermission(permissionsToCheck: string[]): boolean {
+  };
+  const hasAnyPermission = (permissionsToCheck: string[]): boolean => {
     return permissionsToCheck.some((p) => permissions.value.includes(p));
-  }
-
-  function can(permission: string): boolean {
+  };
+  const can = (permission: string): boolean => {
     return hasPermission(permission);
-  }
-
-  function isAuthorized(criteria: {
+  };
+  const isAuthorized = (criteria: {
     roles?: string[];
     permissions?: string[];
-  }): boolean {
+  }): boolean => {
     if (criteria.roles && criteria.roles.length > 0) {
       if (!hasAnyRole(criteria.roles)) {
         return false;
@@ -91,24 +79,22 @@ export const useSessionStore = defineStore("session", () => {
       }
     }
     return true;
-  }
-
-  function clearSession(): void {
+  };
+  const clearSession = (): void => {
     user.value = null;
     status.value = "unauthenticated";
     errorMessage.value = null;
     isInitialized.value = true;
     queryClient.clear();
-  }
-
-  async function bootstrap(force = false): Promise<MyProfileResource | null> {
+  };
+  const bootstrap = async (
+    force = false,
+  ): Promise<MyProfileResource | null> => {
     if (isInitialized.value && !force) {
       return user.value;
     }
-
     status.value = "loading";
     errorMessage.value = null;
-
     try {
       const response = await authMyProfile();
       user.value = response.data;
@@ -136,12 +122,12 @@ export const useSessionStore = defineStore("session", () => {
       clearSession();
       return null;
     }
-  }
-
-  async function login(credentials: LoginRequest): Promise<MyProfileResource> {
+  };
+  const login = async (
+    credentials: LoginRequest,
+  ): Promise<MyProfileResource> => {
     status.value = "loading";
     errorMessage.value = null;
-
     try {
       await authLogin(credentials);
       const response = await authMyProfile();
@@ -166,42 +152,37 @@ export const useSessionStore = defineStore("session", () => {
       }
       throw error;
     }
-  }
-
-  async function logout(): Promise<void> {
+  };
+  const logout = async (): Promise<void> => {
     status.value = "loading";
     try {
       await authLogout();
     } finally {
       clearSession();
     }
-  }
-
-  async function register(payload: RegisterRequest): Promise<RegisterResponse> {
+  };
+  const register = async (
+    payload: RegisterRequest,
+  ): Promise<RegisterResponse> => {
     return registerUser(payload);
-  }
-
-  async function resendVerification(): Promise<VerificationNotificationResponse> {
-    return sendVerificationNotification();
-  }
-
-  async function forgotPassword(
+  };
+  const resendVerification =
+    async (): Promise<VerificationNotificationResponse> => {
+      return sendVerificationNotification();
+    };
+  const forgotPassword = async (
     payload: ForgotPasswordRequest,
-  ): Promise<ForgotPasswordResponse> {
+  ): Promise<ForgotPasswordResponse> => {
     return requestPasswordReset(payload);
-  }
-
-  async function resetPassword(
+  };
+  const resetPassword = async (
     payload: ResetPasswordRequest,
-  ): Promise<ResetPasswordResponse> {
+  ): Promise<ResetPasswordResponse> => {
     return resetPasswordApi(payload);
-  }
-
-  // Clear session when 401 or 419 occurs on any request, without mutation replay
+  };
   onSessionExpired(() => {
     clearSession();
   });
-
   return {
     user,
     status,

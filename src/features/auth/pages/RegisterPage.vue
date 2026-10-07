@@ -131,7 +131,6 @@ import {
   isRateLimitedHttpError,
   isValidationHttpError,
 } from "@/lib/http";
-
 const name = ref("");
 const email = ref("");
 const cpf = ref("");
@@ -140,14 +139,11 @@ const passwordConfirmation = ref("");
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const fieldErrors = ref<Record<string, readonly string[]>>({});
-
 const session = useSessionStore();
 const router = useRouter();
-
-async function handleSubmit() {
+const handleSubmit = async () => {
   errorMessage.value = null;
   fieldErrors.value = {};
-
   if (
     !name.value ||
     !email.value ||
@@ -157,24 +153,19 @@ async function handleSubmit() {
     errorMessage.value = "Preencha todos os campos obrigatórios.";
     return;
   }
-
   if (password.value !== passwordConfirmation.value) {
     errorMessage.value = "As senhas não conferem.";
     return;
   }
-
   if (password.value.length < 12) {
     errorMessage.value = "A senha deve ter pelo menos 12 caracteres.";
     return;
   }
-
   if (cpf.value && !validateCpf(cpf.value)) {
     errorMessage.value = "Os dígitos verificadores do campo cpf são inválidos.";
     return;
   }
-
   isLoading.value = true;
-
   try {
     const normalizedCpfValue = normalizeCpf(cpf.value);
     await session.register({
@@ -184,7 +175,6 @@ async function handleSubmit() {
       password_confirmation: passwordConfirmation.value,
       cpf: normalizedCpfValue,
     });
-
     await router.push({
       name: "login",
       query: { registered: "1" },
@@ -215,7 +205,7 @@ async function handleSubmit() {
   } finally {
     isLoading.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

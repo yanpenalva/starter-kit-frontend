@@ -31,27 +31,29 @@ import {
   resolveEnvironmentConfig,
 } from "@/lib/http";
 import type { HttpClient } from "@/lib/http";
-
 const ECHO_URL = `${TEST_API_BASE}${TEST_ECHO_PATH}`;
 const CSRF_COOKIE_URL = `${TEST_API_BASE}/sanctum/csrf-cookie`;
-
-const CSRF_CALLS = (calls: readonly { path: string }[]) =>
-  calls.filter((call) => call.path === "/sanctum/csrf-cookie");
-const ECHO_CALLS = (calls: readonly { path: string }[]) =>
-  calls.filter((call) => call.path === TEST_ECHO_PATH);
+const CSRF_CALLS = (
+  calls: readonly {
+    path: string;
+  }[],
+) => calls.filter((call) => call.path === "/sanctum/csrf-cookie");
+const ECHO_CALLS = (
+  calls: readonly {
+    path: string;
+  }[],
+) => calls.filter((call) => call.path === TEST_ECHO_PATH);
 const PII_PROBE = "internal-user.maria@example.com";
-
-function useFreshHandlers(): ReturnType<typeof createHttpTestHandlers> {
+const useFreshHandlers = (): ReturnType<typeof createHttpTestHandlers> => {
   const recorded = createHttpTestHandlers();
   server.use(...recorded.handlers);
   return recorded;
-}
-
-function setErrorEcho(
+};
+const setErrorEcho = (
   status: number,
   body?: unknown,
   headers?: Record<string, string>,
-): void {
+): void => {
   server.use(
     http.post(ECHO_URL, ({ request }) =>
       HttpResponse.json(body ?? null, {
@@ -60,22 +62,23 @@ function setErrorEcho(
       }),
     ),
   );
-}
-
-async function rejectedPost(
+};
+const rejectedPost = async (
   client: HttpClient,
   url: string = ECHO_URL,
-  options: { timeout?: number; signal?: AbortSignal } = {},
-): Promise<unknown> {
+  options: {
+    timeout?: number;
+    signal?: AbortSignal;
+  } = {},
+): Promise<unknown> => {
   try {
     await client.instance.post(url, {}, options);
   } catch (cause: unknown) {
     return cause;
   }
   throw new Error("request unexpectedly succeeded");
-}
-
-function describeCause(cause: unknown): string {
+};
+const describeCause = (cause: unknown): string => {
   if (typeof cause !== "object" || cause === null) {
     return String(cause);
   }
@@ -88,16 +91,18 @@ function describeCause(cause: unknown): string {
     kind: probe["kind"],
     status: probe["status"],
   });
-}
-
-function expectKind(cause: unknown, kind: string, status: number | null): void {
+};
+const expectKind = (
+  cause: unknown,
+  kind: string,
+  status: number | null,
+): void => {
   if (!isHttpError(cause)) {
     throw new Error(`expected an HttpError, got: ${describeCause(cause)}`);
   }
   expect(cause.kind).toBe(kind);
   expect(cause.status).toBe(status);
-}
-
+};
 describe("http client configuration", () => {
   it("keeps all transport concerns on the instance, never on axios globals", () => {
     const client = createHttpClient(TEST_API_BASE);
@@ -117,44 +122,36 @@ describe("http client configuration", () => {
     expect(axios.defaults.headers.common.Authorization).toBeUndefined();
   });
 });
-
 describe("origin invariant and zero outbound dispatch on foreign targets", () => {
   let dispatchedUrls: string[] = [];
   const onRequestStart = ({ request }: { request: Request }) => {
     dispatchedUrls.push(request.url);
   };
-
   beforeEach(() => {
     dispatchedUrls = [];
     server.events.on("request:start", onRequestStart);
   });
-
   afterEach(() => {
     server.events.removeListener("request:start", onRequestStart);
     document.cookie = `${CSRF_COOKIE_NAME}=; Max-Age=0; path=/`;
   });
-
   it("rejects foreign absolute URL on GET and records zero outbound requests", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     let cause: unknown;
     try {
       await client.instance.get("https://evil.example.com/api/steal");
     } catch (err) {
       cause = err;
     }
-
     expectKind(cause, "unexpected", null);
     expect(dispatchedUrls).toHaveLength(0);
     expect(test.calls).toHaveLength(0);
   });
-
   it("rejects foreign absolute URL on POST before CSRF bootstrap and records zero outbound requests", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
     document.cookie = `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`;
-
     let cause: unknown;
     try {
       await client.instance.post("https://evil.example.com/api/exfiltrate", {
@@ -163,18 +160,15 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
     } catch (err) {
       cause = err;
     }
-
     expectKind(cause, "unexpected", null);
     expect(dispatchedUrls).toHaveLength(0);
     expect(test.calls).toHaveLength(0);
     expect(JSON.stringify(cause)).not.toContain(TEST_CSRF_TOKEN);
     expect(JSON.stringify(cause)).not.toContain("evil.example.com");
   });
-
   it("rejects protocol-relative escapes and records zero outbound requests", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     const escapes = [
       "//evil.example.com/escape",
       "\\\\evil.example.com\\escape",
@@ -182,7 +176,6 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
       "\\/evil.example.com/escape",
       "/api\\backslash-escape",
     ];
-
     for (const escapeUrl of escapes) {
       dispatchedUrls = [];
       let cause: unknown;
@@ -196,11 +189,9 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
       expect(test.calls).toHaveLength(0);
     }
   });
-
   it("rejects per-request baseURL override to foreign origin and records zero outbound requests", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     let cause: unknown;
     try {
       await client.instance.get("/api/v1/test", {
@@ -209,16 +200,13 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
     } catch (err) {
       cause = err;
     }
-
     expectKind(cause, "unexpected", null);
     expect(dispatchedUrls).toHaveLength(0);
     expect(test.calls).toHaveLength(0);
   });
-
   it("rejects foreign target even when allowAbsoluteUrls: true is explicitly passed", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     let cause: unknown;
     try {
       await client.instance.get("https://evil.example.com/bypass", {
@@ -227,40 +215,32 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
     } catch (err) {
       cause = err;
     }
-
     expectKind(cause, "unexpected", null);
     expect(dispatchedUrls).toHaveLength(0);
     expect(test.calls).toHaveLength(0);
   });
-
   it("rejects requests if instance.defaults.baseURL is mutated to foreign origin", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     client.instance.defaults.baseURL = "https://hijacked.example.com";
-
     let cause: unknown;
     try {
       await client.instance.get("/api/v1/test");
     } catch (err) {
       cause = err;
     }
-
     expectKind(cause, "unexpected", null);
     expect(dispatchedUrls).toHaveLength(0);
     expect(test.calls).toHaveLength(0);
   });
-
   it("permits same-origin absolute URLs matching trustedOrigin", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     const res = await client.instance.get(`${TEST_API_BASE}${TEST_ECHO_PATH}`);
     expect(res.status).toBe(200);
     expect(test.calls).toHaveLength(1);
     expect(test.calls[0]?.path).toBe(TEST_ECHO_PATH);
   });
-
   it.each([
     ["empty string", ""],
     ["whitespace only", "   "],
@@ -270,7 +250,6 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
       const test = useFreshHandlers();
       const client = createHttpClient(TEST_API_BASE);
       document.cookie = `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`;
-
       let cause: unknown;
       try {
         await client.instance.post(
@@ -281,13 +260,11 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
       } catch (err) {
         cause = err;
       }
-
       expectKind(cause, "unexpected", null);
       expect(dispatchedUrls).toHaveLength(0);
       expect(test.calls).toHaveLength(0);
     },
   );
-
   it.each([
     ["empty string", ""],
     ["whitespace only", "   "],
@@ -298,27 +275,22 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
     async (_label, mutated) => {
       const test = useFreshHandlers();
       const client = createHttpClient(TEST_API_BASE);
-
       client.instance.defaults.baseURL = mutated as unknown as string;
-
       let cause: unknown;
       try {
         await client.instance.get("/api/v1/test");
       } catch (err) {
         cause = err;
       }
-
       expectKind(cause, "unexpected", null);
       expect(dispatchedUrls).toHaveLength(0);
       expect(test.calls).toHaveLength(0);
     },
   );
-
   it("rejects String-object foreign baseURL override and records zero outbound requests", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
     document.cookie = `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`;
-
     let cause: unknown;
     try {
       await client.instance.post(
@@ -333,12 +305,10 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
     } catch (err) {
       cause = err;
     }
-
     expectKind(cause, "unexpected", null);
     expect(dispatchedUrls).toHaveLength(0);
     expect(test.calls).toHaveLength(0);
   });
-
   it.each([
     ["number", 42],
     ["array", ["https://foreign-array.example.com"]],
@@ -348,7 +318,6 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
     async (_label, override) => {
       const test = useFreshHandlers();
       const client = createHttpClient(TEST_API_BASE);
-
       let cause: unknown;
       try {
         await client.instance.get("/api/v1/test", {
@@ -357,17 +326,14 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
       } catch (err) {
         cause = err;
       }
-
       expectKind(cause, "unexpected", null);
       expect(dispatchedUrls).toHaveLength(0);
       expect(test.calls).toHaveLength(0);
     },
   );
-
   it("rejects String-object foreign URL and records zero outbound requests", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     let cause: unknown;
     try {
       await client.instance.get(
@@ -376,34 +342,27 @@ describe("origin invariant and zero outbound dispatch on foreign targets", () =>
     } catch (err) {
       cause = err;
     }
-
     expectKind(cause, "unexpected", null);
     expect(dispatchedUrls).toHaveLength(0);
     expect(test.calls).toHaveLength(0);
   });
 });
-
 describe("csrf bootstrap flow", () => {
   afterEach(() => {
     document.cookie = `${CSRF_COOKIE_NAME}=; Max-Age=0; path=/`;
   });
-
   it("bootstraps the CSRF cookie before a mutating request, not before GET", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     await client.instance.post(TEST_ECHO_PATH, {});
     await client.instance.get(TEST_ECHO_PATH);
-
     expect(test.calls[0]?.path).toBe("/sanctum/csrf-cookie");
     expect(CSRF_CALLS(test.calls)).toHaveLength(1);
     expect(ECHO_CALLS(test.calls)).toHaveLength(2);
   });
-
   it("bootstraps before all supported mutating methods: POST, PUT, PATCH, DELETE", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     await client.instance.post(TEST_ECHO_PATH, {});
     client.resetCsrfBootstrap();
     await client.instance.put(TEST_ECHO_PATH, {});
@@ -411,35 +370,27 @@ describe("csrf bootstrap flow", () => {
     await client.instance.patch(TEST_ECHO_PATH, {});
     client.resetCsrfBootstrap();
     await client.instance.delete(TEST_ECHO_PATH);
-
     expect(CSRF_CALLS(test.calls)).toHaveLength(4);
   });
-
   it("deduplicates concurrent bootstrap calls into one", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     await Promise.all([
       client.instance.post(TEST_ECHO_PATH, {}),
       client.instance.post(TEST_ECHO_PATH, {}),
       client.instance.post(TEST_ECHO_PATH, {}),
     ]);
-
     expect(CSRF_CALLS(test.calls)).toHaveLength(1);
     expect(ECHO_CALLS(test.calls)).toHaveLength(3);
   });
-
   it("caches successful bootstrap across sequential mutating requests until reset", async () => {
     const test = useFreshHandlers();
     const client = createHttpClient(TEST_API_BASE);
-
     await client.instance.post(TEST_ECHO_PATH, {});
     await client.instance.post(TEST_ECHO_PATH, {});
-
     expect(CSRF_CALLS(test.calls)).toHaveLength(1);
     expect(ECHO_CALLS(test.calls)).toHaveLength(2);
   });
-
   it("clears cache on bootstrap failure and does not execute the mutating request", async () => {
     let csrfStatus = 500;
     const test = createHttpTestHandlers();
@@ -457,24 +408,19 @@ describe("csrf bootstrap flow", () => {
       ),
     );
     const client = createHttpClient(TEST_API_BASE);
-
     const cause = await rejectedPost(client);
     expectKind(cause, "server_error", 500);
     expect(ECHO_CALLS(test.calls)).toHaveLength(0);
-
-    // Verify recovery: subsequent request re-attempts bootstrap and succeeds when CSRF endpoint recovers
     csrfStatus = 204;
     await client.instance.post(TEST_ECHO_PATH, {});
     expect(ECHO_CALLS(test.calls)).toHaveLength(1);
   });
-
   it("handles reset during an inflight bootstrap without stale failure clearing newer generation", async () => {
     useFreshHandlers();
     let markFirstCallReceived!: () => void;
     const firstCallReceived = new Promise<void>((resolve) => {
       markFirstCallReceived = resolve;
     });
-
     let failFirstCsrf!: () => void;
     const firstCsrfDeferred = new Promise<Response>((resolve) => {
       failFirstCsrf = () =>
@@ -485,7 +431,6 @@ describe("csrf bootstrap flow", () => {
           }),
         );
     });
-
     let callCount = 0;
     server.use(
       http.get(CSRF_COOKIE_URL, ({ request }) => {
@@ -502,52 +447,30 @@ describe("csrf bootstrap flow", () => {
         });
       }),
     );
-
     const client = createHttpClient(TEST_API_BASE);
-
-    // Launch first mutation which triggers first bootstrap
     const firstMutation = client.instance.post(TEST_ECHO_PATH, {});
-
-    // Wait until the first CSRF GET has genuinely reached the handler
     await firstCallReceived;
-
-    // Explicitly reset bootstrap while first is inflight
     client.resetCsrfBootstrap();
-
-    // Launch second mutation which initiates second bootstrap generation
     const secondMutation = client.instance.post(TEST_ECHO_PATH, {});
-
-    // Now fail the first bootstrap
     failFirstCsrf();
-
-    // First mutation rejected due to 500 bootstrap failure
     await expect(firstMutation).rejects.toThrow();
-
-    // Second mutation should succeed
     await expect(secondMutation).resolves.toBeDefined();
-
-    // Verify subsequent mutation reuses the successful second generation
     await client.instance.post(TEST_ECHO_PATH, {});
     expect(callCount).toBe(2);
   });
-
   it("mirrors the XSRF cookie into the request header", async () => {
     const test = useFreshHandlers();
     document.cookie = `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; path=/`;
     const client = createHttpClient(TEST_API_BASE);
-
     await client.instance.post(TEST_ECHO_PATH, {});
-
     expect(test.calls.at(-1)?.headers.get(CSRF_HEADER_NAME)).toBe(
       TEST_CSRF_TOKEN,
     );
   });
-
   it("resets bootstrap on 419 and surfaces csrf_mismatch without retrying, re-bootstrapping on next invocation", async () => {
     let echoStatus = 419;
     let csrfCalls = 0;
     let echoCalls = 0;
-
     server.use(
       http.options(
         "*",
@@ -574,24 +497,17 @@ describe("csrf bootstrap flow", () => {
         });
       }),
     );
-
     const client = createHttpClient(TEST_API_BASE);
-
     const cause = await rejectedPost(client);
     expectKind(cause, "csrf_mismatch", 419);
     expect(echoCalls).toBe(1);
     expect(csrfCalls).toBe(1);
-
-    // Restore echo endpoint to 200 OK
     echoStatus = 200;
-
-    // Subsequent request re-bootstraps CSRF on same client and succeeds
     await client.instance.post(TEST_ECHO_PATH, {});
     expect(csrfCalls).toBe(2);
     expect(echoCalls).toBe(2);
   });
 });
-
 describe("typed error mapping", () => {
   it.each([
     [401, "unauthorized"],
@@ -609,7 +525,6 @@ describe("typed error mapping", () => {
     const cause = await rejectedPost(client);
     expectKind(cause, kind, status);
   });
-
   it("maps unmapped statuses to unexpected with status code", async () => {
     useFreshHandlers();
     setErrorEcho(418);
@@ -617,15 +532,12 @@ describe("typed error mapping", () => {
     const cause = await rejectedPost(client);
     expectKind(cause, "unexpected", 418);
   });
-
   it("maps out-of-bounds statuses (>599 or <100) to unexpected with null status", async () => {
     useFreshHandlers();
     setErrorEcho(650);
     const client = createHttpClient(TEST_API_BASE);
     const cause = await rejectedPost(client);
     expectKind(cause, "unexpected", null);
-
-    // Out-of-bounds status codes map to null
     expect(
       buildHttpError({ kind: "unexpected", status: 50 }).status,
     ).toBeNull();
@@ -639,7 +551,6 @@ describe("typed error mapping", () => {
       buildHttpError({ kind: "unexpected", status: 650 }).status,
     ).toBeNull();
   });
-
   it("maps network failures with timedOut=false", async () => {
     useFreshHandlers();
     server.use(http.post(ECHO_URL, () => HttpResponse.error()));
@@ -652,7 +563,6 @@ describe("typed error mapping", () => {
     }
     throw new Error("expected a network HttpError");
   });
-
   it("marks aborted requests as timed out when code is ECONNABORTED", async () => {
     useFreshHandlers();
     server.use(
@@ -674,7 +584,6 @@ describe("typed error mapping", () => {
       `expected a timed-out network HttpError, got: ${String(cause)}`,
     );
   });
-
   it("maps cancelled requests to kind cancelled", async () => {
     useFreshHandlers();
     const controller = new AbortController();
@@ -702,7 +611,6 @@ describe("typed error mapping", () => {
     }
     expectKind(cause, "cancelled", null);
   });
-
   it("parses Retry-After delay-seconds into metadata", async () => {
     useFreshHandlers();
     setErrorEcho(429, null, { "Retry-After": "8" });
@@ -714,7 +622,6 @@ describe("typed error mapping", () => {
     }
     throw new Error(`expected a rate_limited HttpError, got: ${String(cause)}`);
   });
-
   it("parses Retry-After IMF-fixdate HTTP-date deterministically into seconds", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-04T12:00:00Z"));
@@ -725,14 +632,12 @@ describe("typed error mapping", () => {
       vi.useRealTimers();
     }
   });
-
   it("returns null for malformed or overflow Retry-After headers", () => {
     expect(parseRetryAfterSeconds(null)).toBeNull();
     expect(parseRetryAfterSeconds("-1")).toBeNull();
     expect(parseRetryAfterSeconds("invalid-date")).toBeNull();
     expect(parseRetryAfterSeconds("99999999999999999999999")).toBeNull();
   });
-
   it("parses valid leap day in deterministic clock", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2028-02-29T11:58:00Z"));
@@ -743,21 +648,16 @@ describe("typed error mapping", () => {
       vi.useRealTimers();
     }
   });
-
   it("rejects impossible calendar dates and time overflows in Retry-After headers", () => {
-    // Impossible calendar dates
     expect(parseRetryAfterSeconds("Sun, 31 Feb 2026 12:00:00 GMT")).toBeNull();
     expect(parseRetryAfterSeconds("Sun, 29 Feb 2026 12:00:00 GMT")).toBeNull();
     expect(parseRetryAfterSeconds("Thu, 31 Apr 2026 12:00:00 GMT")).toBeNull();
     expect(parseRetryAfterSeconds("Wed, 31 Jun 2026 12:00:00 GMT")).toBeNull();
-
-    // Time overflows
     expect(parseRetryAfterSeconds("Sun, 04 Oct 2026 24:00:00 GMT")).toBeNull();
     expect(parseRetryAfterSeconds("Sun, 04 Oct 2026 25:00:00 GMT")).toBeNull();
     expect(parseRetryAfterSeconds("Sun, 04 Oct 2026 12:60:00 GMT")).toBeNull();
     expect(parseRetryAfterSeconds("Sun, 04 Oct 2026 12:00:60 GMT")).toBeNull();
   });
-
   it("yields null retryAfterSeconds when Retry-After is absent", async () => {
     useFreshHandlers();
     setErrorEcho(429);
@@ -769,7 +669,6 @@ describe("typed error mapping", () => {
     }
     throw new Error(`expected a rate_limited HttpError, got: ${String(cause)}`);
   });
-
   it("parses 422 field errors through unknown-bound guards", async () => {
     useFreshHandlers();
     setErrorEcho(422, {
@@ -790,7 +689,6 @@ describe("typed error mapping", () => {
     }
     throw new Error(`expected a validation HttpError, got: ${String(cause)}`);
   });
-
   it("tolerates malformed 422 bodies with empty field errors", async () => {
     useFreshHandlers();
     setErrorEcho(422, { unexpected: "shape" });
@@ -802,7 +700,6 @@ describe("typed error mapping", () => {
     }
     throw new Error(`expected a validation HttpError, got: ${String(cause)}`);
   });
-
   it("handles non-array or array bodies in parseFieldErrors gracefully", () => {
     expect(parseFieldErrors(null)).toEqual({});
     expect(parseFieldErrors("a string")).toEqual({});
@@ -818,13 +715,11 @@ describe("typed error mapping", () => {
       email: ["valid error"],
     });
   });
-
   it("keeps JSON __proto__ and constructor keys as plain field errors without polluting prototypes", () => {
     const body = JSON.parse(
       '{"errors":{"__proto__":["must stay a field"],"constructor":["must stay a field"],"email":["must be a valid email address"]}}',
     ) as unknown;
     const fields = parseFieldErrors(body);
-
     expect(Object.keys(fields).sort()).toEqual([
       "__proto__",
       "constructor",
@@ -839,7 +734,6 @@ describe("typed error mapping", () => {
       ({} as Record<string, unknown>)["must stay a field"],
     ).toBeUndefined();
   });
-
   it("maps 422 bodies carrying JSON __proto__ keys to validation errors with guards passing", async () => {
     useFreshHandlers();
     setErrorEcho(
@@ -859,7 +753,6 @@ describe("typed error mapping", () => {
     }
     throw new Error(`expected a validation HttpError, got: ${String(cause)}`);
   });
-
   it("never copies raw response text into the safe error message", async () => {
     useFreshHandlers();
     setErrorEcho(500, `stack trace touched ${PII_PROBE}`);
@@ -875,7 +768,6 @@ describe("typed error mapping", () => {
     throw new Error(`expected an HttpError, got: ${String(cause)}`);
   });
 });
-
 describe("api base url validation and factory boundary", () => {
   it.each([
     ["missing value undefined", undefined],
@@ -901,7 +793,6 @@ describe("api base url validation and factory boundary", () => {
   ])("fails closed on %s", (_label, raw) => {
     expect(() => resolveApiBaseUrl(raw)).toThrow(InvalidApiBaseUrlError);
   });
-
   it.each([
     ["tab leading", "\thttp://localhost:8000"],
     ["tab trailing", "http://localhost:8000\t"],
@@ -921,7 +812,6 @@ describe("api base url validation and factory boundary", () => {
   ])("rejects control characters before trim on %s", (_label, raw) => {
     expect(() => resolveApiBaseUrl(raw)).toThrow(InvalidApiBaseUrlError);
   });
-
   it("normalizes a valid base url and keeps an explicit path", () => {
     expect(resolveApiBaseUrl("http://localhost:8000/")).toBe(
       "http://localhost:8000",
@@ -933,7 +823,6 @@ describe("api base url validation and factory boundary", () => {
       "http://localhost:8000",
     );
   });
-
   it("fails closed at the createHttpClient factory boundary using same rules", () => {
     expect(() => createHttpClient("http://user:pass@localhost:8000")).toThrow(
       InvalidApiBaseUrlError,
@@ -948,7 +837,6 @@ describe("api base url validation and factory boundary", () => {
       InvalidApiBaseUrlError,
     );
   });
-
   it("never exposes raw input in InvalidApiBaseUrlError message", () => {
     const sensitive = "http://secret-token:leak@localhost:8000";
     try {
@@ -960,7 +848,6 @@ describe("api base url validation and factory boundary", () => {
       expect((err as Error).message).not.toContain("leak");
     }
   });
-
   it("resolves apiBaseUrlFromEnv correctly or fails closed", () => {
     expect(apiBaseUrlFromEnv({ VITE_API_URL: "http://localhost:8000" })).toBe(
       "http://localhost:8000",
@@ -978,7 +865,6 @@ describe("api base url validation and factory boundary", () => {
       apiBaseUrlFromEnv({ VITE_API_URL: "http://localhost:8000\n" }),
     ).toThrow(InvalidApiBaseUrlError);
   });
-
   it("resolves app environment with fallback to development or fails on invalid", () => {
     expect(resolveAppEnvironment({})).toBe("development");
     expect(resolveAppEnvironment(null)).toBe("development");
@@ -995,7 +881,6 @@ describe("api base url validation and factory boundary", () => {
       resolveAppEnvironment({ VITE_APP_ENV: "invalid-env" }),
     ).toThrow(InvalidEnvironmentConfigError);
   });
-
   it("identifies production API hosts correctly", () => {
     expect(isProductionApiUrl("https://api.starterkit.com")).toBe(true);
     expect(isProductionApiUrl("https://prod-api.internal.net")).toBe(true);
@@ -1006,32 +891,25 @@ describe("api base url validation and factory boundary", () => {
     );
     expect(isProductionApiUrl("invalid url")).toBe(false);
   });
-
   it("enforces that preview builds NEVER point to a production API", () => {
-    // Valid preview config pointing to preview/mock/staging API
     const validPreview = resolveEnvironmentConfig({
       VITE_APP_ENV: "preview",
       VITE_API_URL: "https://staging-api.starterkit.com",
     });
     expect(validPreview.environment).toBe("preview");
     expect(validPreview.apiBaseUrl).toBe("https://staging-api.starterkit.com");
-
-    // Preview pointing to production API MUST throw
     expect(() =>
       resolveEnvironmentConfig({
         VITE_APP_ENV: "preview",
         VITE_API_URL: "https://api.starterkit.com",
       }),
     ).toThrow(InvalidEnvironmentConfigError);
-
     expect(() =>
       resolveEnvironmentConfig({
         VITE_APP_ENV: "preview",
         VITE_API_URL: "https://prod-api.internal.com",
       }),
     ).toThrow(InvalidEnvironmentConfigError);
-
-    // Production environment CAN point to production API
     const validProd = resolveEnvironmentConfig({
       VITE_APP_ENV: "production",
       VITE_API_URL: "https://api.starterkit.com",
@@ -1040,7 +918,6 @@ describe("api base url validation and factory boundary", () => {
     expect(validProd.apiBaseUrl).toBe("https://api.starterkit.com");
   });
 });
-
 describe("type guards and structural variant validation", () => {
   it("narrows genuine HttpError instances and rejects malformed objects", () => {
     const validUnauthorized = {
@@ -1049,7 +926,6 @@ describe("type guards and structural variant validation", () => {
       message: "Sua sessão não está autenticada ou expirou.",
     };
     expect(isHttpError(validUnauthorized)).toBe(true);
-
     expect(isHttpError(null)).toBe(false);
     expect(isHttpError(undefined)).toBe(false);
     expect(isHttpError("error")).toBe(false);
@@ -1108,7 +984,6 @@ describe("type guards and structural variant validation", () => {
       }),
     ).toBe(false);
   });
-
   it("checks specific guards: isValidationHttpError, isRateLimitedHttpError, isCsrfMismatchHttpError", () => {
     const valid422 = {
       kind: "validation" as const,
@@ -1127,17 +1002,13 @@ describe("type guards and structural variant validation", () => {
       status: 419,
       message: "Seu token de segurança expirou e a ação não foi concluída.",
     };
-
     expect(isValidationHttpError(valid422)).toBe(true);
     expect(isValidationHttpError(valid429)).toBe(false);
-
     expect(isRateLimitedHttpError(valid429)).toBe(true);
     expect(isRateLimitedHttpError(valid422)).toBe(false);
-
     expect(isCsrfMismatchHttpError(valid419)).toBe(true);
     expect(isCsrfMismatchHttpError(valid429)).toBe(false);
   });
-
   it("buildHttpError fails closed on malformed, primitive, and prototype-polluting inputs", () => {
     expect(isHttpError(buildHttpError(null))).toBe(true);
     expect(buildHttpError(null).kind).toBe("unexpected");
@@ -1146,7 +1017,6 @@ describe("type guards and structural variant validation", () => {
     expect(buildHttpError(12345).kind).toBe("unexpected");
     expect(buildHttpError(true).kind).toBe("unexpected");
     expect(buildHttpError([]).kind).toBe("unexpected");
-
     expect(buildHttpError({ kind: "__proto__" }).kind).toBe("unexpected");
     expect(buildHttpError({ kind: "toString" }).kind).toBe("unexpected");
     expect(buildHttpError({ kind: "constructor" }).kind).toBe("unexpected");
@@ -1154,7 +1024,6 @@ describe("type guards and structural variant validation", () => {
     expect(buildHttpError({ kind: "unknown_random_kind" }).kind).toBe(
       "unexpected",
     );
-
     const malformedValidation = buildHttpError({
       kind: "validation",
       body: "not an object",
@@ -1163,7 +1032,6 @@ describe("type guards and structural variant validation", () => {
     if (isValidationHttpError(malformedValidation)) {
       expect(malformedValidation.fieldErrors).toEqual({});
     }
-
     const malformedRateLimit = buildHttpError({
       kind: "rate_limited",
       retryAfterHeader: { invalid: true },
@@ -1173,7 +1041,6 @@ describe("type guards and structural variant validation", () => {
       expect(malformedRateLimit.retryAfterSeconds).toBeNull();
     }
   });
-
   it("handles out-of-bounds status codes (< 100 or > 599) in buildHttpError and isHttpError", () => {
     expect(
       buildHttpError({ kind: "unexpected", status: 50 }).status,
@@ -1191,7 +1058,6 @@ describe("type guards and structural variant validation", () => {
     expect(
       buildHttpError({ kind: "unexpected", status: 650 }).status,
     ).toBeNull();
-
     expect(
       isHttpError({
         kind: "unexpected",
@@ -1210,16 +1076,13 @@ describe("type guards and structural variant validation", () => {
     ).toBe(false);
   });
 });
-
 describe("session expiration notifications on 401 and 419", () => {
   it("notifies listeners on 401 unauthorized", async () => {
     useFreshHandlers();
     setErrorEcho(401);
     const client = createHttpClient(TEST_API_BASE);
-
     const expiredSpy = vi.fn();
     const unsubscribe = onSessionExpired(expiredSpy);
-
     try {
       await rejectedPost(client);
       expect(expiredSpy).toHaveBeenCalledTimes(1);
@@ -1231,15 +1094,12 @@ describe("session expiration notifications on 401 and 419", () => {
       unsubscribe();
     }
   });
-
   it("notifies listeners on 419 csrf_mismatch", async () => {
     useFreshHandlers();
     setErrorEcho(419);
     const client = createHttpClient(TEST_API_BASE);
-
     const expiredSpy = vi.fn();
     const unsubscribe = onSessionExpired(expiredSpy);
-
     try {
       await rejectedPost(client);
       expect(expiredSpy).toHaveBeenCalledTimes(1);
@@ -1251,15 +1111,12 @@ describe("session expiration notifications on 401 and 419", () => {
       unsubscribe();
     }
   });
-
   it("does not notify listeners on other statuses like 403 or 500", async () => {
     useFreshHandlers();
     setErrorEcho(403);
     const client = createHttpClient(TEST_API_BASE);
-
     const expiredSpy = vi.fn();
     const unsubscribe = onSessionExpired(expiredSpy);
-
     try {
       await rejectedPost(client);
       expect(expiredSpy).not.toHaveBeenCalled();

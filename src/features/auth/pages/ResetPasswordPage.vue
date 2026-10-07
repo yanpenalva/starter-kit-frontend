@@ -90,46 +90,36 @@ import {
   isRateLimitedHttpError,
   isValidationHttpError,
 } from "@/lib/http";
-
 const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();
-
 const token = computed(() => {
   const t = route.query.token;
   return typeof t === "string" ? t : "";
 });
-
 const email = ref(
   typeof route.query.email === "string" ? route.query.email : "",
 );
-
 const missingParameters = computed(() => !token.value || !email.value);
-
 const password = ref("");
 const passwordConfirmation = ref("");
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
-
-async function handleSubmit() {
+const handleSubmit = async () => {
   if (!password.value || !passwordConfirmation.value) {
     errorMessage.value = "Preencha todos os campos.";
     return;
   }
-
   if (password.value !== passwordConfirmation.value) {
     errorMessage.value = "As senhas não conferem.";
     return;
   }
-
   if (password.value.length < 12) {
     errorMessage.value = "A senha deve ter pelo menos 12 caracteres.";
     return;
   }
-
   isLoading.value = true;
   errorMessage.value = null;
-
   try {
     await session.resetPassword({
       token: token.value,
@@ -137,7 +127,6 @@ async function handleSubmit() {
       password: password.value,
       password_confirmation: passwordConfirmation.value,
     });
-
     await router.push({
       name: "login",
       query: { reset: "ok" },
@@ -168,7 +157,7 @@ async function handleSubmit() {
   } finally {
     isLoading.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

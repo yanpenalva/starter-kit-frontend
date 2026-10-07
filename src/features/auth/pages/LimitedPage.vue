@@ -67,17 +67,14 @@ import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useSessionStore } from "../stores/session";
 import { isHttpError, isRateLimitedHttpError } from "@/lib/http";
-
 const session = useSessionStore();
 const router = useRouter();
-
 const user = computed(() => session.user);
 const isChecking = ref(false);
 const isResending = ref(false);
 const resendSuccessMessage = ref<string | null>(null);
 const resendErrorMessage = ref<string | null>(null);
-
-async function checkStatus() {
+const checkStatus = async () => {
   isChecking.value = true;
   try {
     const updated = await session.bootstrap(true);
@@ -87,13 +84,11 @@ async function checkStatus() {
   } finally {
     isChecking.value = false;
   }
-}
-
-async function handleResend() {
+};
+const handleResend = async () => {
   isResending.value = true;
   resendSuccessMessage.value = null;
   resendErrorMessage.value = null;
-
   try {
     const response = await session.resendVerification();
     resendSuccessMessage.value =
@@ -115,12 +110,11 @@ async function handleResend() {
   } finally {
     isResending.value = false;
   }
-}
-
-async function handleLogout() {
+};
+const handleLogout = async () => {
   await session.logout();
   await router.push({ name: "login" });
-}
+};
 </script>
 
 <style scoped>

@@ -13,11 +13,9 @@ import type {
   UpdateUserPayload,
   UserFilters,
 } from "../api/users.types";
-
 export const USERS_QUERY_KEY = "users";
 export const USER_QUERY_KEY = "user";
-
-export function useUsersList() {
+export const useUsersList = () => {
   const queryClient = useQueryClient();
   const filters = reactive<UserFilters>({
     page: 1,
@@ -26,29 +24,24 @@ export function useUsersList() {
     status: undefined,
     role: undefined,
   });
-
   const query = useQuery({
     queryKey: computed(() => [USERS_QUERY_KEY, { ...filters }]),
     queryFn: () => listUsers({ ...filters }),
   });
-
-  function hasActiveFilters(): boolean {
+  const hasActiveFilters = (): boolean => {
     return (
       filters.search !== "" ||
       filters.status !== undefined ||
       filters.role !== undefined
     );
-  }
-
-  function resetAndGoToFirstPage(): void {
+  };
+  const resetAndGoToFirstPage = (): void => {
     filters.page = 1;
-  }
-
-  async function invalidate(): Promise<void> {
+  };
+  const invalidate = async (): Promise<void> => {
     await queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] });
     await queryClient.invalidateQueries({ queryKey: [USER_QUERY_KEY] });
-  }
-
+  };
   const updateMutation = useMutation({
     mutationFn: ({
       userId,
@@ -59,7 +52,6 @@ export function useUsersList() {
     }) => updateUser(userId, payload),
     onSuccess: () => invalidate(),
   });
-
   const statusMutation = useMutation({
     mutationFn: ({
       userId,
@@ -70,7 +62,6 @@ export function useUsersList() {
     }) => setUserStatus(userId, payload),
     onSuccess: () => invalidate(),
   });
-
   const rolesMutation = useMutation({
     mutationFn: ({
       userId,
@@ -81,7 +72,6 @@ export function useUsersList() {
     }) => assignUserRoles(userId, payload),
     onSuccess: () => invalidate(),
   });
-
   return {
     filters,
     query,
@@ -91,21 +81,19 @@ export function useUsersList() {
     hasActiveFilters,
     resetAndGoToFirstPage,
   };
-}
-
-export function useUserDetail(userId: () => number | null) {
+};
+export const useUserDetail = (userId: () => number | null) => {
   return useQuery({
     queryKey: computed(() => [USER_QUERY_KEY, userId()]),
     queryFn: () => showUser(userId() as number),
     enabled: computed(() => userId() !== null),
   });
-}
-
-export function usersSearchDebounce(
+};
+export const usersSearchDebounce = (
   filters: UserFilters,
   apply: (value: string) => void,
   delayMs = 350,
-): () => void {
+): (() => void) => {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const stop = watch(
     () => filters.search,
@@ -125,4 +113,4 @@ export function usersSearchDebounce(
     }
     stop();
   };
-}
+};

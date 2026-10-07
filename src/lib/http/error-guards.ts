@@ -17,17 +17,15 @@ import type {
   RateLimitedHttpError,
   ValidationHttpError,
 } from "./error-types";
-
-function hasOnlyStrings(messages: readonly unknown[]): boolean {
+const hasOnlyStrings = (messages: readonly unknown[]): boolean => {
   for (let index = 0; index < messages.length; index += 1) {
     if (typeof messages[index] !== "string") {
       return false;
     }
   }
   return true;
-}
-
-function isFieldErrorsRecord(value: unknown): boolean {
+};
+const isFieldErrorsRecord = (value: unknown): boolean => {
   const record = asRecord(value);
   if (record === null) {
     return false;
@@ -38,9 +36,8 @@ function isFieldErrorsRecord(value: unknown): boolean {
     }
   }
   return true;
-}
-
-function isValidRetryAfter(value: unknown): boolean {
+};
+const isValidRetryAfter = (value: unknown): boolean => {
   if (value === null) {
     return true;
   }
@@ -50,12 +47,11 @@ function isValidRetryAfter(value: unknown): boolean {
     value >= 0 &&
     value <= MAX_RETRY_AFTER_SECONDS
   );
-}
-
-function validateStatusKind(
+};
+const validateStatusKind = (
   kind: HttpErrorKind,
   rec: Record<string, unknown>,
-): boolean {
+): boolean => {
   if (kind === "server_error") {
     return (
       typeof rec["status"] === "number" &&
@@ -69,12 +65,11 @@ function validateStatusKind(
   return (
     rec["status"] === expectedStatus && rec["message"] === SAFE_MESSAGES[kind]
   );
-}
-
-function validatePayloadKind(
+};
+const validatePayloadKind = (
   kind: HttpErrorKind,
   rec: Record<string, unknown>,
-): boolean {
+): boolean => {
   if (kind === "validation") {
     return (
       rec["status"] === HTTP_STATUS_UNPROCESSABLE_ENTITY &&
@@ -87,12 +82,11 @@ function validatePayloadKind(
     rec["message"] === SAFE_MESSAGES.rate_limited &&
     isValidRetryAfter(rec["retryAfterSeconds"])
   );
-}
-
-function validateTransportKind(
+};
+const validateTransportKind = (
   kind: HttpErrorKind,
   rec: Record<string, unknown>,
-): boolean {
+): boolean => {
   if (kind === "network") {
     return (
       rec["status"] === null &&
@@ -112,12 +106,11 @@ function validateTransportKind(
     rec["message"] === SAFE_MESSAGES.unexpected &&
     rec["timedOut"] === false
   );
-}
-
-function validateVariant(
+};
+const validateVariant = (
   kind: HttpErrorKind,
   rec: Record<string, unknown>,
-): boolean {
+): boolean => {
   if (kind in STATUS_BY_KIND || kind === "server_error") {
     return validateStatusKind(kind, rec);
   }
@@ -125,9 +118,8 @@ function validateVariant(
     return validatePayloadKind(kind, rec);
   }
   return validateTransportKind(kind, rec);
-}
-
-export function isHttpError(value: unknown): value is HttpError {
+};
+export const isHttpError = (value: unknown): value is HttpError => {
   const record = asRecord(value);
   if (record === null) {
     return false;
@@ -137,22 +129,19 @@ export function isHttpError(value: unknown): value is HttpError {
     return false;
   }
   return validateVariant(kind as HttpErrorKind, record);
-}
-
-export function isValidationHttpError(
+};
+export const isValidationHttpError = (
   value: unknown,
-): value is ValidationHttpError {
+): value is ValidationHttpError => {
   return isHttpError(value) && value.kind === "validation";
-}
-
-export function isRateLimitedHttpError(
+};
+export const isRateLimitedHttpError = (
   value: unknown,
-): value is RateLimitedHttpError {
+): value is RateLimitedHttpError => {
   return isHttpError(value) && value.kind === "rate_limited";
-}
-
-export function isCsrfMismatchHttpError(
+};
+export const isCsrfMismatchHttpError = (
   value: unknown,
-): value is MappedStatusHttpError {
+): value is MappedStatusHttpError => {
   return isHttpError(value) && value.kind === "csrf_mismatch";
-}
+};

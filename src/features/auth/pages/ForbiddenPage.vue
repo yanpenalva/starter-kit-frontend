@@ -35,30 +35,25 @@
 import { computed } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useSessionStore } from "../stores/session";
-
 const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();
-
 const isBlocked = computed(() => {
   return session.isBlocked || route.query.reason === "blocked";
 });
-
 const title = computed(() => {
   return isBlocked.value ? "Conta Desativada" : "Acesso Negado";
 });
-
 const message = computed(() => {
   if (isBlocked.value) {
     return "Esta conta foi desativada. Entre em contato com o suporte caso acredite que isto seja um engano.";
   }
   return "Você não tem permissão para realizar esta ação ou acessar esta página.";
 });
-
-async function handleLogout() {
+const handleLogout = async () => {
   await session.logout();
   await router.push({ name: "login" });
-}
+};
 </script>
 
 <style scoped>

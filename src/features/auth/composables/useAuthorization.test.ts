@@ -57,11 +57,9 @@ describe("useAuthorization", () => {
     expect(auth.isAuthenticated.value).toBe(true);
     expect(auth.isLimited.value).toBe(true);
 
-    // Limited user can only see public home and limited verification guidance
     const visibleKeys = auth.visibleNavItems.value.map((i) => i.key);
     expect(visibleKeys).toEqual(["home", "limited"]);
 
-    // Business actions/permissions are denied when limited
     expect(auth.can("users.view")).toBe(false);
     expect(auth.hasRole("admin")).toBe(false);
   });
@@ -76,7 +74,6 @@ describe("useAuthorization", () => {
     expect(auth.isLimited.value).toBe(false);
 
     const visibleKeys = auth.visibleNavItems.value.map((i) => i.key);
-    // Admin has: role "admin", perms "users.view", "logs.view"
     expect(visibleKeys).toEqual([
       "home",
       "dashboard",
@@ -99,7 +96,6 @@ describe("useAuthorization", () => {
     const auth = useAuthorization();
 
     const visibleKeys = auth.visibleNavItems.value.map((i) => i.key);
-    // Standard user has no admin role and no users.view/logs.view permission
     expect(visibleKeys).toEqual(["home", "dashboard"]);
     expect(auth.can("users.view")).toBe(false);
     expect(auth.hasRole("admin")).toBe(false);

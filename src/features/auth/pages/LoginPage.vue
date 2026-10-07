@@ -82,16 +82,13 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 import AuthLayout from "@/shared/layouts/AuthLayout.vue";
 import { useSessionStore } from "../stores/session";
 import { isHttpError } from "@/lib/http";
-
 const email = ref("");
 const password = ref("");
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
-
 const session = useSessionStore();
 const router = useRouter();
 const route = useRoute();
-
 const successMessage = computed(() => {
   if (route.query.registered === "1") {
     return "Cadastro realizado com sucesso! Verifique seu e-mail para ativar sua conta ou faça login.";
@@ -101,28 +98,23 @@ const successMessage = computed(() => {
   }
   return null;
 });
-
-function isValidRedirect(redirect: unknown): redirect is string {
+const isValidRedirect = (redirect: unknown): redirect is string => {
   if (typeof redirect !== "string") return false;
   return (
     redirect.startsWith("/") &&
     !redirect.startsWith("//") &&
     !redirect.startsWith("/\\")
   );
-}
-
-async function handleSubmit() {
+};
+const handleSubmit = async () => {
   if (!email.value || !password.value) return;
-
   isLoading.value = true;
   errorMessage.value = null;
-
   try {
     await session.login({
       email: email.value,
       password: password.value,
     });
-
     const redirectTarget = route.query.redirect;
     if (isValidRedirect(redirectTarget)) {
       await router.push(redirectTarget);
@@ -152,7 +144,7 @@ async function handleSubmit() {
   } finally {
     isLoading.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

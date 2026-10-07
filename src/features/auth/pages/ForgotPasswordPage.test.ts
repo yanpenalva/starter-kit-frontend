@@ -41,7 +41,6 @@ describe("ForgotPasswordPage.vue", () => {
     expect(wrapper.find("[role='status']").text()).toBe(
       "Se o email existir, enviamos o link.",
     );
-    // Anti-enumeration: neutral response, form is replaced by success message
     expect(wrapper.find("form").exists()).toBe(false);
   });
 

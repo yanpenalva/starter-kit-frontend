@@ -9,11 +9,9 @@ import { expect, it } from "vitest";
 import { createHttpClient, isValidationHttpError } from "@/lib/http";
 import type { HttpClient } from "@/lib/http";
 import { createApiMutator } from "@/lib/http/orval-mutator";
-
 const API_ROOT = "http://127.0.0.1:8090";
 type BaseUrlLayer = "config" | "options";
 type UnsafeBaseUrlCase = readonly [string, BaseUrlLayer, unknown];
-
 const UNSAFE_BASE_URL_CASES: readonly UnsafeBaseUrlCase[] = [
   ["foreign URL", "config", "https://outside.invalid"],
   ["foreign URL", "options", "https://outside.invalid"],
@@ -36,12 +34,11 @@ const UNSAFE_BASE_URL_CASES: readonly UnsafeBaseUrlCase[] = [
   ["protocol-relative URL", "config", "//outside.invalid/api/v1"],
   ["protocol-relative URL", "options", "//outside.invalid/api/v1"],
 ];
-
-function responseFor(
+const responseFor = (
   config: InternalAxiosRequestConfig,
   status: number,
   data: unknown,
-): AxiosResponse<unknown> {
+): AxiosResponse<unknown> => {
   return {
     config,
     data,
@@ -49,41 +46,45 @@ function responseFor(
     status,
     statusText: String(status),
   };
-}
-
-function fixtureFor(adapter: AxiosAdapter): {
+};
+const fixtureFor = (
+  adapter: AxiosAdapter,
+): {
   client: HttpClient;
   mutator: ReturnType<typeof createApiMutator>;
-} {
+} => {
   const client = createHttpClient(API_ROOT);
   client.instance.defaults.adapter = adapter;
   return { client, mutator: createApiMutator(client, API_ROOT) };
-}
-
+};
 it("returns generic data and joins full contract path against root origin once", async () => {
   const observed: InternalAxiosRequestConfig[] = [];
   const fixture = fixtureFor(async (config) => {
     observed.push(config);
     return responseFor(config, 200, { result: "fixture" });
   });
-
-  const result = await fixture.mutator<{ result: string }>({
+  const result = await fixture.mutator<{
+    result: string;
+  }>({
     method: "GET",
     url: "/api/v1/fixture",
   });
-  const configuredResult = await fixture.mutator<{ result: string }>({
+  const configuredResult = await fixture.mutator<{
+    result: string;
+  }>({
     baseURL: API_ROOT,
     method: "GET",
     url: "/api/v1/config-root",
   });
-  const optionResult = await fixture.mutator<{ result: string }>(
+  const optionResult = await fixture.mutator<{
+    result: string;
+  }>(
     {
       method: "GET",
       url: "/api/v1/options-root",
     },
     { baseURL: API_ROOT },
   );
-
   expect(result).toEqual({ result: "fixture" });
   expect(configuredResult).toEqual({ result: "fixture" });
   expect(optionResult).toEqual({ result: "fixture" });
@@ -98,7 +99,6 @@ it("returns generic data and joins full contract path against root origin once",
     `${API_ROOT}/api/v1/options-root`,
   );
 });
-
 it("propagates an already-aborted signal as cancellation before adapter dispatch", async () => {
   const controller = new AbortController();
   controller.abort();
@@ -107,7 +107,6 @@ it("propagates an already-aborted signal as cancellation before adapter dispatch
     adapterCalls += 1;
     throw new CanceledError("fixture", config);
   });
-
   await expect(
     fixture.mutator({
       method: "GET",
@@ -117,14 +116,12 @@ it("propagates an already-aborted signal as cancellation before adapter dispatch
   ).rejects.toMatchObject({ kind: "cancelled" });
   expect(adapterCalls).toBe(0);
 });
-
 it("rejects foreign destinations before adapter dispatch", async () => {
   let adapterCalls = 0;
   const fixture = fixtureFor(async (config) => {
     adapterCalls += 1;
     return responseFor(config, 200, null);
   });
-
   await expect(
     fixture.mutator({
       method: "GET",
@@ -133,7 +130,6 @@ it("rejects foreign destinations before adapter dispatch", async () => {
   ).rejects.toMatchObject({ kind: "unexpected" });
   expect(adapterCalls).toBe(0);
 });
-
 it.each(UNSAFE_BASE_URL_CASES)(
   "rejects %s baseURL in %s layer before dispatch",
   async (_caseName, layer, unsafeBaseURL) => {
@@ -147,7 +143,6 @@ it.each(UNSAFE_BASE_URL_CASES)(
       url: "/api/v1/fixture",
     };
     const options: AxiosRequestConfig<unknown> = {};
-
     if (layer === "config") {
       Object.defineProperty(config, "baseURL", {
         enumerable: true,
@@ -162,7 +157,6 @@ it.each(UNSAFE_BASE_URL_CASES)(
         value: unsafeBaseURL,
       });
     }
-
     let failure: unknown = null;
     try {
       await fixture.mutator(config, options);
@@ -176,7 +170,6 @@ it.each(UNSAFE_BASE_URL_CASES)(
     expect.soft(adapterCalls).toBe(0);
   },
 );
-
 it("resets CSRF singleflight on 419 without replay and keeps CSRF path at root", async () => {
   const paths: string[] = [];
   let fixture: ReturnType<typeof fixtureFor> | null = null;
@@ -199,12 +192,10 @@ it("resets CSRF singleflight on 419 without replay and keeps CSRF path at root",
     );
   };
   fixture = fixtureFor(adapter);
-
   await expect(
     fixture.mutator({ method: "POST", url: "/api/v1/fixture" }),
   ).rejects.toMatchObject({ kind: "csrf_mismatch" });
   expect(paths).toEqual(["/sanctum/csrf-cookie", "/api/v1/fixture"]);
-
   await expect(
     fixture.mutator({ method: "POST", url: "/api/v1/fixture" }),
   ).rejects.toMatchObject({ kind: "csrf_mismatch" });
@@ -215,7 +206,6 @@ it("resets CSRF singleflight on 419 without replay and keeps CSRF path at root",
     "/api/v1/fixture",
   ]);
 });
-
 it("normalizes validation fields with null prototype and preserves dangerous names", async () => {
   const validationBody: unknown = JSON.parse(
     '{"errors":{"__proto__":["fixture"],"constructor":["fixture"]}}',
@@ -229,14 +219,12 @@ it("normalizes validation fields with null prototype and preserves dangerous nam
       responseFor(config, 422, validationBody),
     );
   });
-
   let failure: unknown;
   try {
     await fixture.mutator({ method: "POST", url: "/api/v1/fixture" });
   } catch (cause: unknown) {
     failure = cause;
   }
-
   expect(isValidationHttpError(failure)).toBe(true);
   if (!isValidationHttpError(failure)) {
     throw new Error("Erro de validação não foi normalizado.");

@@ -72,24 +72,20 @@ import { ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useSessionStore } from "@/features/auth/stores/session";
-
 const { isAuthenticated, isLimited, user, roles, visibleNavItems } =
   useAuthorization();
 const session = useSessionStore();
 const router = useRouter();
 const route = useRoute();
-
 const isLoggingOut = ref(false);
-
-function isRouteActive(path: string): boolean {
+const isRouteActive = (path: string): boolean => {
   if (!route) return false;
   if (path === "/") {
     return route.path === "/";
   }
   return route.path.startsWith(path);
-}
-
-async function handleLogout() {
+};
+const handleLogout = async () => {
   isLoggingOut.value = true;
   try {
     await session.logout();
@@ -99,7 +95,7 @@ async function handleLogout() {
   } finally {
     isLoggingOut.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

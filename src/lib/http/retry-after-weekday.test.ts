@@ -17,7 +17,6 @@ it.each(OCTOBER_SUNDAY_WEEKDAYS)(
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-04T12:00:00Z"));
     try {
-      // The fixed Sunday fixture makes weekday mismatches observable.
       expect(new Date("2026-10-04T12:00:00Z").getUTCDay()).toBe(0);
       const actual = parseRetryAfterSeconds(
         `${weekday}, 04 Oct 2026 12:02:00 GMT`,

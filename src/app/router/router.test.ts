@@ -4,7 +4,6 @@ import type { RouteLocationNormalized } from "vue-router";
 import { navigationGuard, routes } from "./index";
 import { useSessionStore } from "@/features/auth/stores/session";
 import type { MyProfileResource } from "@/lib/api/generated/models";
-
 const verifiedAdmin: MyProfileResource = {
   id: 1,
   name: "Admin User",
@@ -13,7 +12,6 @@ const verifiedAdmin: MyProfileResource = {
   roles: ["admin"],
   permissions: ["users.view", "logs.view"],
 };
-
 const verifiedStandardUser: MyProfileResource = {
   id: 2,
   name: "Standard User",
@@ -22,7 +20,6 @@ const verifiedStandardUser: MyProfileResource = {
   roles: ["member"],
   permissions: [],
 };
-
 const limitedUser: MyProfileResource = {
   id: 3,
   name: "Limited User",
@@ -31,10 +28,8 @@ const limitedUser: MyProfileResource = {
   roles: [],
   permissions: [],
 };
-
 type RouteMatched = RouteLocationNormalized["matched"][number];
-
-function createMockRecord(meta: Record<string, unknown>): RouteMatched {
+const createMockRecord = (meta: Record<string, unknown>): RouteMatched => {
   return {
     path: "/",
     name: undefined,
@@ -51,11 +46,10 @@ function createMockRecord(meta: Record<string, unknown>): RouteMatched {
     leaveGuards: new Set(),
     updateGuards: new Set(),
   };
-}
-
-function createMockRoute(
+};
+const createMockRoute = (
   overrides: Partial<RouteLocationNormalized>,
-): RouteLocationNormalized {
+): RouteLocationNormalized => {
   return {
     fullPath: overrides.fullPath ?? "/",
     path: overrides.path ?? "/",
@@ -67,13 +61,11 @@ function createMockRoute(
     redirectedFrom: undefined,
     meta: overrides.meta ?? {},
   };
-}
-
+};
 describe("router routes and navigation guards", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
   });
-
   it("registers all expected public, auth, error, and administrative routes", () => {
     const paths = routes.map((r) => r.path);
     expect(paths).toContain("/");
@@ -91,41 +83,32 @@ describe("router routes and navigation guards", () => {
     expect(paths).toContain("/404");
     expect(paths).toContain("/:pathMatch(.*)*");
   });
-
   it("bootstraps session on initial route navigation if not initialized", async () => {
     const session = useSessionStore();
     const bootstrapSpy = vi.spyOn(session, "bootstrap").mockResolvedValue(null);
-
     const to = createMockRoute({ path: "/" });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
-
     expect(bootstrapSpy).toHaveBeenCalledTimes(1);
     expect(next).toHaveBeenCalledWith();
   });
-
   it("allows unauthenticated guest on public routes", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.status = "unauthenticated";
     session.user = null;
-
     const to = createMockRoute({ path: "/", name: "public-home" });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith();
   });
-
   it("redirects unauthenticated user from protected route to login with redirect query", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.status = "unauthenticated";
     session.user = null;
-
     const to = createMockRoute({
       fullPath: "/dashboard",
       path: "/dashboard",
@@ -133,20 +116,17 @@ describe("router routes and navigation guards", () => {
     });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith({
       name: "login",
       query: { redirect: "/dashboard" },
     });
   });
-
   it("redirects authenticated user away from guest-only route to dashboard", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.user = verifiedStandardUser;
     session.status = "authenticated";
-
     for (const path of [
       "/login",
       "/register",
@@ -159,66 +139,54 @@ describe("router routes and navigation guards", () => {
       });
       const from = createMockRoute({ path: "/" });
       const next = vi.fn();
-
       await navigationGuard(to, from, next);
       expect(next).toHaveBeenCalledWith({ name: "dashboard" });
     }
   });
-
   it("allows unauthenticated guests on public verify-email route", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.status = "unauthenticated";
     session.user = null;
-
     const to = createMockRoute({ path: "/verify-email", name: "verify-email" });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith();
   });
-
   it("redirects limited user attempting business route to /limited", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.user = limitedUser;
     session.status = "limited";
-
     const to = createMockRoute({
       path: "/dashboard",
       matched: [createMockRecord({ requiresAuth: true })],
     });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith({ name: "limited" });
   });
-
   it("allows limited user accessing route with allowLimited: true", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.user = limitedUser;
     session.status = "limited";
-
     const to = createMockRoute({
       path: "/limited",
       matched: [createMockRecord({ requiresAuth: true, allowLimited: true })],
     });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith();
   });
-
   it("redirects user without required role to 403 forbidden", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.user = verifiedStandardUser;
     session.status = "authenticated";
-
     const to = createMockRoute({
       path: "/roles",
       matched: [createMockRecord({ requiresAuth: true })],
@@ -226,20 +194,17 @@ describe("router routes and navigation guards", () => {
     });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith({
       name: "forbidden",
       query: { reason: "unauthorized_role" },
     });
   });
-
   it("allows user with required role to enter", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.user = verifiedAdmin;
     session.status = "authenticated";
-
     const to = createMockRoute({
       path: "/roles",
       matched: [createMockRecord({ requiresAuth: true })],
@@ -247,17 +212,14 @@ describe("router routes and navigation guards", () => {
     });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith();
   });
-
   it("redirects user without required permission to 403 forbidden", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.user = verifiedStandardUser;
     session.status = "authenticated";
-
     const to = createMockRoute({
       path: "/users",
       matched: [createMockRecord({ requiresAuth: true })],
@@ -265,20 +227,17 @@ describe("router routes and navigation guards", () => {
     });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith({
       name: "forbidden",
       query: { reason: "unauthorized_permission" },
     });
   });
-
   it("allows user with required permission to enter", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.user = verifiedAdmin;
     session.status = "authenticated";
-
     const to = createMockRoute({
       path: "/users",
       matched: [createMockRecord({ requiresAuth: true })],
@@ -286,21 +245,17 @@ describe("router routes and navigation guards", () => {
     });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith();
   });
-
   it("redirects blocked (deactivated) account to 403 forbidden with blocked reason", async () => {
     const session = useSessionStore();
     session.isInitialized = true;
     session.status = "blocked";
     session.user = null;
-
     const to = createMockRoute({ path: "/dashboard", name: "dashboard" });
     const from = createMockRoute({ path: "/" });
     const next = vi.fn();
-
     await navigationGuard(to, from, next);
     expect(next).toHaveBeenCalledWith({
       name: "forbidden",

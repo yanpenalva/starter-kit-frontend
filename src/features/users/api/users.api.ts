@@ -7,53 +7,66 @@ import type {
   UpdateUserPayload,
   UserFilters,
 } from "./users.types";
-
-export function listUsers(
+export const listUsers = (
   filters: UserFilters = {},
-): Promise<Paginated<AdminUser>> {
+): Promise<Paginated<AdminUser>> => {
   return transportApi<Paginated<AdminUser>>({
     url: "/api/v1/users",
     method: "GET",
     params: filters,
   });
-}
-
-export function showUser(userId: number): Promise<{ data: AdminUser }> {
-  return transportApi<{ data: AdminUser }>({
+};
+export const showUser = (
+  userId: number,
+): Promise<{
+  data: AdminUser;
+}> => {
+  return transportApi<{
+    data: AdminUser;
+  }>({
     url: `/api/v1/users/${userId}`,
     method: "GET",
   });
-}
-
-export function updateUser(
+};
+export const updateUser = (
   userId: number,
   payload: UpdateUserPayload,
-): Promise<{ data: AdminUser }> {
-  return transportApi<{ data: AdminUser }>({
+): Promise<{
+  data: AdminUser;
+}> => {
+  return transportApi<{
+    data: AdminUser;
+  }>({
     url: `/api/v1/users/${userId}`,
     method: "PATCH",
     data: payload,
   });
-}
-
-export function setUserStatus(
+};
+export const setUserStatus = (
   userId: number,
   payload: SetUserStatusPayload,
-): Promise<{ data: AdminUser }> {
-  return transportApi<{ data: AdminUser }>({
+): Promise<{
+  data: AdminUser;
+}> => {
+  return transportApi<{
+    data: AdminUser;
+  }>({
     url: `/api/v1/users/${userId}/status`,
     method: "POST",
     data: payload,
   });
-}
-
-export function assignUserRoles(
+};
+export const assignUserRoles = (
   userId: number,
   payload: AssignUserRolesPayload,
-): Promise<{ data: AdminUser }> {
-  return transportApi<{ data: AdminUser }>({
+): Promise<{
+  data: AdminUser;
+}> => {
+  return transportApi<{
+    data: AdminUser;
+  }>({
     url: `/api/v1/users/${userId}/roles`,
     method: "PUT",
     data: payload,
   });
-}
+};
