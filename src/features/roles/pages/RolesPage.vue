@@ -59,7 +59,12 @@
                 :aria-label="`Editar permissões de ${role.name}`"
                 @click="savePermissions(role.id)"
               >
-                Salvar permissões
+                {{
+                  pendingRoleId === role.id &&
+                  permissionMutation.isPending.value
+                    ? "Salvando..."
+                    : "Salvar permissões"
+                }}
               </button>
             </td>
           </tr>
@@ -113,6 +118,7 @@ import { useRolesList } from "@/features/roles/composables/useRolesList";
 const { filters, query, permissionMutation } = useRolesList();
 const editedPermissions = reactive<Record<number, CataloguePermission[]>>({});
 const mutationError = ref<string | null>(null);
+const pendingRoleId = ref<number | null>(null);
 watch(
   query.data,
   (page) => {
@@ -124,7 +130,9 @@ watch(
 );
 
 const savePermissions = async (roleId: number): Promise<void> => {
+  if (permissionMutation.isPending.value) return;
   mutationError.value = null;
+  pendingRoleId.value = roleId;
   try {
     await permissionMutation.mutateAsync({
       roleId,
@@ -132,6 +140,8 @@ const savePermissions = async (roleId: number): Promise<void> => {
     });
   } catch {
     mutationError.value = "Não foi possível atualizar as permissões do papel.";
+  } finally {
+    pendingRoleId.value = null;
   }
 };
 </script>

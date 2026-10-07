@@ -2,7 +2,9 @@ import { VueQueryPlugin } from "@tanstack/vue-query";
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { delay, http, HttpResponse } from "msw";
 import { makeAdminUser, makeUsersRouteMocks } from "@/test/admin-handlers";
+import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
 import UsersPage from "./UsersPage.vue";
 
@@ -94,6 +96,73 @@ describe("UsersPage", () => {
               JSON.stringify({ status: "deactivated" }),
         ),
       ).toBe(true),
+    );
+  });
+
+  it("disables action buttons and shows loading while saving", async () => {
+    const mocks = makeUsersRouteMocks(users);
+    server.use(...mocks.handlers);
+    server.use(
+      http.patch(
+        `${TEST_API_BASE}/api/v1/users/:userId`,
+        async ({ request, params }) => {
+          await delay(80);
+          const user = users.find(
+            (candidate) => String(candidate.id) === String(params.userId),
+          );
+          return HttpResponse.json(
+            { data: user },
+            { headers: makeCorsHeaders(request) },
+          );
+        },
+      ),
+    );
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Nome de Pessoa 1"]').exists()).toBe(
+        true,
+      ),
+    );
+    const saveButton = wrapper.get('[aria-label="Salvar nome de Pessoa 1"]');
+    void saveButton.trigger("click");
+
+    await vi.waitFor(() =>
+      expect(saveButton.attributes("disabled")).toBeDefined(),
+    );
+    expect(saveButton.text()).toBe("Salvando...");
+    expect(
+      wrapper
+        .get('[aria-label="Salvar papéis de Pessoa 1"]')
+        .attributes("disabled"),
+    ).toBeDefined();
+
+    await vi.waitFor(() =>
+      expect(wrapper.get('[aria-label="Salvar nome de Pessoa 1"]').text()).toBe(
+        "Salvar nome",
+      ),
+    );
+  });
+
+  it("ignores duplicate submits while a request is pending", async () => {
+    const mocks = makeUsersRouteMocks(users);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Nome de Pessoa 1"]').exists()).toBe(
+        true,
+      ),
+    );
+    void wrapper.get('[aria-label="Salvar nome de Pessoa 1"]').trigger("click");
+    void wrapper.get('[aria-label="Salvar nome de Pessoa 1"]').trigger("click");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.filter(
+          (call) => call.method === "PATCH" && call.path === "/api/v1/users/1",
+        ),
+      ).toHaveLength(1),
     );
   });
 });
