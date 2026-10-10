@@ -59,6 +59,7 @@ flowchart LR
 ```sh
 cp .env.development.example .env
 npm ci
+sh scripts/install-hooks.sh
 npm run dev
 ```
 
