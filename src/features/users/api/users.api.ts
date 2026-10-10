@@ -1,5 +1,6 @@
 import { transportApi } from "@/lib/http/orval-mutator";
 import type { Paginated } from "@/shared/types/contract";
+import type { StoreUserRequest } from "@/lib/api/generated/models/storeUserRequest";
 import type {
   AdminUser,
   AssignUserRolesPayload,
@@ -25,12 +26,9 @@ export const listUsers = (
     params: omitEmpty(filters),
   });
 };
-export const createUser = (payload: {
-  name: string;
-  email: string;
-  cpf?: string;
-  password: string;
-}): Promise<{
+export const createUser = (
+  payload: StoreUserRequest,
+): Promise<{
   data: AdminUser;
 }> => {
   return transportApi<{

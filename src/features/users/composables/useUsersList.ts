@@ -9,6 +9,7 @@ import {
   showUser,
   updateUser,
 } from "@/features/users/api/users.api";
+import type { StoreUserRequest } from "@/lib/api/generated/models/storeUserRequest";
 import type {
   AssignUserRolesPayload,
   SetUserStatusPayload,
@@ -75,12 +76,7 @@ export const useUsersList = () => {
     onSuccess: () => invalidate(),
   });
   const createMutation = useMutation({
-    mutationFn: (payload: {
-      name: string;
-      email: string;
-      cpf?: string;
-      password: string;
-    }) => createUser(payload),
+    mutationFn: (payload: StoreUserRequest) => createUser(payload),
     onSuccess: () => invalidate(),
   });
   const deleteMutation = useMutation({

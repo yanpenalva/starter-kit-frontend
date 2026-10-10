@@ -4,7 +4,8 @@
  */
 
 export type ActivityLogIndexSubjectType =
-  (typeof ActivityLogIndexSubjectType)[keyof typeof ActivityLogIndexSubjectType];
+  | (typeof ActivityLogIndexSubjectType)[keyof typeof ActivityLogIndexSubjectType]
+  | null;
 
 export const ActivityLogIndexSubjectType = {
   user: "user",

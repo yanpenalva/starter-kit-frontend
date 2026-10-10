@@ -4,7 +4,7 @@
  */
 
 export type ActivityLogIndexEvent =
-  (typeof ActivityLogIndexEvent)[keyof typeof ActivityLogIndexEvent];
+  (typeof ActivityLogIndexEvent)[keyof typeof ActivityLogIndexEvent] | null;
 
 export const ActivityLogIndexEvent = {
   clibootstrap: "cli.bootstrap",

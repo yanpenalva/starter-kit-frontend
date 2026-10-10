@@ -4,7 +4,7 @@
  */
 
 export type UserIndexStatus =
-  (typeof UserIndexStatus)[keyof typeof UserIndexStatus];
+  (typeof UserIndexStatus)[keyof typeof UserIndexStatus] | null;
 
 export const UserIndexStatus = {
   active: "active",

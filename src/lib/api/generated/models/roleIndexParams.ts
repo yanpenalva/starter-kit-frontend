@@ -15,6 +15,7 @@ export type RoleIndexParams = {
   per_page?: number;
   /**
    * @maxLength 255
+   * @nullable
    */
-  search?: string;
+  search?: string | null;
 };

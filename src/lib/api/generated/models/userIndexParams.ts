@@ -16,11 +16,16 @@ export type UserIndexParams = {
   per_page?: number;
   /**
    * @maxLength 255
+   * @nullable
    */
-  search?: string;
+  search?: string | null;
+  /**
+   * @nullable
+   */
   status?: UserIndexStatus;
   /**
    * @maxLength 64
+   * @nullable
    */
-  role?: string;
+  role?: string | null;
 };

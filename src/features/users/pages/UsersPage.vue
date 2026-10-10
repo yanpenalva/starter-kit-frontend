@@ -61,17 +61,31 @@
         />
       </label>
       <label>
-        CPF (opcional)
-        <input v-model="newUser.cpf" aria-label="CPF do novo usuário" />
+        CPF
+        <input
+          v-model="newUser.cpf"
+          aria-label="CPF do novo usuário"
+          inputmode="numeric"
+          required
+        />
       </label>
       <label>
-        Senha
+        Senha (mínimo 12 caracteres)
         <input
           v-model="newUser.password"
           aria-label="Senha do novo usuário"
           type="password"
+          minlength="12"
           required
         />
+      </label>
+      <label>
+        <input
+          v-model="newUser.active"
+          aria-label="Ativar novo usuário imediatamente"
+          type="checkbox"
+        />
+        Ativo
       </label>
       <button type="submit" :disabled="isMutating">Criar usuário</button>
     </form>
@@ -223,7 +237,13 @@ const {
 } = useUsersList();
 const editedNames = reactive<Record<number, string>>({});
 const editedRoles = reactive<Record<number, string>>({});
-const newUser = reactive({ name: "", email: "", cpf: "", password: "" });
+const newUser = reactive({
+  name: "",
+  email: "",
+  cpf: "",
+  password: "",
+  active: false,
+});
 const mutationError = ref<string | null>(null);
 const pendingAction = ref<PendingAction | null>(null);
 const isMutating = computed(() => pendingAction.value !== null);
@@ -295,18 +315,28 @@ const toggleStatus = async (
 const createNewUser = async (): Promise<void> => {
   if (pendingAction.value !== null || !can("users.manage")) return;
   mutationError.value = null;
+  if (!/^\d{11}$/.test(newUser.cpf)) {
+    mutationError.value = "Informe um CPF válido com 11 dígitos.";
+    return;
+  }
+  if (newUser.password.length < 12) {
+    mutationError.value = "A senha deve ter pelo menos 12 caracteres.";
+    return;
+  }
   pendingAction.value = { kind: "create", userId: 0 };
   try {
     await createMutation.mutateAsync({
       name: newUser.name,
       email: newUser.email,
-      cpf: newUser.cpf === "" ? undefined : newUser.cpf,
+      cpf: newUser.cpf,
       password: newUser.password,
+      active: newUser.active,
     });
     newUser.name = "";
     newUser.email = "";
     newUser.cpf = "";
     newUser.password = "";
+    newUser.active = false;
   } catch {
     mutationError.value = "Não foi possível criar o usuário.";
   } finally {

@@ -18,6 +18,7 @@ import type { MaybeRefOrGetter } from "vue";
 import type {
   ModelNotFoundExceptionResponse,
   VerificationVerify200,
+  VerificationVerify401,
   VerificationVerify403,
   VerificationVerify429,
 } from "../models";
@@ -52,6 +53,8 @@ export const getVerificationVerifyQueryKey = (
 export const getVerificationVerifyQueryOptions = <
   TData = Awaited<ReturnType<typeof verificationVerify>>,
   TError = ErrorType<
+    | void
+    | VerificationVerify401
     | VerificationVerify403
     | ModelNotFoundExceptionResponse
     | VerificationVerify429
@@ -100,12 +103,18 @@ export type VerificationVerifyQueryResult = NonNullable<
   Awaited<ReturnType<typeof verificationVerify>>
 >;
 export type VerificationVerifyQueryError = ErrorType<
-  VerificationVerify403 | ModelNotFoundExceptionResponse | VerificationVerify429
+  | void
+  | VerificationVerify401
+  | VerificationVerify403
+  | ModelNotFoundExceptionResponse
+  | VerificationVerify429
 >;
 
 export function useVerificationVerify<
   TData = Awaited<ReturnType<typeof verificationVerify>>,
   TError = ErrorType<
+    | void
+    | VerificationVerify401
     | VerificationVerify403
     | ModelNotFoundExceptionResponse
     | VerificationVerify429

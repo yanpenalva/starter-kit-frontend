@@ -212,4 +212,46 @@ describe("VerifyEmailPage.vue", () => {
     expect(wrapper.find("[role='status']").text()).toBe("Link reenviado.");
     wrapper.unmount();
   });
+
+  it("confirms a signed link from the email then follows the ok flow", async () => {
+    mockQuery = {
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    };
+    const session = useSessionStore();
+    const confirmSpy = vi.spyOn(session, "confirmEmail").mockResolvedValue({});
+    vi.spyOn(session, "bootstrap").mockResolvedValue(mockVerifiedProfile);
+
+    mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(confirmSpy).toHaveBeenCalledWith({
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    });
+    expect(mockRouterPush).toHaveBeenCalledWith({ name: "dashboard" });
+  });
+
+  it("shows a login hint when the signed link call is unauthorized", async () => {
+    mockQuery = {
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    };
+    const session = useSessionStore();
+    vi.spyOn(session, "confirmEmail").mockRejectedValue(
+      buildHttpError({ kind: "unauthorized", status: 401 }),
+    );
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("sessão expirou");
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
 });

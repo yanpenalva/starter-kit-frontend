@@ -10,6 +10,5 @@ import type { UpdateRolePermissionsRequestPermissionsItem } from "./updateRolePe
  * (admin role immutable) for the resolved role inside a PrivilegeTransaction.
  */
 export interface UpdateRolePermissionsRequest {
-  /** @minItems 1 */
   permissions: UpdateRolePermissionsRequestPermissionsItem[];
 }
