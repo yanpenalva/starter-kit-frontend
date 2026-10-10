@@ -2,6 +2,8 @@ import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import process from "node:process";
+import { clearTimeout, setTimeout } from "node:timers";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const BASE_URL = process.env.BROWSER_SMOKE_URL ?? "http://127.0.0.1:5173";
@@ -16,16 +18,16 @@ const steps = [];
 function assert(cond, msg, step) {
   if (step) steps.push({ name: step, pass: !!cond });
   if (!cond) failures.push(msg);
-  console.log(`[${cond ? "PASS" : "FAIL"}] ${msg}`);
+  globalThis.console.log(`[${cond ? "PASS" : "FAIL"}] ${msg}`);
 }
 
 function fetchJson(url, options = {}) {
-  return fetch(url, { signal: AbortSignal.timeout(5000), ...options }).then(
-    async (res) => {
+  return globalThis
+    .fetch(url, { signal: globalThis.AbortSignal.timeout(5000), ...options })
+    .then(async (res) => {
       if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
       return res.json();
-    },
-  );
+    });
 }
 
 async function waitForBrowser(endpoint, tries = 50, delay = 200) {
@@ -49,9 +51,11 @@ class Cdp {
       if (msg.id && this.pending.has(msg.id)) {
         const { resolve, reject } = this.pending.get(msg.id);
         this.pending.delete(msg.id);
-        msg.error
-          ? reject(new Error(JSON.stringify(msg.error)))
-          : resolve(msg.result);
+        if (msg.error) {
+          reject(new Error(JSON.stringify(msg.error)));
+        } else {
+          resolve(msg.result);
+        }
       }
     });
   }
@@ -106,16 +110,16 @@ class Cdp {
 
 async function main() {
   if (!API_URL) {
-    console.error(
+    globalThis.console.error(
       "Erro: defina API_SMOKE_URL no ambiente (origem da API, ex. http://127.0.0.1:8000).",
     );
     process.exit(1);
   }
   if (!AUTH_EMAIL || !AUTH_PASSWORD) {
-    console.error(
+    globalThis.console.error(
       "Erro: defina SMOKE_AUTH_EMAIL e SMOKE_AUTH_PASSWORD no ambiente.",
     );
-    console.error(
+    globalThis.console.error(
       "As credenciais não devem ser embutidas no código nem logadas.",
     );
     process.exit(1);
@@ -124,7 +128,7 @@ async function main() {
   let chrome = null;
   let profileDir = null;
   let cdp = null;
-  let targetWsUrl = null;
+  let targetWsUrl;
   let targetId = null;
   let endpoint = CHROME_REMOTE_ENDPOINT;
 
@@ -152,7 +156,7 @@ async function main() {
     }
 
     const version = await waitForBrowser(endpoint);
-    console.log(`Browser: ${version.Browser}`);
+    globalThis.console.log(`Browser: ${version.Browser}`);
 
     const target = await fetchJson(`${endpoint}/json/new?about:blank`, {
       method: "PUT",
@@ -277,13 +281,15 @@ async function main() {
     const msg = `exceção não tratada: ${e?.message ?? String(e)}`;
     failures.push(msg);
     steps.push({ name: "sem-excecao", pass: false });
-    console.log(`[FAIL] ${msg}`);
+    globalThis.console.log(`[FAIL] ${msg}`);
   } finally {
     if (cdp) cdp.close();
     if (targetId && endpoint) {
       try {
-        await fetch(`${endpoint}/json/close/${targetId}`);
-      } catch {}
+        await globalThis.fetch(`${endpoint}/json/close/${targetId}`);
+      } catch {
+        // fechamento best-effort do alvo CDP
+      }
     }
     if (chrome) {
       chrome.kill();
@@ -299,18 +305,20 @@ async function main() {
   }
 
   const ok = failures.length === 0;
-  console.log(JSON.stringify({ ok, failures: failures.length, steps }));
+  globalThis.console.log(
+    JSON.stringify({ ok, failures: failures.length, steps }),
+  );
 
   if (!ok) {
-    console.error(
+    globalThis.console.error(
       `\nSmoke auth falhou: ${failures.length} assert(s) com falha.`,
     );
     process.exit(1);
   }
-  console.log("\nSmoke auth concluído com sucesso.");
+  globalThis.console.log("\nSmoke auth concluído com sucesso.");
 }
 
 main().catch((e) => {
-  console.error(`Erro fatal: ${e.message}`);
+  globalThis.console.error(`Erro fatal: ${e.message}`);
   process.exit(1);
 });
