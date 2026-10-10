@@ -254,4 +254,27 @@ describe("VerifyEmailPage.vue", () => {
     expect(wrapper.text()).toContain("sessão expirou");
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
+
+  it("shows awaiting approval when the link confirms but the account stays deactivated", async () => {
+    mockQuery = {
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    };
+    const session = useSessionStore();
+    vi.spyOn(session, "confirmEmail").mockResolvedValue({});
+    vi.spyOn(session, "bootstrap").mockImplementation(async () => {
+      session.status = "blocked";
+      return null;
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(true);
+    expect(wrapper.text()).toContain("aguardando aprovação");
+    expect(wrapper.text()).not.toContain("Não foi possível verificar o e-mail");
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
 });

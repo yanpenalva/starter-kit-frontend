@@ -5,12 +5,14 @@ Guia prático e conciso para validação manual ou semi-automatizada imediatamen
 ---
 
 ## Pré-requisitos
+
 - SPA carregada no navegador com DevTools (aba Rede / Network e Console) aberto.
 - Nenhuma falha de carregamento de assets (arquivos `.js` ou `.css` com status 404/500).
 
 ---
 
 ## 1. Carregamento Inicial e Assets
+
 - [ ] **Acesso à Raiz (`/`)**: A landing page / tela pública inicial carrega sem erros de console.
 - [ ] **Assets Versionados**: Requisições de arquivos sob `/assets/` retornam status `200` com hashes de integridade.
 - [ ] **Favicon e Título**: Título da aba e ícones carregados normalmente.
@@ -18,6 +20,7 @@ Guia prático e conciso para validação manual ou semi-automatizada imediatamen
 ---
 
 ## 2. Autenticação e CSRF
+
 - [ ] **Bootstrap CSRF Cookie**: Ao navegar para `/login`, a requisição `GET /sanctum/csrf-cookie` ocorre com sucesso (204) e o cookie `XSRF-TOKEN` é armazenado no navegador.
 - [ ] **Login Válido**:
   1. Submeter credenciais válidas.
@@ -25,10 +28,12 @@ Guia prático e conciso para validação manual ou semi-automatizada imediatamen
   3. Redirecionamento automático para a tela `/dashboard`.
 - [ ] **Sessão Persistente**: Atualizar a página (F5) no `/dashboard` mantém o usuário autenticado sem redirecionar para `/login`.
 - [ ] **Smoke automatizado (`npm run smoke:auth`)**: cobre login → my-profile 200 → reload com sessão → logout → my-profile 401 em Chromium headless via CDP. Exige `BROWSER_SMOKE_URL`, `API_SMOKE_URL`, `SMOKE_AUTH_EMAIL` e `SMOKE_AUTH_PASSWORD` no ambiente (credenciais nunca commitadas).
+- [ ] **Smoke verify ponta a ponta (`node scripts/smoke-verify-browser.mjs`)**: cobre registro via UI → `/login` → link `verify-email` com `expires`+`signature` no log da API → login da conta pendente → `/limited` → abertura do link → confirmação via SPA (`verificationVerify`) → `email_verified_at` preenchido no banco. Exige `API_SMOKE_URL`, `SMOKE_LARAVEL_LOG`, `CHROME_BIN` e `SMOKE_DB_PATH` no ambiente; `BROWSER_SMOKE_URL` deve ter o mesmo host da API (`localhost`) para manter o fluxo same-site.
 
 ---
 
 ## 3. Route Guards e Proteção de Rotas
+
 - [ ] **Guest Guard**: Enquanto autenticado, tentar acessar diretamente `/login` redireciona imediatamente de volta para `/dashboard`.
 - [ ] **Auth Guard**: Em aba anônima (sem sessão), tentar acessar `/dashboard`, `/users` ou `/roles` redireciona para `/login?redirect=...`.
 - [ ] **Forbidden Route (`/403`)**: Acesso sem permissão adequada exibe a interface de acesso negado sem crashes de aplicação.
@@ -36,6 +41,7 @@ Guia prático e conciso para validação manual ou semi-automatizada imediatamen
 ---
 
 ## 4. Navegação e Telas Administrativas
+
 - [ ] **Navegação no Menu**: Menus laterais/superiores respondem ao clique sem recarregamento completo da página (SPA client-side routing).
 - [ ] **Tela de Usuários (`/users`)**: Tabela de listagem renderiza os dados retornados pela API; paginação e filtros de status/busca funcionam.
 - [ ] **Tela de Papéis (`/roles`)**: Matriz de papéis e permissões renderiza corretamente.
@@ -44,6 +50,7 @@ Guia prático e conciso para validação manual ou semi-automatizada imediatamen
 ---
 
 ## 5. Logout
+
 - [ ] **Ação de Sair**: Clicar em "Sair" dispara `POST /api/v1/logout`.
 - [ ] **Limpeza de Estado**: Armazenamento em memória (Pinia) é redefinido.
 - [ ] **Redirecionamento**: Usuário é redirecionado para a tela de login ou home pública.

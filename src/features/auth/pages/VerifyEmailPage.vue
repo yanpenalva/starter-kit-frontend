@@ -17,6 +17,15 @@
         </p>
       </div>
 
+      <div v-else-if="isAwaitingApproval" class="verify-card__awaiting">
+        <span class="verify-card__tag verify-card__tag--success">SUCESSO</span>
+        <h1 class="verify-card__title">E-mail verificado!</h1>
+        <p class="verify-card__message">
+          Seu e-mail foi confirmado e sua conta está aguardando aprovação para
+          liberar o acesso.
+        </p>
+      </div>
+
       <div v-else class="verify-card__failure">
         <span class="verify-card__tag verify-card__tag--failure"
           >FALHA NA VERIFICAÇÃO</span
@@ -85,8 +94,10 @@ const router = useRouter();
 const session = useSessionStore();
 const isProcessing = ref(false);
 const isSuccess = ref(false);
+const isAwaitingApproval = ref(false);
 const isResending = ref(false);
 const verifyErrorMessage = ref<string | null>(null);
+const emailConfirmed = ref(false);
 const resendSuccessMessage = ref<string | null>(null);
 const resendErrorMessage = ref<string | null>(null);
 const confirmViaSession = async (): Promise<void> => {
@@ -94,6 +105,8 @@ const confirmViaSession = async (): Promise<void> => {
   try {
     const profile = await session.bootstrap(true);
     if (profile === null) {
+      isAwaitingApproval.value =
+        emailConfirmed.value && session.status === "blocked";
       isSuccess.value = false;
     } else {
       isSuccess.value = true;
@@ -112,6 +125,7 @@ onMounted(async () => {
     verifyErrorMessage.value = null;
     try {
       await session.confirmEmail(link);
+      emailConfirmed.value = true;
       await confirmViaSession();
       return;
     } catch (error: unknown) {
