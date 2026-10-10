@@ -63,13 +63,13 @@ Se a API responder 419 no meio de uma escrita, o coordenador CSRF reinicia o est
 
 ## Domínio compartilhado e HTTPS
 
-O cookie de sessão da API usa `SameSite=Lax` (padrão) e só viaja entre subdomínios do mesmo domínio registrável. Na prática: SPA e API sob o mesmo domínio, em subdomínios distintos — `app.exemplo.com` + `api.exemplo.com` funciona; `app.exemplo.com` + `api.exemplo.net` não funciona, e nenhuma configuração de frontend contorna isso.
+O cookie de sessão da API usa `SameSite=Lax` (padrão) e só viaja entre subdomínios do mesmo domínio registrável — e apenas se a API emitir o cookie com escopo de domínio pai (`SESSION_DOMAIN=.exemplo.com`). Se `SESSION_DOMAIN` for nulo ou omitido, o Laravel emite o cookie como *Host-Only* (`api.exemplo.com`): ele acompanha as requisições à API, mas o JavaScript da SPA em `app.exemplo.com` não o enxerga em `document.cookie` (o que afeta a leitura do `XSRF-TOKEN` para espelhar no `X-XSRF-TOKEN`). Na prática: SPA e API sob o mesmo domínio, em subdomínios distintos — `app.exemplo.com` + `api.exemplo.com` funciona; `app.exemplo.com` + `api.exemplo.net` não funciona, e nenhuma configuração de frontend contorna isso.
 
 Pontos de atenção:
 
-- **HTTPS em produção** — a API emite o cookie com `Secure`: a SPA também precisa ser servida em HTTPS. Em uma página servida por HTTP o navegador não envia o cookie de volta, e a primeira escrita falha com 419.
+- **HTTPS em produção** — a API emite o cookie com `Secure`: a SPA também precisa ser servida em HTTPS. Página em HTTP é contexto não seguro: o navegador não envia o cookie de volta e o JavaScript sequer enxerga o `XSRF-TOKEN` com `Secure`, então a primeira escrita falha com 419 por falta do espelho no `X-XSRF-TOKEN`.
 - **`SameSite=None`** — não é o padrão e só se cogita com `Secure` ativo e domínio compartilhado real. Não adote como correção de 419: se o 419 acontece, a causa é host/domínio fora de alinhamento ou sessão/CSRF ausente, não a flag.
-- **Valores concretos** — `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS` e `CORS_ALLOWED_ORIGINS` vivem nas variáveis da API (documentadas lá). Antes de subir o ambiente, confirme que SPA e API apontam para subdomínios do domínio definido nelas.
+- **Valores concretos** — `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS` e `CORS_ALLOWED_ORIGINS` vivem nas variáveis da API (documentadas lá). Atenção aos formatos: `CORS_ALLOWED_ORIGINS` exige esquema completo (`https://app.exemplo.com`); `SANCTUM_STATEFUL_DOMAINS` aceita só host/porta, sem esquema (`app.exemplo.com`). Inverter os formatos é causa comum de 419 em deploy. Antes de subir o ambiente, confirme que SPA e API apontam para subdomínios do domínio definido nelas.
 - **`VITE_API_URL` de produção** — vem de segredo de deploy e deve apontar para o host HTTPS da API, nunca para `localhost` nem para HTTP.
 
 Se o 419 persistir com `withCredentials` e CSRF corretos, verifique o alinhamento de domínio antes de qualquer ajuste no código.
