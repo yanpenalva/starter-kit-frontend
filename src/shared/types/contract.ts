@@ -32,9 +32,11 @@ export const CATALOGUE_PERMISSIONS = [
   "users.update",
   "users.set-status",
   "users.assign-roles",
+  "users.manage",
   "users.read-cpf",
   "roles.view",
   "roles.update-permissions",
+  "roles.manage",
   "logs.view",
 ] as const;
 export type CataloguePermission = (typeof CATALOGUE_PERMISSIONS)[number];
@@ -46,8 +48,10 @@ export const CATALOGUE_PERMISSION_LABELS: Readonly<
   "users.update": "Editar usuários",
   "users.set-status": "Ativar/desativar contas",
   "users.assign-roles": "Atribuir papéis",
+  "users.manage": "Criar/excluir usuários",
   "users.read-cpf": "Ler CPF",
   "roles.view": "Ver papéis",
   "roles.update-permissions": "Editar permissões de papéis",
+  "roles.manage": "Criar/excluir papéis",
   "logs.view": "Ver auditoria",
 };

@@ -20,6 +20,17 @@
     </p>
     <p v-if="mutationError" role="alert">{{ mutationError }}</p>
 
+    <form
+      v-if="can('roles.manage')"
+      class="search-field"
+      aria-label="Criar papel"
+      @submit.prevent="createNewRole"
+    >
+      Nome do papel
+      <input v-model="newRoleName" aria-label="Nome do novo papel" required />
+      <button type="submit" :disabled="creatingRole">Criar papel</button>
+    </form>
+
     <div v-if="query.data.value" class="table-wrap">
       <table>
         <thead>
@@ -43,7 +54,9 @@
                     v-model="editedPermissions[role.id]"
                     type="checkbox"
                     :value="permission"
-                    :disabled="isRoleImmutable(role)"
+                    :disabled="
+                      isRoleImmutable(role) || !can('roles.update-permissions')
+                    "
                     :aria-label="`Permissão ${CATALOGUE_PERMISSION_LABELS[permission]} para ${role.name}`"
                   />
                   {{ CATALOGUE_PERMISSION_LABELS[permission] }}
@@ -52,6 +65,7 @@
             </td>
             <td>
               <button
+                v-if="can('roles.update-permissions')"
                 type="button"
                 :disabled="
                   isRoleImmutable(role) || permissionMutation.isPending.value
@@ -64,6 +78,17 @@
                   permissionMutation.isPending.value
                     ? "Salvando..."
                     : "Salvar permissões"
+                }}
+              </button>
+              <button
+                v-if="can('roles.manage') && !isRoleImmutable(role)"
+                type="button"
+                :disabled="deletingRoleId !== null"
+                :aria-label="`Excluir papel ${role.name}`"
+                @click="removeRole(role.id, role.name)"
+              >
+                {{
+                  deletingRoleId === role.id ? "Excluindo..." : "Excluir papel"
                 }}
               </button>
             </td>
@@ -107,6 +132,7 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from "vue";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
+import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import {
   CATALOGUE_PERMISSIONS,
   CATALOGUE_PERMISSION_LABELS,
@@ -115,10 +141,15 @@ import {
 import { isRoleImmutable } from "@/features/roles/api/roles.types";
 import { useRolesList } from "@/features/roles/composables/useRolesList";
 
-const { filters, query, permissionMutation } = useRolesList();
+const { can } = useAuthorization();
+const { filters, query, permissionMutation, createMutation, deleteMutation } =
+  useRolesList();
 const editedPermissions = reactive<Record<number, CataloguePermission[]>>({});
+const newRoleName = ref("");
 const mutationError = ref<string | null>(null);
 const pendingRoleId = ref<number | null>(null);
+const creatingRole = ref(false);
+const deletingRoleId = ref<number | null>(null);
 watch(
   query.data,
   (page) => {
@@ -131,6 +162,7 @@ watch(
 
 const savePermissions = async (roleId: number): Promise<void> => {
   if (permissionMutation.isPending.value) return;
+  if (!can("roles.update-permissions")) return;
   mutationError.value = null;
   pendingRoleId.value = roleId;
   try {
@@ -142,6 +174,32 @@ const savePermissions = async (roleId: number): Promise<void> => {
     mutationError.value = "Não foi possível atualizar as permissões do papel.";
   } finally {
     pendingRoleId.value = null;
+  }
+};
+const createNewRole = async (): Promise<void> => {
+  if (creatingRole.value || !can("roles.manage")) return;
+  mutationError.value = null;
+  creatingRole.value = true;
+  try {
+    await createMutation.mutateAsync({ name: newRoleName.value });
+    newRoleName.value = "";
+  } catch {
+    mutationError.value = "Não foi possível criar o papel.";
+  } finally {
+    creatingRole.value = false;
+  }
+};
+const removeRole = async (roleId: number, roleName: string): Promise<void> => {
+  if (deletingRoleId.value !== null || !can("roles.manage")) return;
+  if (!globalThis.confirm(`Excluir o papel ${roleName}?`)) return;
+  mutationError.value = null;
+  deletingRoleId.value = roleId;
+  try {
+    await deleteMutation.mutateAsync(roleId);
+  } catch {
+    mutationError.value = "Não foi possível excluir o papel.";
+  } finally {
+    deletingRoleId.value = null;
   }
 };
 </script>

@@ -13,7 +13,7 @@
         <span class="verify-card__tag verify-card__tag--success">SUCESSO</span>
         <h1 class="verify-card__title">E-mail verificado!</h1>
         <p class="verify-card__message">
-          Sua conta foi ativada com sucesso. Redirecionando...
+          Sua conta foi verificada com sucesso. Redirecionando...
         </p>
       </div>
 

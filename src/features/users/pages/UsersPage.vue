@@ -37,6 +37,45 @@
     </p>
     <p v-if="mutationError" role="alert">{{ mutationError }}</p>
 
+    <form
+      v-if="can('users.manage')"
+      class="create-form"
+      aria-label="Criar usuário"
+      @submit.prevent="createNewUser"
+    >
+      <label>
+        Nome
+        <input
+          v-model="newUser.name"
+          aria-label="Nome do novo usuário"
+          required
+        />
+      </label>
+      <label>
+        Email
+        <input
+          v-model="newUser.email"
+          aria-label="Email do novo usuário"
+          type="email"
+          required
+        />
+      </label>
+      <label>
+        CPF (opcional)
+        <input v-model="newUser.cpf" aria-label="CPF do novo usuário" />
+      </label>
+      <label>
+        Senha
+        <input
+          v-model="newUser.password"
+          aria-label="Senha do novo usuário"
+          type="password"
+          required
+        />
+      </label>
+      <button type="submit" :disabled="isMutating">Criar usuário</button>
+    </form>
+
     <div v-if="query.data.value" class="table-wrap">
       <table>
         <thead>
@@ -56,6 +95,7 @@
                 :aria-label="`Nome de ${user.name}`"
               />
               <button
+                v-if="can('users.update')"
                 type="button"
                 :aria-label="`Salvar nome de ${user.name}`"
                 :disabled="isMutating"
@@ -76,6 +116,7 @@
                 :aria-label="`Papéis de ${user.name}`"
               />
               <button
+                v-if="can('users.assign-roles')"
                 type="button"
                 :aria-label="`Salvar papéis de ${user.name}`"
                 :disabled="isMutating"
@@ -90,6 +131,7 @@
             </td>
             <td>
               <button
+                v-if="can('users.set-status')"
                 type="button"
                 :aria-label="`${user.deactivated_at === null ? 'Desativar' : 'Ativar'} ${user.name}`"
                 :disabled="isMutating"
@@ -101,6 +143,19 @@
                     : user.deactivated_at === null
                       ? "Desativar"
                       : "Ativar"
+                }}
+              </button>
+              <button
+                v-if="can('users.manage')"
+                type="button"
+                :aria-label="`Excluir ${user.name}`"
+                :disabled="isMutating"
+                @click="removeUser(user.id, user.name)"
+              >
+                {{
+                  isActionPending("delete", user.id)
+                    ? "Excluindo..."
+                    : "Excluir"
                 }}
               </button>
             </td>
@@ -146,19 +201,29 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
+import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useUsersList } from "@/features/users/composables/useUsersList";
 
-type PendingActionKind = "name" | "roles" | "status";
+type PendingActionKind = "name" | "roles" | "status" | "create" | "delete";
 
 interface PendingAction {
   kind: PendingActionKind;
   userId: number;
 }
 
-const { filters, query, updateMutation, statusMutation, rolesMutation } =
-  useUsersList();
+const { can } = useAuthorization();
+const {
+  filters,
+  query,
+  updateMutation,
+  statusMutation,
+  rolesMutation,
+  createMutation,
+  deleteMutation,
+} = useUsersList();
 const editedNames = reactive<Record<number, string>>({});
 const editedRoles = reactive<Record<number, string>>({});
+const newUser = reactive({ name: "", email: "", cpf: "", password: "" });
 const mutationError = ref<string | null>(null);
 const pendingAction = ref<PendingAction | null>(null);
 const isMutating = computed(() => pendingAction.value !== null);
@@ -179,7 +244,7 @@ watch(
 );
 
 const saveName = async (userId: number): Promise<void> => {
-  if (pendingAction.value !== null) return;
+  if (pendingAction.value !== null || !can("users.update")) return;
   mutationError.value = null;
   pendingAction.value = { kind: "name", userId };
   try {
@@ -194,7 +259,7 @@ const saveName = async (userId: number): Promise<void> => {
   }
 };
 const saveRoles = async (userId: number): Promise<void> => {
-  if (pendingAction.value !== null) return;
+  if (pendingAction.value !== null || !can("users.assign-roles")) return;
   mutationError.value = null;
   pendingAction.value = { kind: "roles", userId };
   try {
@@ -213,7 +278,7 @@ const toggleStatus = async (
   userId: number,
   isActive: boolean,
 ): Promise<void> => {
-  if (pendingAction.value !== null) return;
+  if (pendingAction.value !== null || !can("users.set-status")) return;
   mutationError.value = null;
   pendingAction.value = { kind: "status", userId };
   try {
@@ -227,11 +292,46 @@ const toggleStatus = async (
     pendingAction.value = null;
   }
 };
+const createNewUser = async (): Promise<void> => {
+  if (pendingAction.value !== null || !can("users.manage")) return;
+  mutationError.value = null;
+  pendingAction.value = { kind: "create", userId: 0 };
+  try {
+    await createMutation.mutateAsync({
+      name: newUser.name,
+      email: newUser.email,
+      cpf: newUser.cpf === "" ? undefined : newUser.cpf,
+      password: newUser.password,
+    });
+    newUser.name = "";
+    newUser.email = "";
+    newUser.cpf = "";
+    newUser.password = "";
+  } catch {
+    mutationError.value = "Não foi possível criar o usuário.";
+  } finally {
+    pendingAction.value = null;
+  }
+};
+const removeUser = async (userId: number, userName: string): Promise<void> => {
+  if (pendingAction.value !== null || !can("users.manage")) return;
+  if (!globalThis.confirm(`Excluir o usuário ${userName}?`)) return;
+  mutationError.value = null;
+  pendingAction.value = { kind: "delete", userId };
+  try {
+    await deleteMutation.mutateAsync(userId);
+  } catch {
+    mutationError.value = "Não foi possível excluir o usuário.";
+  } finally {
+    pendingAction.value = null;
+  }
+};
 </script>
 
 <style scoped>
 .filters,
-.pagination {
+.pagination,
+.create-form {
   display: flex;
   align-items: end;
   flex-wrap: wrap;

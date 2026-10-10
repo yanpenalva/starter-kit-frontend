@@ -2,6 +2,8 @@ import { computed, reactive, watch } from "vue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import {
   assignUserRoles,
+  createUser,
+  deleteUser,
   listUsers,
   setUserStatus,
   showUser,
@@ -72,12 +74,27 @@ export const useUsersList = () => {
     }) => assignUserRoles(userId, payload),
     onSuccess: () => invalidate(),
   });
+  const createMutation = useMutation({
+    mutationFn: (payload: {
+      name: string;
+      email: string;
+      cpf?: string;
+      password: string;
+    }) => createUser(payload),
+    onSuccess: () => invalidate(),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (userId: number) => deleteUser(userId),
+    onSuccess: () => invalidate(),
+  });
   return {
     filters,
     query,
     updateMutation,
     statusMutation,
     rolesMutation,
+    createMutation,
+    deleteMutation,
     hasActiveFilters,
     resetAndGoToFirstPage,
   };

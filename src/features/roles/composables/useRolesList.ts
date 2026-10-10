@@ -1,6 +1,8 @@
 import { computed, reactive } from "vue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import {
+  createRole,
+  deleteRole,
   listRoles,
   updateRolePermissions,
 } from "@/features/roles/api/roles.api";
@@ -30,5 +32,17 @@ export const useRolesList = () => {
       await queryClient.invalidateQueries({ queryKey: [ROLES_QUERY_KEY] });
     },
   });
-  return { filters, query, permissionMutation };
+  const createMutation = useMutation({
+    mutationFn: (payload: { name: string }) => createRole(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [ROLES_QUERY_KEY] });
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (roleId: number) => deleteRole(roleId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [ROLES_QUERY_KEY] });
+    },
+  });
+  return { filters, query, permissionMutation, createMutation, deleteMutation };
 };

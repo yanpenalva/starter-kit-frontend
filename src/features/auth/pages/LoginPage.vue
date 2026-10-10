@@ -91,7 +91,7 @@ const router = useRouter();
 const route = useRoute();
 const successMessage = computed(() => {
   if (route.query.registered === "1") {
-    return "Cadastro realizado com sucesso! Verifique seu e-mail para ativar sua conta ou faça login.";
+    return "Cadastro realizado com sucesso! Verifique seu e-mail e aguarde a ativação da conta por um administrador antes de entrar.";
   }
   if (route.query.reset === "ok") {
     return "Senha redefinida com sucesso. Faça login com sua nova senha.";
