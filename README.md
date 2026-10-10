@@ -34,6 +34,8 @@ Guia numerado, do zero ao deploy. Referência complementar: `smoke-checklist.md`
   Cada decisão com motivo e alternativa rejeitada: Query para servidor, MSW, Orval pinado, alias `@/`, arrow functions, sem comentários, testes em inglês com mensagens pt-BR, thresholds de cobertura, nginx com fallback SPA e E2E fora do repo.
 - [`docs/05-integracao-fullstack.md`](docs/05-integracao-fullstack.md)
   Sequência SPA→API com `withCredentials` e `csrf-cookie`, `VITE_API_URL` por ambiente, procedimento quando o contrato OpenAPI muda e tabela de endpoints consumidos com guards.
+- [`docs/modo-mock.md`](docs/modo-mock.md)
+  Modo mock efêmero (`npm run dev:mock`): valida as páginas reais sem backend, com cenários `full`, `empty`, `slow` e `error` via `?mock=`. Não substitui a validação contra a API real.
 
 ```mermaid
 flowchart LR
