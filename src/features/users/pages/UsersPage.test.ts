@@ -192,8 +192,11 @@ describe("UsersPage", () => {
       .get('[aria-label="Email do novo usuário"]')
       .setValue("novo@example.test");
     await wrapper
+      .get('[aria-label="CPF do novo usuário"]')
+      .setValue("12345678909");
+    await wrapper
       .get('[aria-label="Senha do novo usuário"]')
-      .setValue("Alterar123!");
+      .setValue("Alterar123!x");
     await wrapper.get('[aria-label="Criar usuário"]').trigger("submit");
 
     await vi.waitFor(() =>
@@ -207,7 +210,12 @@ describe("UsersPage", () => {
       mocks.calls.find(
         (call) => call.method === "POST" && call.path === "/api/v1/users",
       )?.body,
-    ).toMatchObject({ name: "Novo Usuário", email: "novo@example.test" });
+    ).toMatchObject({
+      name: "Novo Usuário",
+      email: "novo@example.test",
+      cpf: "12345678909",
+      active: false,
+    });
   });
 
   it("deletes a user after confirmation", async () => {

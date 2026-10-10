@@ -8,6 +8,7 @@ import {
 } from "@/test/http-handlers";
 import { CSRF_COOKIE_NAME } from "@/lib/http/config";
 import {
+  confirmEmailVerification,
   registerUser,
   requestPasswordReset,
   resetPassword,
@@ -100,6 +101,33 @@ describe("auth.api", () => {
 
     const result = await sendVerificationNotification();
     expect(result).toEqual({ message: "Link de verificação reenviado." });
+  });
+
+  it("confirmEmailVerification calls the signed verify route with expires and signature", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get(
+        `${TEST_API_BASE}/api/v1/email/verify/7/abc123`,
+        ({ request }) => {
+          capturedUrl = request.url;
+          return HttpResponse.json(
+            {},
+            { status: 200, headers: makeCorsHeaders(request) },
+          );
+        },
+      ),
+    );
+
+    await confirmEmailVerification({
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    });
+
+    expect(capturedUrl).toContain("/api/v1/email/verify/7/abc123");
+    expect(capturedUrl).toContain("expires=9999999999");
+    expect(capturedUrl).toContain("signature=sig");
   });
 
   it("requestPasswordReset sends POST /api/v1/forgot-password with email", async () => {

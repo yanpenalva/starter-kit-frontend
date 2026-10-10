@@ -303,7 +303,11 @@ export const makeUsersRouteMocks = (
       if (
         typeof payload.name !== "string" ||
         typeof payload.email !== "string" ||
-        typeof payload.password !== "string"
+        typeof payload.password !== "string" ||
+        payload.password.length < 12 ||
+        typeof payload.cpf !== "string" ||
+        !/^\d{11}$/.test(payload.cpf) ||
+        typeof payload.active !== "boolean"
       ) {
         return json(request, { message: "Dados inválidos." }, 422);
       }

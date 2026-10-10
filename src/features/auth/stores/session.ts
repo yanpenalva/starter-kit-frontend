@@ -6,6 +6,7 @@ import type {
   MyProfileResource,
 } from "@/lib/api/generated/models";
 import {
+  confirmEmailVerification,
   registerUser,
   requestPasswordReset as forgotPassword,
   resetPassword as resetPasswordApi,
@@ -132,6 +133,7 @@ export const useSessionStore = defineStore("session", () => {
     logout,
     register: registerUser,
     resendVerification: sendVerificationNotification,
+    confirmEmail: confirmEmailVerification,
     forgotPassword,
     resetPassword: resetPasswordApi,
     clearSession,
