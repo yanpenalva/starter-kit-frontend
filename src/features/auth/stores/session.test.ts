@@ -8,7 +8,11 @@ import {
   TEST_CSRF_TOKEN,
 } from "@/test/http-handlers";
 import { CSRF_COOKIE_NAME } from "@/lib/http/config";
-import { buildHttpError, notifySessionExpired } from "@/lib/http";
+import {
+  buildHttpError,
+  isForbiddenHttpError,
+  notifySessionExpired,
+} from "@/lib/http";
 import type { MyProfileResource } from "@/lib/api/generated/models";
 import { useSessionStore } from "./session";
 
@@ -576,5 +580,180 @@ describe("useSessionStore", () => {
       message: "Senha redefinida com sucesso.",
     });
     expect(JSON.stringify(store.$state)).not.toContain("newPassword12345");
+  });
+
+  it("exposes pending_approval reason on 403 with blocked envelope during bootstrap", async () => {
+    server.use(
+      http.get(PROFILE_URL, ({ request }) =>
+        HttpResponse.json(
+          {
+            message: "Esta conta foi desativada.",
+            reason: "pending_approval",
+            email_verified_at: null,
+          },
+          { status: 403, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    const store = useSessionStore();
+    const result = await store.bootstrap();
+
+    expect(result).toBeNull();
+    expect(store.status).toBe("blocked");
+    expect(store.isBlocked).toBe(true);
+    expect(store.blockedReason).toBe("pending_approval");
+    expect(store.blockedEmailVerifiedAt).toBeNull();
+    expect(store.isPendingApproval).toBe(true);
+    expect(store.isSuspended).toBe(false);
+  });
+
+  it("exposes suspended reason with verified timestamp on 403 during bootstrap", async () => {
+    server.use(
+      http.get(PROFILE_URL, ({ request }) =>
+        HttpResponse.json(
+          {
+            message: "Esta conta foi desativada.",
+            reason: "suspended",
+            email_verified_at: "2026-09-01T10:00:00Z",
+          },
+          { status: 403, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    const store = useSessionStore();
+    const result = await store.bootstrap();
+
+    expect(result).toBeNull();
+    expect(store.status).toBe("blocked");
+    expect(store.blockedReason).toBe("suspended");
+    expect(store.blockedEmailVerifiedAt).toBe("2026-09-01T10:00:00Z");
+    expect(store.isPendingApproval).toBe(false);
+    expect(store.isSuspended).toBe(true);
+  });
+
+  it("keeps blocked reason null on legacy 403 without envelope", async () => {
+    server.use(
+      http.get(PROFILE_URL, ({ request }) =>
+        HttpResponse.json(
+          { message: "Esta conta foi desativada." },
+          { status: 403, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    const store = useSessionStore();
+    const result = await store.bootstrap();
+
+    expect(result).toBeNull();
+    expect(store.status).toBe("blocked");
+    expect(store.blockedReason).toBeNull();
+    expect(store.blockedEmailVerifiedAt).toBeNull();
+    expect(store.isPendingApproval).toBe(false);
+    expect(store.isSuspended).toBe(false);
+  });
+
+  it("exposes blocked reason on 403 during login", async () => {
+    server.use(
+      http.get(
+        CSRF_COOKIE_URL,
+        ({ request }) =>
+          new HttpResponse(null, {
+            status: 204,
+            headers: makeCorsHeaders(request, {
+              "Set-Cookie": `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`,
+            }),
+          }),
+      ),
+      http.post(LOGIN_URL, ({ request }) =>
+        HttpResponse.json(
+          {
+            message: "Esta conta foi desativada.",
+            reason: "suspended",
+            email_verified_at: "2026-09-01T10:00:00Z",
+          },
+          { status: 403, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    const store = useSessionStore();
+    await expect(
+      store.login({
+        email: "maria@example.com",
+        password: "secret-password",
+      }),
+    ).rejects.toThrow();
+
+    expect(store.user).toBeNull();
+    expect(store.status).toBe("blocked");
+    expect(store.blockedReason).toBe("suspended");
+    expect(store.blockedEmailVerifiedAt).toBe("2026-09-01T10:00:00Z");
+    expect(store.isSuspended).toBe(true);
+  });
+
+  it("clears blocked reason after a later successful bootstrap", async () => {
+    let blocked = true;
+    server.use(
+      http.get(PROFILE_URL, ({ request }) => {
+        if (blocked) {
+          return HttpResponse.json(
+            {
+              message: "Esta conta foi desativada.",
+              reason: "pending_approval",
+              email_verified_at: null,
+            },
+            { status: 403, headers: makeCorsHeaders(request) },
+          );
+        }
+        return HttpResponse.json(
+          { data: mockVerifiedProfile },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+
+    const store = useSessionStore();
+    await store.bootstrap();
+    expect(store.status).toBe("blocked");
+    expect(store.blockedReason).toBe("pending_approval");
+
+    blocked = false;
+    const result = await store.bootstrap(true);
+
+    expect(result).toEqual(mockVerifiedProfile);
+    expect(store.status).toBe("authenticated");
+    expect(store.blockedReason).toBeNull();
+    expect(store.blockedEmailVerifiedAt).toBeNull();
+    expect(store.isPendingApproval).toBe(false);
+  });
+
+  it("parses blocked details from a 403 body and discards unknown reasons", () => {
+    const pending = buildHttpError({
+      kind: "forbidden",
+      status: 403,
+      body: {
+        message: "Esta conta foi desativada.",
+        reason: "pending_approval",
+        email_verified_at: null,
+      },
+    });
+    expect(isForbiddenHttpError(pending)).toBe(true);
+    if (isForbiddenHttpError(pending)) {
+      expect(pending.blockedReason).toBe("pending_approval");
+      expect(pending.blockedEmailVerifiedAt).toBeNull();
+    }
+
+    const unknown = buildHttpError({
+      kind: "forbidden",
+      status: 403,
+      body: { message: "x", reason: "archived", email_verified_at: 12_345 },
+    });
+    expect(isForbiddenHttpError(unknown)).toBe(true);
+    if (isForbiddenHttpError(unknown)) {
+      expect(unknown.blockedReason).toBeNull();
+      expect(unknown.blockedEmailVerifiedAt).toBeNull();
+    }
   });
 });

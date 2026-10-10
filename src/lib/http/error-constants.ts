@@ -55,3 +55,8 @@ export const SAFE_MESSAGES: Readonly<Record<HttpErrorKind, string>> = {
 export const KNOWN_KINDS_SET: ReadonlySet<string> = new Set(
   Object.keys(SAFE_MESSAGES),
 );
+
+export const BLOCKED_ACCOUNT_REASONS: ReadonlySet<string> = new Set([
+  "pending_approval",
+  "suspended",
+]);

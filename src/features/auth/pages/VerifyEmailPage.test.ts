@@ -308,6 +308,8 @@ describe("VerifyEmailPage.vue", () => {
     vi.spyOn(session, "confirmEmail").mockResolvedValue({});
     vi.spyOn(session, "bootstrap").mockImplementation(async () => {
       session.status = "blocked";
+      session.blockedReason = "pending_approval";
+      session.blockedEmailVerifiedAt = null;
       return null;
     });
 
@@ -325,6 +327,8 @@ describe("VerifyEmailPage.vue", () => {
     const session = useSessionStore();
     vi.spyOn(session, "bootstrap").mockImplementation(async () => {
       session.status = "blocked";
+      session.blockedReason = "pending_approval";
+      session.blockedEmailVerifiedAt = null;
       return null;
     });
 
@@ -366,6 +370,8 @@ describe("VerifyEmailPage.vue", () => {
     vi.spyOn(session, "confirmEmail").mockResolvedValue({});
     vi.spyOn(session, "bootstrap").mockImplementation(async () => {
       session.status = "blocked";
+      session.blockedReason = "pending_approval";
+      session.blockedEmailVerifiedAt = null;
       throw buildHttpError({ kind: "forbidden", status: 403 });
     });
 
@@ -417,6 +423,74 @@ describe("VerifyEmailPage.vue", () => {
     expect(wrapper.text()).toContain("Não foi possível confirmar");
     expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
     expect(wrapper.find(".verify-card__success").exists()).toBe(false);
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("shows neutral unavailable state when the link confirms but the account is suspended", async () => {
+    mockQuery = {
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    };
+    const session = useSessionStore();
+    vi.spyOn(session, "confirmEmail").mockResolvedValue({});
+    vi.spyOn(session, "bootstrap").mockImplementation(async () => {
+      session.status = "blocked";
+      session.blockedReason = "suspended";
+      session.blockedEmailVerifiedAt = "2026-10-06T12:00:00Z";
+      return null;
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__unavailable").exists()).toBe(true);
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
+    expect(wrapper.find(".verify-card__failure").exists()).toBe(false);
+    expect(wrapper.text()).toContain("Conta indisponível");
+    expect(wrapper.text()).not.toContain("aprova");
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("shows neutral unavailable state when ?ok=1 lands on a suspended session", async () => {
+    mockQuery = { ok: "1" };
+    const session = useSessionStore();
+    vi.spyOn(session, "bootstrap").mockImplementation(async () => {
+      session.status = "blocked";
+      session.blockedReason = "suspended";
+      session.blockedEmailVerifiedAt = "2026-10-06T12:00:00Z";
+      return null;
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__unavailable").exists()).toBe(true);
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
+    expect(wrapper.text()).toContain("Conta indisponível");
+    expect(wrapper.text()).not.toContain("aprova");
+    expect(wrapper.find(".verify-card__confirmed").exists()).toBe(false);
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("shows neutral unavailable state when ?ok=1 lands on a blocked session without a known reason", async () => {
+    mockQuery = { ok: "1" };
+    const session = useSessionStore();
+    vi.spyOn(session, "bootstrap").mockImplementation(async () => {
+      session.status = "blocked";
+      session.blockedReason = null;
+      session.blockedEmailVerifiedAt = null;
+      return null;
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__unavailable").exists()).toBe(true);
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
+    expect(wrapper.text()).toContain("Conta indisponível");
+    expect(wrapper.text()).not.toContain("aprova");
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
 });

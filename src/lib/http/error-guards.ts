@@ -1,4 +1,5 @@
 import {
+  BLOCKED_ACCOUNT_REASONS,
   HTTP_STATUS_SERVER_ERROR_MAX,
   HTTP_STATUS_SERVER_ERROR_MIN,
   HTTP_STATUS_TOO_MANY_REQUESTS,
@@ -10,6 +11,8 @@ import {
 } from "./error-constants";
 import { asRecord, isValidHttpStatus } from "./error-parsers";
 import type {
+  BlockedAccountReason,
+  ForbiddenHttpError,
   HttpError,
   HttpErrorKind,
   MappedStatusHttpError,
@@ -144,4 +147,25 @@ export const isCsrfMismatchHttpError = (
   value: unknown,
 ): value is MappedStatusHttpError => {
   return isHttpError(value) && value.kind === "csrf_mismatch";
+};
+const isBlockedReasonValue = (
+  value: unknown,
+): value is BlockedAccountReason | null => {
+  return (
+    value === null ||
+    (typeof value === "string" && BLOCKED_ACCOUNT_REASONS.has(value))
+  );
+};
+export const isForbiddenHttpError = (
+  value: unknown,
+): value is ForbiddenHttpError => {
+  if (!isHttpError(value) || value.kind !== "forbidden") {
+    return false;
+  }
+  const candidate = value as ForbiddenHttpError;
+  return (
+    isBlockedReasonValue(candidate.blockedReason) &&
+    (candidate.blockedEmailVerifiedAt === null ||
+      typeof candidate.blockedEmailVerifiedAt === "string")
+  );
 };

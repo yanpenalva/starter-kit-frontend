@@ -1,7 +1,8 @@
 import type { Ref } from "vue";
 import { authMyProfile } from "@/lib/api/generated";
 import type { MyProfileResource } from "@/lib/api/generated/models";
-import { isHttpError } from "@/lib/http";
+import { isForbiddenHttpError, isHttpError } from "@/lib/http";
+import type { BlockedAccountReason } from "@/lib/http";
 import { ensureApiCsrfCookie } from "@/lib/http/orval-mutator";
 import type { SessionStatus } from "./session-model";
 
@@ -10,9 +11,28 @@ interface BootstrapState {
   status: Ref<SessionStatus>;
   isInitialized: Ref<boolean>;
   errorMessage: Ref<string | null>;
+  blockedReason: Ref<BlockedAccountReason | null>;
+  blockedEmailVerifiedAt: Ref<string | null>;
   authenticatedStatus: (profile: MyProfileResource) => SessionStatus;
   clearSession: () => void;
 }
+
+export interface BlockedAccountDetails {
+  reason: BlockedAccountReason | null;
+  emailVerifiedAt: string | null;
+}
+
+export const blockedDetailsFromError = (
+  error: unknown,
+): BlockedAccountDetails => {
+  if (isForbiddenHttpError(error)) {
+    return {
+      reason: error.blockedReason,
+      emailVerifiedAt: error.blockedEmailVerifiedAt,
+    };
+  }
+  return { reason: null, emailVerifiedAt: null };
+};
 
 export const createSessionBootstrap = (state: BootstrapState) => {
   let pendingRequest: Promise<MyProfileResource | null> | null = null;
@@ -30,6 +50,8 @@ export const createSessionBootstrap = (state: BootstrapState) => {
     }
     state.user.value = profile;
     state.status.value = state.authenticatedStatus(profile);
+    state.blockedReason.value = null;
+    state.blockedEmailVerifiedAt.value = null;
     state.isInitialized.value = true;
     return profile;
   };
@@ -47,6 +69,9 @@ export const createSessionBootstrap = (state: BootstrapState) => {
     if (forbidden) {
       state.user.value = null;
       state.status.value = "blocked";
+      const blocked = blockedDetailsFromError(error);
+      state.blockedReason.value = blocked.reason;
+      state.blockedEmailVerifiedAt.value = blocked.emailVerifiedAt;
       state.errorMessage.value = isHttpError(error)
         ? error.message
         : "Esta conta está bloqueada.";

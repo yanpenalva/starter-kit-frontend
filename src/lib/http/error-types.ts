@@ -18,8 +18,17 @@ export interface HttpErrorBase {
 }
 
 export interface MappedStatusHttpError extends HttpErrorBase {
-  readonly kind: MappedStatusKind;
+  readonly kind: Exclude<MappedStatusKind, "forbidden">;
   readonly status: number;
+}
+
+export type BlockedAccountReason = "pending_approval" | "suspended";
+
+export interface ForbiddenHttpError extends HttpErrorBase {
+  readonly kind: "forbidden";
+  readonly status: 403;
+  readonly blockedReason: BlockedAccountReason | null;
+  readonly blockedEmailVerifiedAt: string | null;
 }
 
 export interface ValidationHttpError extends HttpErrorBase {
@@ -42,6 +51,7 @@ export interface TransportHttpError extends HttpErrorBase {
 
 export type HttpError =
   | MappedStatusHttpError
+  | ForbiddenHttpError
   | ValidationHttpError
   | RateLimitedHttpError
   | TransportHttpError;

@@ -5,6 +5,8 @@ export type {
   HttpErrorKind,
   MappedStatusHttpError,
   MappedStatusKind,
+  ForbiddenHttpError,
+  BlockedAccountReason,
   RateLimitedHttpError,
   TransportHttpError,
   TransportKind,
@@ -27,6 +29,8 @@ export {
 export {
   asRecord,
   isValidHttpStatus,
+  parseBlockedEmailVerifiedAt,
+  parseBlockedReason,
   parseFieldErrors,
   parseRetryAfterSeconds,
   resolveServerErrorStatus,
@@ -35,6 +39,7 @@ export {
 
 export {
   isCsrfMismatchHttpError,
+  isForbiddenHttpError,
   isHttpError,
   isRateLimitedHttpError,
   isValidationHttpError,

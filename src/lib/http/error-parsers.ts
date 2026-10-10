@@ -1,10 +1,12 @@
 import {
+  BLOCKED_ACCOUNT_REASONS,
   HTTP_STATUS_MAX,
   HTTP_STATUS_MIN,
   HTTP_STATUS_SERVER_ERROR_MAX,
   HTTP_STATUS_SERVER_ERROR_MIN,
   MAX_RETRY_AFTER_SECONDS,
 } from "./error-constants";
+import type { BlockedAccountReason } from "./error-types";
 const SECONDS_PATTERN = /^[0-9]+$/;
 const IMF_FIXDATE_PATTERN =
   /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(\d{2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+GMT$/;
@@ -148,4 +150,20 @@ export const isValidHttpStatus = (status: unknown): boolean => {
     status >= HTTP_STATUS_MIN &&
     status <= HTTP_STATUS_MAX
   );
+};
+export const parseBlockedReason = (
+  body: unknown,
+): BlockedAccountReason | null => {
+  const reason = asRecord(body)?.["reason"];
+  if (typeof reason !== "string" || !BLOCKED_ACCOUNT_REASONS.has(reason)) {
+    return null;
+  }
+  return reason as BlockedAccountReason;
+};
+export const parseBlockedEmailVerifiedAt = (body: unknown): string | null => {
+  const verifiedAt = asRecord(body)?.["email_verified_at"];
+  if (typeof verifiedAt !== "string") {
+    return null;
+  }
+  return verifiedAt;
 };

@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { authLogin, authLogout, authMyProfile } from "@/lib/api/generated";
 import type {
@@ -13,8 +13,12 @@ import {
   sendVerificationNotification,
 } from "@/features/auth/api/auth.api";
 import { isHttpError, onSessionExpired } from "@/lib/http";
+import type { BlockedAccountReason } from "@/lib/http";
 import { queryClient } from "@/app/providers/query";
-import { createSessionBootstrap } from "./session-bootstrap";
+import {
+  blockedDetailsFromError,
+  createSessionBootstrap,
+} from "./session-bootstrap";
 import {
   createSessionAuthorization,
   createSessionState,
@@ -27,6 +31,8 @@ export const useSessionStore = defineStore("session", () => {
   const status = ref<SessionStatus>("idle");
   const isInitialized = ref(false);
   const errorMessage = ref<string | null>(null);
+  const blockedReason = ref<BlockedAccountReason | null>(null);
+  const blockedEmailVerifiedAt = ref<string | null>(null);
   const {
     isAuthenticated,
     isLimited,
@@ -35,6 +41,13 @@ export const useSessionStore = defineStore("session", () => {
     permissions,
     authenticatedStatus,
   } = createSessionState(user, status);
+  const isPendingApproval = computed(
+    () =>
+      status.value === "blocked" && blockedReason.value === "pending_approval",
+  );
+  const isSuspended = computed(
+    () => status.value === "blocked" && blockedReason.value === "suspended",
+  );
   const {
     hasRole,
     hasAnyRole,
@@ -49,6 +62,8 @@ export const useSessionStore = defineStore("session", () => {
     user.value = null;
     status.value = "unauthenticated";
     errorMessage.value = null;
+    blockedReason.value = null;
+    blockedEmailVerifiedAt.value = null;
     isInitialized.value = true;
     queryClient.clear();
   };
@@ -57,6 +72,8 @@ export const useSessionStore = defineStore("session", () => {
     status,
     isInitialized,
     errorMessage,
+    blockedReason,
+    blockedEmailVerifiedAt,
     authenticatedStatus,
     clearSession,
   });
@@ -73,14 +90,21 @@ export const useSessionStore = defineStore("session", () => {
       const response = await authMyProfile();
       user.value = response.data;
       status.value = authenticatedStatus(response.data);
+      blockedReason.value = null;
+      blockedEmailVerifiedAt.value = null;
       isInitialized.value = true;
       return response.data;
     } catch (error: unknown) {
       user.value = null;
       isInitialized.value = true;
       status.value = "unauthenticated";
+      blockedReason.value = null;
+      blockedEmailVerifiedAt.value = null;
       if (isHttpError(error) && error.kind === "forbidden") {
         status.value = "blocked";
+        const blocked = blockedDetailsFromError(error);
+        blockedReason.value = blocked.reason;
+        blockedEmailVerifiedAt.value = blocked.emailVerifiedAt;
       }
       if (isHttpError(error)) {
         errorMessage.value = error.message;
@@ -117,6 +141,10 @@ export const useSessionStore = defineStore("session", () => {
     status,
     isInitialized,
     errorMessage,
+    blockedReason,
+    blockedEmailVerifiedAt,
+    isPendingApproval,
+    isSuspended,
     isAuthenticated,
     isLimited,
     isBlocked,
