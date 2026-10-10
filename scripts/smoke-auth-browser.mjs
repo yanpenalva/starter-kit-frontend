@@ -273,6 +273,11 @@ async function main() {
       `GET ${API_URL}/api/v1/auth/my-profile após logout retornou 401`,
       "my-profile-pos-logout-401",
     );
+  } catch (e) {
+    const msg = `exceção não tratada: ${e?.message ?? String(e)}`;
+    failures.push(msg);
+    steps.push({ name: "sem-excecao", pass: false });
+    console.log(`[FAIL] ${msg}`);
   } finally {
     if (cdp) cdp.close();
     if (targetId && endpoint) {
@@ -282,7 +287,13 @@ async function main() {
     }
     if (chrome) {
       chrome.kill();
-      await sleep(300);
+      await new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(), 5000);
+        chrome.once("exit", () => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
     }
     if (profileDir) rmSync(profileDir, { recursive: true, force: true });
   }
