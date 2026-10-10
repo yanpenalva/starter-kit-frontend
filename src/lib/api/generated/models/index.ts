@@ -69,3 +69,4 @@ export * from "./verificationVerify200.ts";
 export * from "./verificationVerify401.ts";
 export * from "./verificationVerify403.ts";
 export * from "./verificationVerify429.ts";
+export * from "./verificationVerifyParams.ts";
