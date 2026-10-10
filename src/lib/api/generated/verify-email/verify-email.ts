@@ -53,6 +53,7 @@ export const getVerificationVerifyQueryKey = (
 export const getVerificationVerifyQueryOptions = <
   TData = Awaited<ReturnType<typeof verificationVerify>>,
   TError = ErrorType<
+    | void
     | VerificationVerify401
     | VerificationVerify403
     | ModelNotFoundExceptionResponse
@@ -102,6 +103,7 @@ export type VerificationVerifyQueryResult = NonNullable<
   Awaited<ReturnType<typeof verificationVerify>>
 >;
 export type VerificationVerifyQueryError = ErrorType<
+  | void
   | VerificationVerify401
   | VerificationVerify403
   | ModelNotFoundExceptionResponse
@@ -111,6 +113,7 @@ export type VerificationVerifyQueryError = ErrorType<
 export function useVerificationVerify<
   TData = Awaited<ReturnType<typeof verificationVerify>>,
   TError = ErrorType<
+    | void
     | VerificationVerify401
     | VerificationVerify403
     | ModelNotFoundExceptionResponse
