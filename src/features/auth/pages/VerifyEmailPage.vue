@@ -26,6 +26,27 @@
         </p>
       </div>
 
+      <div v-else-if="isAccountUnavailable" class="verify-card__unavailable">
+        <span class="verify-card__tag verify-card__tag--failure"
+          >CONTA INDISPONÍVEL</span
+        >
+        <h1 class="verify-card__title">Conta indisponível</h1>
+        <p class="verify-card__message">
+          Sua conta está indisponível no momento. Entre em contato com o suporte
+          para mais informações.
+        </p>
+
+        <div class="verify-card__actions">
+          <RouterLink to="/login" class="verify-btn verify-btn--primary">
+            Ir para o login
+          </RouterLink>
+
+          <RouterLink to="/" class="verify-btn verify-btn--secondary">
+            Página inicial
+          </RouterLink>
+        </div>
+      </div>
+
       <div v-else-if="isLoginHint" class="verify-card__confirmed">
         <span class="verify-card__tag verify-card__tag--success"
           >CONFIRMADO</span
@@ -115,6 +136,7 @@ const session = useSessionStore();
 const isProcessing = ref(false);
 const isSuccess = ref(false);
 const isAwaitingApproval = ref(false);
+const isAccountUnavailable = ref(false);
 const isLoginHint = ref(false);
 const isResending = ref(false);
 const verifyErrorMessage = ref<string | null>(null);
@@ -126,6 +148,7 @@ const resetVerifyState = (): void => {
   isProcessing.value = false;
   isSuccess.value = false;
   isAwaitingApproval.value = false;
+  isAccountUnavailable.value = false;
   isLoginHint.value = false;
   verifyErrorMessage.value = null;
   emailConfirmed.value = false;
@@ -135,7 +158,11 @@ const resetVerifyState = (): void => {
 };
 const applyEmptyProfileState = (): void => {
   if (emailConfirmed.value && session.status === "blocked") {
-    isAwaitingApproval.value = true;
+    if (session.isPendingApproval) {
+      isAwaitingApproval.value = true;
+    } else {
+      isAccountUnavailable.value = true;
+    }
     return;
   }
   if (
@@ -153,6 +180,7 @@ const applyEmptyProfileState = (): void => {
 const confirmViaSession = async (): Promise<void> => {
   isProcessing.value = true;
   isAwaitingApproval.value = false;
+  isAccountUnavailable.value = false;
   isSuccess.value = false;
   isLoginHint.value = false;
   verifyErrorMessage.value = null;

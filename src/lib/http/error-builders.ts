@@ -8,6 +8,8 @@ import {
 import {
   asRecord,
   isValidHttpStatus,
+  parseBlockedEmailVerifiedAt,
+  parseBlockedReason,
   parseFieldErrors,
   parseRetryAfterSeconds,
   resolveServerErrorStatus,
@@ -24,6 +26,13 @@ const buildUnexpectedError = (statusCandidate: unknown): HttpError => {
     timedOut: false,
   };
 };
+const buildForbiddenError = (rec: Record<string, unknown>): HttpError => ({
+  kind: "forbidden",
+  status: STATUS_BY_KIND.forbidden as 403,
+  message: SAFE_MESSAGES.forbidden,
+  blockedReason: parseBlockedReason(rec["body"]),
+  blockedEmailVerifiedAt: parseBlockedEmailVerifiedAt(rec["body"]),
+});
 const buildStatusError = (
   kind: HttpErrorKind,
   rec: Record<string, unknown>,
@@ -37,8 +46,11 @@ const buildStatusError = (
     };
   }
   const status = STATUS_BY_KIND[kind as MappedStatusKind];
+  if (kind === "forbidden") {
+    return buildForbiddenError(rec);
+  }
   return {
-    kind: kind as MappedStatusKind,
+    kind: kind as Exclude<MappedStatusKind, "forbidden">,
     status,
     message: SAFE_MESSAGES[kind],
   };

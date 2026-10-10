@@ -45,7 +45,9 @@ Logout (later wave):
 ## Errors
 
 Every rejected request yields one typed `HttpError` (see `errors.ts`):
-`unauthorized` 401, `forbidden` 403, `not_found` 404, `conflict` 409,
+`unauthorized` 401, `forbidden` 403 (with `blockedReason` and
+`blockedEmailVerifiedAt` parsed from the blocked-account response envelope),
+`not_found` 404, `conflict` 409,
 `csrf_mismatch` 419, `validation` 422 (with `fieldErrors` metadata),
 `rate_limited` 429 (with parsed `retryAfterSeconds`), `server_error` 5xx,
 `network` (with `timedOut`), `cancelled`, `unexpected`. Messages are fixed

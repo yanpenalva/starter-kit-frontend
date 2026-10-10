@@ -23,17 +23,22 @@ export type { HttpClient, SessionExpiredListener } from "./client";
 export {
   buildHttpError,
   isCsrfMismatchHttpError,
+  isForbiddenHttpError,
   isHttpError,
   isRateLimitedHttpError,
   isValidationHttpError,
+  parseBlockedEmailVerifiedAt,
+  parseBlockedReason,
   parseFieldErrors,
   parseRetryAfterSeconds,
 } from "./errors";
 export type {
+  BlockedAccountReason,
   HttpError,
   HttpErrorKind,
   MappedStatusHttpError,
   MappedStatusKind,
+  ForbiddenHttpError,
   RateLimitedHttpError,
   TransportHttpError,
   TransportKind,
