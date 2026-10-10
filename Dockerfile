@@ -1,11 +1,14 @@
 # syntax=docker/dockerfile:1.19
-ARG NODE_VERSION=26
+ARG NODE_VERSION=24
 ARG NGINX_VERSION=1.29
 
-FROM node:${NODE_VERSION}-alpine@sha256:b341ca66519d9a1c25d4e41f254ffb6fe403fc0f9054c62b863f0660dcc1c199 AS build
+FROM node:${NODE_VERSION}-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS build
 WORKDIR /app
+RUN apk add --no-cache python3
 ARG VITE_API_URL=http://localhost:8000
 ENV VITE_API_URL=${VITE_API_URL}
+ARG SKIP_CLIENT_GIT_CHECK=1
+ENV SKIP_CLIENT_GIT_CHECK=${SKIP_CLIENT_GIT_CHECK}
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
