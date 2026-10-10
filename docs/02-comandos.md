@@ -21,6 +21,10 @@ flowchart TD
 
 Sobe o servidor de desenvolvimento do Vite com recarregamento quente. Não roda typecheck, lint nem verificação de contrato — velocidade é o objetivo. Use durante todo o desenvolvimento diário. Saída esperada: o endereço local (padrão `http://localhost:5173`) e confirmação de pronto em poucas centenas de milissegundos.
 
+## `npm run dev:mock` → `VITE_MOCK_API=1 vite`
+
+Igual ao `dev`, mas registra antes do bootstrap um worker MSW que intercepta a API com dados fictícios em memória — ver `docs/modo-mock.md`. Use para validar layout, filtros, paginação e estados de erro sem backend. Não altera guards nem páginas; só funciona em desenvolvimento (`import.meta.env.DEV`), nunca no build de produção.
+
 ## `npm run build` → `client:check` + `vue-tsc --noEmit` + `vite build`
 
 É a porta de entrega: só passa o código que está íntegro nas três camadas. A ordem é proposital — cada etapa só roda se a anterior passou:
