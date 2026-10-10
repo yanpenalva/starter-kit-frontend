@@ -66,5 +66,6 @@ export * from "./verificationSend202.ts";
 export * from "./verificationSend401.ts";
 export * from "./verificationSend429.ts";
 export * from "./verificationVerify200.ts";
+export * from "./verificationVerify401.ts";
 export * from "./verificationVerify403.ts";
 export * from "./verificationVerify429.ts";

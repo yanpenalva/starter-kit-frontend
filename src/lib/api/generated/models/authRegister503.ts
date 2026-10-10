@@ -4,5 +4,5 @@
  */
 
 export type AuthRegister503 = {
-  message: "Sua conta foi criada, mas não foi possível enviar o e-mail de verificação. Entre e solicite um novo envio.";
+  message: "Sua solicitação foi recebida, mas não foi possível enviar o e-mail de verificação. Tente novamente mais tarde.";
 };

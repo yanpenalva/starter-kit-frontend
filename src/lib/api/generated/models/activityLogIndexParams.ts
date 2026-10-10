@@ -15,12 +15,25 @@ export type ActivityLogIndexParams = {
    * @maximum 100
    */
   per_page?: number;
+  /**
+   * @nullable
+   */
   event?: ActivityLogIndexEvent;
+  /**
+   * @nullable
+   */
   subject_type?: ActivityLogIndexSubjectType;
-  from?: string;
-  to?: string;
+  /**
+   * @nullable
+   */
+  from?: string | null;
+  /**
+   * @nullable
+   */
+  to?: string | null;
   /**
    * @minimum 1
+   * @nullable
    */
-  causer_id?: number;
+  causer_id?: number | null;
 };
