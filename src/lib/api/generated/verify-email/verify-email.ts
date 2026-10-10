@@ -21,6 +21,7 @@ import type {
   VerificationVerify401,
   VerificationVerify403,
   VerificationVerify429,
+  VerificationVerifyParams,
 } from "../models";
 
 import { transportApi } from "../../../http/orval-mutator.ts";
@@ -31,14 +32,21 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 export const verificationVerify = (
   id: MaybeRefOrGetter<string>,
   hash: MaybeRefOrGetter<string>,
+  params?: MaybeRefOrGetter<VerificationVerifyParams>,
   options?: SecondParameter<typeof transportApi>,
   signal?: AbortSignal,
 ) => {
   id = toValue(id);
   hash = toValue(hash);
+  params = toValue(params);
 
   return transportApi<VerificationVerify200>(
-    { url: `/api/v1/email/verify/${id}/${hash}`, method: "GET", signal },
+    {
+      url: `/api/v1/email/verify/${id}/${hash}`,
+      method: "GET",
+      params,
+      signal,
+    },
     options,
   );
 };
@@ -46,8 +54,17 @@ export const verificationVerify = (
 export const getVerificationVerifyQueryKey = (
   id: MaybeRefOrGetter<string>,
   hash: MaybeRefOrGetter<string>,
+  params?: MaybeRefOrGetter<VerificationVerifyParams>,
 ) => {
-  return ["api", "v1", "email", "verify", id, hash] as const;
+  return [
+    "api",
+    "v1",
+    "email",
+    "verify",
+    id,
+    hash,
+    ...(params ? [params] : []),
+  ] as const;
 };
 
 export const getVerificationVerifyQueryOptions = <
@@ -62,6 +79,7 @@ export const getVerificationVerifyQueryOptions = <
 >(
   id: MaybeRefOrGetter<string>,
   hash: MaybeRefOrGetter<string>,
+  params?: MaybeRefOrGetter<VerificationVerifyParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -75,11 +93,12 @@ export const getVerificationVerifyQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = getVerificationVerifyQueryKey(id, hash);
+  const queryKey = getVerificationVerifyQueryKey(id, hash, params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof verificationVerify>>
-  > = ({ signal }) => verificationVerify(id, hash, requestOptions, signal);
+  > = ({ signal }) =>
+    verificationVerify(id, hash, params, requestOptions, signal);
 
   return {
     queryKey,
@@ -122,6 +141,7 @@ export function useVerificationVerify<
 >(
   id: MaybeRefOrGetter<string>,
   hash: MaybeRefOrGetter<string>,
+  params?: MaybeRefOrGetter<VerificationVerifyParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -136,7 +156,12 @@ export function useVerificationVerify<
 ): UseQueryReturnType<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getVerificationVerifyQueryOptions(id, hash, options);
+  const queryOptions = getVerificationVerifyQueryOptions(
+    id,
+    hash,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
     TData,

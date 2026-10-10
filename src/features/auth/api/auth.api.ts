@@ -33,7 +33,8 @@ export const confirmEmailVerification = (
   link: VerifyEmailLink,
 ): Promise<unknown> => {
   return verificationVerify(link.id, link.hash, {
-    params: { expires: link.expires, signature: link.signature },
+    expires: link.expires,
+    signature: link.signature,
   });
 };
 export const requestPasswordReset = (

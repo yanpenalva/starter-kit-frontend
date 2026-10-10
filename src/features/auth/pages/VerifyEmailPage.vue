@@ -17,6 +17,35 @@
         </p>
       </div>
 
+      <div v-else-if="isAwaitingApproval" class="verify-card__awaiting">
+        <span class="verify-card__tag verify-card__tag--success">SUCESSO</span>
+        <h1 class="verify-card__title">E-mail verificado!</h1>
+        <p class="verify-card__message">
+          Seu e-mail foi confirmado e sua conta está aguardando aprovação para
+          liberar o acesso.
+        </p>
+      </div>
+
+      <div v-else-if="isLoginHint" class="verify-card__confirmed">
+        <span class="verify-card__tag verify-card__tag--success"
+          >CONFIRMADO</span
+        >
+        <h1 class="verify-card__title">E-mail confirmado!</h1>
+        <p class="verify-card__message">
+          Seu e-mail foi confirmado. Faça login para continuar.
+        </p>
+
+        <div class="verify-card__actions">
+          <RouterLink to="/login" class="verify-btn verify-btn--primary">
+            Ir para o login
+          </RouterLink>
+
+          <RouterLink to="/" class="verify-btn verify-btn--secondary">
+            Página inicial
+          </RouterLink>
+        </div>
+      </div>
+
       <div v-else class="verify-card__failure">
         <span class="verify-card__tag verify-card__tag--failure"
           >FALHA NA VERIFICAÇÃO</span
@@ -72,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useSessionStore } from "@/features/auth/stores/session";
 import { isHttpError, isRateLimitedHttpError } from "@/lib/http";
@@ -85,46 +114,102 @@ const router = useRouter();
 const session = useSessionStore();
 const isProcessing = ref(false);
 const isSuccess = ref(false);
+const isAwaitingApproval = ref(false);
+const isLoginHint = ref(false);
 const isResending = ref(false);
 const verifyErrorMessage = ref<string | null>(null);
+const emailConfirmed = ref(false);
+const serverConfirmed = ref(false);
 const resendSuccessMessage = ref<string | null>(null);
 const resendErrorMessage = ref<string | null>(null);
+const resetVerifyState = (): void => {
+  isProcessing.value = false;
+  isSuccess.value = false;
+  isAwaitingApproval.value = false;
+  isLoginHint.value = false;
+  verifyErrorMessage.value = null;
+  emailConfirmed.value = false;
+  serverConfirmed.value = false;
+  resendSuccessMessage.value = null;
+  resendErrorMessage.value = null;
+};
+const applyEmptyProfileState = (): void => {
+  if (emailConfirmed.value && session.status === "blocked") {
+    isAwaitingApproval.value = true;
+    return;
+  }
+  if (
+    serverConfirmed.value &&
+    (session.status === "unauthenticated" || session.status === "idle")
+  ) {
+    isLoginHint.value = true;
+    return;
+  }
+  if (emailConfirmed.value && !serverConfirmed.value) {
+    verifyErrorMessage.value =
+      "Não foi possível confirmar a verificação deste e-mail. Entre na sua conta para conferir a situação ou peça um novo e-mail de verificação.";
+  }
+};
 const confirmViaSession = async (): Promise<void> => {
   isProcessing.value = true;
+  isAwaitingApproval.value = false;
+  isSuccess.value = false;
+  isLoginHint.value = false;
+  verifyErrorMessage.value = null;
   try {
     const profile = await session.bootstrap(true);
     if (profile === null) {
-      isSuccess.value = false;
-    } else {
+      applyEmptyProfileState();
+    } else if (profile.email_verified_at !== null) {
+      emailConfirmed.value = true;
       isSuccess.value = true;
-      await router.push({ name: "dashboard" });
+      try {
+        await router.push({ name: "dashboard" });
+      } catch {
+        isSuccess.value = true;
+      }
+    } else {
+      emailConfirmed.value = false;
+      verifyErrorMessage.value =
+        "Não foi possível confirmar a verificação deste e-mail. Peça um novo e-mail de verificação e tente novamente.";
     }
   } catch {
-    isSuccess.value = false;
+    applyEmptyProfileState();
   } finally {
     isProcessing.value = false;
   }
 };
-onMounted(async () => {
+const runVerification = async (): Promise<void> => {
+  resetVerifyState();
   const link = signedLinkFromQuery(route.query);
   if (link !== null) {
     isProcessing.value = true;
-    verifyErrorMessage.value = null;
     try {
       await session.confirmEmail(link);
-      await confirmViaSession();
-      return;
     } catch (error: unknown) {
       verifyErrorMessage.value = signedLinkErrorMessage(error);
-    } finally {
       isProcessing.value = false;
+      return;
     }
+    emailConfirmed.value = true;
+    serverConfirmed.value = true;
+    await confirmViaSession();
     return;
   }
   if (route.query.ok === "1") {
+    emailConfirmed.value = true;
     await confirmViaSession();
   }
+};
+onMounted(() => {
+  void runVerification();
 });
+watch(
+  () => route.query,
+  () => {
+    void runVerification();
+  },
+);
 const handleResend = async () => {
   if (isResending.value) return;
   isResending.value = true;

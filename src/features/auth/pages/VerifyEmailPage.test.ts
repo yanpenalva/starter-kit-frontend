@@ -236,6 +236,28 @@ describe("VerifyEmailPage.vue", () => {
     expect(mockRouterPush).toHaveBeenCalledWith({ name: "dashboard" });
   });
 
+  it("shows failure without awaiting when the signed link call is rejected", async () => {
+    mockQuery = {
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    };
+    const session = useSessionStore();
+    vi.spyOn(session, "confirmEmail").mockRejectedValue(
+      buildHttpError({ kind: "forbidden", status: 403 }),
+    );
+    const bootstrapSpy = vi.spyOn(session, "bootstrap");
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
+    expect(wrapper.find(".verify-card__failure").exists()).toBe(true);
+    expect(bootstrapSpy).not.toHaveBeenCalled();
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
   it("shows a login hint when the signed link call is unauthorized", async () => {
     mockQuery = {
       id: "7",
@@ -252,6 +274,149 @@ describe("VerifyEmailPage.vue", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("sessão expirou");
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("shows success without awaiting when the link confirms and bootstrap returns a profile", async () => {
+    mockQuery = {
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    };
+    const session = useSessionStore();
+    vi.spyOn(session, "confirmEmail").mockResolvedValue({});
+    vi.spyOn(session, "bootstrap").mockResolvedValue(mockVerifiedProfile);
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__success").exists()).toBe(true);
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
+    expect(mockRouterPush).toHaveBeenCalledWith({ name: "dashboard" });
+  });
+
+  it("shows awaiting approval when the link confirms but the account stays deactivated", async () => {
+    mockQuery = {
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    };
+    const session = useSessionStore();
+    vi.spyOn(session, "confirmEmail").mockResolvedValue({});
+    vi.spyOn(session, "bootstrap").mockImplementation(async () => {
+      session.status = "blocked";
+      return null;
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(true);
+    expect(wrapper.text()).toContain("aguardando aprovação");
+    expect(wrapper.text()).not.toContain("Não foi possível verificar o e-mail");
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("shows awaiting approval when ?ok=1 lands on a blocked session", async () => {
+    mockQuery = { ok: "1" };
+    const session = useSessionStore();
+    vi.spyOn(session, "bootstrap").mockImplementation(async () => {
+      session.status = "blocked";
+      return null;
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(true);
+    expect(wrapper.text()).toContain("aguardando aprovação");
+    expect(wrapper.text()).not.toContain("Não foi possível verificar o e-mail");
+    expect(wrapper.find(".verify-card__confirmed").exists()).toBe(false);
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("shows failure without login hint when ?ok=1 has no session", async () => {
+    mockQuery = { ok: "1" };
+    const session = useSessionStore();
+    vi.spyOn(session, "bootstrap").mockImplementation(async () => {
+      session.status = "unauthenticated";
+      return null;
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__failure").exists()).toBe(true);
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
+    expect(wrapper.find(".verify-card__confirmed").exists()).toBe(false);
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("shows awaiting approval when bootstrap rejects on a blocked session", async () => {
+    mockQuery = {
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    };
+    const session = useSessionStore();
+    vi.spyOn(session, "confirmEmail").mockResolvedValue({});
+    vi.spyOn(session, "bootstrap").mockImplementation(async () => {
+      session.status = "blocked";
+      throw buildHttpError({ kind: "forbidden", status: 403 });
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(true);
+    expect(wrapper.text()).toContain("aguardando aprovação");
+    expect(wrapper.find(".verify-card__failure").exists()).toBe(false);
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("shows a login hint when the link confirms but the session is gone", async () => {
+    mockQuery = {
+      id: "7",
+      hash: "abc123",
+      expires: "9999999999",
+      signature: "sig",
+    };
+    const session = useSessionStore();
+    vi.spyOn(session, "confirmEmail").mockResolvedValue({});
+    vi.spyOn(session, "bootstrap").mockImplementation(async () => {
+      session.status = "unauthenticated";
+      return null;
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__confirmed").exists()).toBe(true);
+    expect(wrapper.text()).toContain("Faça login para continuar");
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
+    expect(wrapper.find(".verify-card__failure").exists()).toBe(false);
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("shows failure without redirect when ?ok=1 has an unverified profile", async () => {
+    mockQuery = { ok: "1" };
+    const session = useSessionStore();
+    vi.spyOn(session, "bootstrap").mockResolvedValue({
+      ...mockVerifiedProfile,
+      email_verified_at: null,
+    });
+
+    const wrapper = mount(VerifyEmailPage);
+    await flushPromises();
+
+    expect(wrapper.find(".verify-card__failure").exists()).toBe(true);
+    expect(wrapper.text()).toContain("Não foi possível confirmar");
+    expect(wrapper.find(".verify-card__awaiting").exists()).toBe(false);
+    expect(wrapper.find(".verify-card__success").exists()).toBe(false);
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
 });
