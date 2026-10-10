@@ -171,11 +171,16 @@ async function main() {
       ],
       { stdio: "ignore" },
     );
-    chrome.on("error", (e) => {
-      throw new Error(`Falha ao iniciar Chrome: ${e.message}`);
+    const chromeSpawnFailed = new Promise((resolve, reject) => {
+      chrome.on("error", (e) => {
+        reject(new Error(`Falha ao iniciar Chrome: ${e.message}`));
+      });
     });
 
-    const version = await waitForBrowser(endpoint);
+    const version = await Promise.race([
+      waitForBrowser(endpoint),
+      chromeSpawnFailed,
+    ]);
     globalThis.console.log(`Browser: ${version.Browser}`);
 
     const target = await fetchJson(`${endpoint}/json/new?about:blank`, {
@@ -257,20 +262,38 @@ async function main() {
     assert(loggedIn, "login pendente nao-verificada alcancou /limited");
 
     await cdp.command("Page.navigate", { url: link });
-    const verified = await (async () => {
+    const verifyState = await (async () => {
       const deadline = Date.now() + 15000;
       while (Date.now() < deadline) {
-        if (
-          await cdp.evaluate(
-            `!!document.querySelector('.verify-card__success, .verify-card__awaiting')`,
-          )
-        )
-          return true;
+        const state = await cdp.evaluate(`(() => {
+          if (document.querySelector('.verify-card__awaiting')) return 'awaiting';
+          if (document.querySelector('.verify-card__success')) return 'success';
+          if (location.pathname === '/dashboard') return 'dashboard';
+          return null;
+        })()`);
+        if (state !== null) return state;
         await sleep(300);
       }
-      return false;
+      return null;
     })();
-    assert(verified, "pagina /verify-email confirmou o e-mail via SPA");
+    assert(
+      verifyState !== null,
+      "pagina /verify-email confirmou o e-mail via SPA",
+    );
+    const finalState =
+      verifyState === "success"
+        ? await cdp.evaluate(`(() => {
+            if (location.pathname === '/dashboard') return 'dashboard';
+            if (document.querySelector('.verify-card__awaiting')) return 'awaiting';
+            if (document.querySelector('.verify-card__success')) return 'success';
+            return 'unknown';
+          })()`)
+        : verifyState;
+    globalThis.console.log(`[INFO] estado final da verificacao: ${finalState}`);
+    assert(
+      finalState === "awaiting" || finalState === "dashboard",
+      `estado final esperado (awaiting ou dashboard), obteve: ${finalState}`,
+    );
 
     const verifiedAt = execFileSync(
       "php",
@@ -290,7 +313,7 @@ async function main() {
 
     if (failures.length > 0) {
       globalThis.console.error(`SMOKE-VERIFY FAILURES: ${failures.length}`);
-      process.exit(1);
+      process.exitCode = 1;
     }
     globalThis.console.log("SMOKE-VERIFY ok:true failures:0");
   } finally {
