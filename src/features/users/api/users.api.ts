@@ -7,13 +7,44 @@ import type {
   UpdateUserPayload,
   UserFilters,
 } from "./users.types";
+
+const omitEmpty = <T extends object>(filters: T): Partial<T> => {
+  return Object.fromEntries(
+    Object.entries(filters).filter(
+      ([, value]) => value !== "" && value !== null && value !== undefined,
+    ),
+  ) as Partial<T>;
+};
+
 export const listUsers = (
   filters: UserFilters = {},
 ): Promise<Paginated<AdminUser>> => {
   return transportApi<Paginated<AdminUser>>({
     url: "/api/v1/users",
     method: "GET",
-    params: filters,
+    params: omitEmpty(filters),
+  });
+};
+export const createUser = (payload: {
+  name: string;
+  email: string;
+  cpf?: string;
+  password: string;
+}): Promise<{
+  data: AdminUser;
+}> => {
+  return transportApi<{
+    data: AdminUser;
+  }>({
+    url: "/api/v1/users",
+    method: "POST",
+    data: payload,
+  });
+};
+export const deleteUser = (userId: number): Promise<void> => {
+  return transportApi<void>({
+    url: `/api/v1/users/${userId}`,
+    method: "DELETE",
   });
 };
 export const showUser = (

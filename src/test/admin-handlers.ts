@@ -297,6 +297,41 @@ export const makeUsersRouteMocks = (
         });
       },
     ),
+    http.post(`${TEST_API_BASE}/api/v1/users`, async ({ request }) => {
+      calls.push(await record(request));
+      const payload = (await request.json()) as Record<string, unknown>;
+      if (
+        typeof payload.name !== "string" ||
+        typeof payload.email !== "string" ||
+        typeof payload.password !== "string"
+      ) {
+        return json(request, { message: "Dados inválidos." }, 422);
+      }
+      const created = makeAdminUser({
+        id: Math.max(0, ...users.map((user) => user.id)) + 1,
+        name: payload.name,
+        email: payload.email,
+      });
+      users.push(created);
+      return json(request, { data: created }, 201);
+    }),
+    http.delete(
+      `${TEST_API_BASE}/api/v1/users/:userId`,
+      async ({ request, params }) => {
+        calls.push(await record(request));
+        const index = users.findIndex(
+          (candidate) => String(candidate.id) === String(params.userId),
+        );
+        if (index === -1) {
+          return json(request, { message: "Não encontrado." }, 404);
+        }
+        users.splice(index, 1);
+        return new HttpResponse(null, {
+          status: 204,
+          headers: makeCorsHeaders(request),
+        });
+      },
+    ),
   ];
   return { handlers, calls };
 };
@@ -362,6 +397,36 @@ export const makeRolesRouteMocks = (
         }
         return json(request, {
           data: { ...role, permissions: [...payload.permissions].sort() },
+        });
+      },
+    ),
+    http.post(`${TEST_API_BASE}/api/v1/roles`, async ({ request }) => {
+      calls.push(await record(request));
+      const payload = (await request.json()) as { name?: unknown };
+      if (typeof payload.name !== "string" || payload.name === "") {
+        return json(request, { message: "Dados inválidos." }, 422);
+      }
+      const created = makeAdminRole({
+        id: Math.max(0, ...roles.map((role) => role.id)) + 1,
+        name: payload.name,
+      });
+      roles.push(created);
+      return json(request, { data: created }, 201);
+    }),
+    http.delete(
+      `${TEST_API_BASE}/api/v1/roles/:roleId`,
+      async ({ request, params }) => {
+        calls.push(await record(request));
+        const index = roles.findIndex(
+          (candidate) => String(candidate.id) === String(params.roleId),
+        );
+        if (index === -1) {
+          return json(request, { message: "Não encontrado." }, 404);
+        }
+        roles.splice(index, 1);
+        return new HttpResponse(null, {
+          status: 204,
+          headers: makeCorsHeaders(request),
         });
       },
     ),

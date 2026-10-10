@@ -6,6 +6,8 @@ import { delay, http, HttpResponse } from "msw";
 import { makeAdminRole, makeRolesRouteMocks } from "@/test/admin-handlers";
 import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
+import { useSessionStore } from "@/features/auth/stores/session";
+import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
 import RolesPage from "./RolesPage.vue";
 
 const roles = [
@@ -13,13 +15,22 @@ const roles = [
   makeAdminRole({ id: 2, name: "user", permissions: ["users.view"] }),
 ];
 
-const mountPage = () =>
-  mount(RolesPage, {
+const mountPage = () => {
+  useSessionStore().user = {
+    id: 1,
+    name: "Admin",
+    email: "admin@example.test",
+    email_verified_at: "2026-01-01T00:00:00Z",
+    roles: ["admin"],
+    permissions: [...CATALOGUE_PERMISSIONS],
+  };
+  return mount(RolesPage, {
     global: {
       plugins: [VueQueryPlugin],
       stubs: { AppLayout: { template: "<div><slot /></div>" } },
     },
   });
+};
 
 describe("RolesPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
@@ -132,5 +143,60 @@ describe("RolesPage", () => {
         ),
       ).toHaveLength(1),
     );
+  });
+
+  it("creates a role through the creation form", async () => {
+    const mocks = makeRolesRouteMocks(roles);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Criar papel"]').exists()).toBe(true),
+    );
+    await wrapper.get('[aria-label="Nome do novo papel"]').setValue("auditor");
+    await wrapper.get('[aria-label="Criar papel"]').trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) => call.method === "POST" && call.path === "/api/v1/roles",
+        ),
+      ).toBe(true),
+    );
+    expect(
+      mocks.calls.find(
+        (call) => call.method === "POST" && call.path === "/api/v1/roles",
+      )?.body,
+    ).toMatchObject({ name: "auditor" });
+  });
+
+  it("deletes a non-immutable role after confirmation", async () => {
+    const mocks = makeRolesRouteMocks(roles);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
+
+    try {
+      await vi.waitFor(() =>
+        expect(wrapper.find('[aria-label="Excluir papel user"]').exists()).toBe(
+          true,
+        ),
+      );
+      expect(wrapper.find('[aria-label="Excluir papel admin"]').exists()).toBe(
+        false,
+      );
+      await wrapper.get('[aria-label="Excluir papel user"]').trigger("click");
+
+      await vi.waitFor(() =>
+        expect(
+          mocks.calls.some(
+            (call) =>
+              call.method === "DELETE" && call.path === "/api/v1/roles/2",
+          ),
+        ).toBe(true),
+      );
+    } finally {
+      confirmSpy.mockRestore();
+    }
   });
 });

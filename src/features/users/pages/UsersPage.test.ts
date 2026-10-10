@@ -6,6 +6,8 @@ import { delay, http, HttpResponse } from "msw";
 import { makeAdminUser, makeUsersRouteMocks } from "@/test/admin-handlers";
 import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
+import { useSessionStore } from "@/features/auth/stores/session";
+import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
 import UsersPage from "./UsersPage.vue";
 
 const users = Array.from({ length: 16 }, (_, index) =>
@@ -17,13 +19,22 @@ const users = Array.from({ length: 16 }, (_, index) =>
   }),
 );
 
-const mountPage = () =>
-  mount(UsersPage, {
+const mountPage = () => {
+  useSessionStore().user = {
+    id: 1,
+    name: "Admin",
+    email: "admin@example.test",
+    email_verified_at: "2026-01-01T00:00:00Z",
+    roles: ["admin"],
+    permissions: [...CATALOGUE_PERMISSIONS],
+  };
+  return mount(UsersPage, {
     global: {
       plugins: [VueQueryPlugin],
       stubs: { AppLayout: { template: "<div><slot /></div>" } },
     },
   });
+};
 
 describe("UsersPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
@@ -164,5 +175,65 @@ describe("UsersPage", () => {
         ),
       ).toHaveLength(1),
     );
+  });
+
+  it("creates a user through the creation form", async () => {
+    const mocks = makeUsersRouteMocks(users);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Criar usuário"]').exists()).toBe(true),
+    );
+    await wrapper
+      .get('[aria-label="Nome do novo usuário"]')
+      .setValue("Novo Usuário");
+    await wrapper
+      .get('[aria-label="Email do novo usuário"]')
+      .setValue("novo@example.test");
+    await wrapper
+      .get('[aria-label="Senha do novo usuário"]')
+      .setValue("Alterar123!");
+    await wrapper.get('[aria-label="Criar usuário"]').trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) => call.method === "POST" && call.path === "/api/v1/users",
+        ),
+      ).toBe(true),
+    );
+    expect(
+      mocks.calls.find(
+        (call) => call.method === "POST" && call.path === "/api/v1/users",
+      )?.body,
+    ).toMatchObject({ name: "Novo Usuário", email: "novo@example.test" });
+  });
+
+  it("deletes a user after confirmation", async () => {
+    const mocks = makeUsersRouteMocks(users);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
+
+    try {
+      await vi.waitFor(() =>
+        expect(wrapper.find('[aria-label="Excluir Pessoa 2"]').exists()).toBe(
+          true,
+        ),
+      );
+      await wrapper.get('[aria-label="Excluir Pessoa 2"]').trigger("click");
+
+      await vi.waitFor(() =>
+        expect(
+          mocks.calls.some(
+            (call) =>
+              call.method === "DELETE" && call.path === "/api/v1/users/2",
+          ),
+        ).toBe(true),
+      );
+    } finally {
+      confirmSpy.mockRestore();
+    }
   });
 });

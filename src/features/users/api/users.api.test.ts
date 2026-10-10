@@ -120,4 +120,18 @@ describe("users.api", () => {
       status: 404,
     });
   });
+  it("omits empty filters from the request", async () => {
+    await listUsers({ page: 1, per_page: 15, search: "", status: undefined });
+
+    const call = calls[0];
+    expect(call?.query.has("search")).toBe(false);
+    expect(call?.query.has("status")).toBe(false);
+    expect(call?.query.get("page")).toBe("1");
+  });
+
+  it("keeps meaningful filters", async () => {
+    await listUsers({ page: 1, per_page: 15, search: "ali" });
+
+    expect(calls[0]?.query.get("search")).toBe("ali");
+  });
 });
