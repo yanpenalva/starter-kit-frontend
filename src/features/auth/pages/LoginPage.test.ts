@@ -126,6 +126,7 @@ describe("LoginPage.vue", () => {
     expect(wrapper.find("[role='status']").text()).toContain(
       "Cadastro realizado com sucesso",
     );
+    expect(wrapper.find("[role='status']").text()).toContain("ativação");
   });
 
   it("displays success message when arriving with reset=ok query param", () => {
