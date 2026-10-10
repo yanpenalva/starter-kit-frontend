@@ -24,12 +24,14 @@ import type {
   AuthorizationExceptionResponse,
   ModelNotFoundExceptionResponse,
   SetUserStatusRequest,
+  StoreUserRequest,
   UpdateUserRequest,
   UserAssignRoles200,
   UserIndex200,
   UserIndexParams,
   UserSetStatus200,
   UserShow200,
+  UserStore201,
   UserUpdate200,
   ValidationExceptionResponse,
 } from "../models";
@@ -39,6 +41,106 @@ import type { ErrorType } from "../../../http/orval-mutator.ts";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
+export const userStore = (
+  storeUserRequest: MaybeRefOrGetter<StoreUserRequest>,
+  options?: SecondParameter<typeof transportApi>,
+  signal?: AbortSignal,
+) => {
+  storeUserRequest = toValue(storeUserRequest);
+
+  return transportApi<UserStore201>(
+    {
+      url: `/api/v1/users`,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      data: storeUserRequest,
+      signal,
+    },
+    options,
+  );
+};
+
+export const getUserStoreMutationKey = () => ["userStore"] as const;
+
+export const getUserStoreMutationOptions = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ValidationExceptionResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof userStore>>,
+    TError,
+    UserStoreMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof transportApi>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof userStore>>,
+  TError,
+  UserStoreMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUserStoreMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof userStore>>,
+    UserStoreMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return userStore(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UserStoreMutationResult = NonNullable<
+  Awaited<ReturnType<typeof userStore>>
+>;
+export type UserStoreMutationBody = StoreUserRequest;
+export type UserStoreMutationError = ErrorType<
+  | AuthenticationExceptionResponse
+  | AuthorizationExceptionResponse
+  | ValidationExceptionResponse
+>;
+export type UserStoreMutationVariables = { data: StoreUserRequest };
+
+export const useUserStore = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ValidationExceptionResponse
+  >,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof userStore>>,
+      TError,
+      UserStoreMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof transportApi>;
+  },
+  queryClient?: QueryClient,
+): UseMutationReturnType<
+  Awaited<ReturnType<typeof userStore>>,
+  TError,
+  UserStoreMutationVariables,
+  TContext
+> => {
+  return useMutation(getUserStoreMutationOptions(options), queryClient);
+};
 export const userIndex = (
   params?: MaybeRefOrGetter<UserIndexParams>,
   options?: SecondParameter<typeof transportApi>,
@@ -133,6 +235,100 @@ export function useUserIndex<
   return query;
 }
 
+export const userDestroy = (
+  user: MaybeRefOrGetter<number>,
+  options?: SecondParameter<typeof transportApi>,
+  signal?: AbortSignal,
+) => {
+  user = toValue(user);
+
+  return transportApi<string[]>(
+    { url: `/api/v1/users/${user}`, method: "DELETE", signal },
+    options,
+  );
+};
+
+export const getUserDestroyMutationKey = () => ["userDestroy"] as const;
+
+export const getUserDestroyMutationOptions = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ModelNotFoundExceptionResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof userDestroy>>,
+    TError,
+    UserDestroyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof transportApi>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof userDestroy>>,
+  TError,
+  UserDestroyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUserDestroyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof userDestroy>>,
+    UserDestroyMutationVariables
+  > = (props) => {
+    const { user } = props ?? {};
+
+    return userDestroy(user, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UserDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof userDestroy>>
+>;
+
+export type UserDestroyMutationError = ErrorType<
+  | AuthenticationExceptionResponse
+  | AuthorizationExceptionResponse
+  | ModelNotFoundExceptionResponse
+>;
+export type UserDestroyMutationVariables = { user: number };
+
+export const useUserDestroy = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ModelNotFoundExceptionResponse
+  >,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof userDestroy>>,
+      TError,
+      UserDestroyMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof transportApi>;
+  },
+  queryClient?: QueryClient,
+): UseMutationReturnType<
+  Awaited<ReturnType<typeof userDestroy>>,
+  TError,
+  UserDestroyMutationVariables,
+  TContext
+> => {
+  return useMutation(getUserDestroyMutationOptions(options), queryClient);
+};
 export const userShow = (
   user: MaybeRefOrGetter<number>,
   options?: SecondParameter<typeof transportApi>,

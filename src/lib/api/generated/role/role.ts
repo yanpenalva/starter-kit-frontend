@@ -24,7 +24,9 @@ import type {
   ModelNotFoundExceptionResponse,
   RoleIndex200,
   RoleIndexParams,
+  RoleStore201,
   RoleUpdatePermissions200,
+  StoreRoleRequest,
   UpdateRolePermissionsRequest,
   ValidationExceptionResponse,
 } from "../models";
@@ -34,6 +36,106 @@ import type { ErrorType } from "../../../http/orval-mutator.ts";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
+export const roleStore = (
+  storeRoleRequest: MaybeRefOrGetter<StoreRoleRequest>,
+  options?: SecondParameter<typeof transportApi>,
+  signal?: AbortSignal,
+) => {
+  storeRoleRequest = toValue(storeRoleRequest);
+
+  return transportApi<RoleStore201>(
+    {
+      url: `/api/v1/roles`,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      data: storeRoleRequest,
+      signal,
+    },
+    options,
+  );
+};
+
+export const getRoleStoreMutationKey = () => ["roleStore"] as const;
+
+export const getRoleStoreMutationOptions = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ValidationExceptionResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof roleStore>>,
+    TError,
+    RoleStoreMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof transportApi>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof roleStore>>,
+  TError,
+  RoleStoreMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRoleStoreMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof roleStore>>,
+    RoleStoreMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return roleStore(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RoleStoreMutationResult = NonNullable<
+  Awaited<ReturnType<typeof roleStore>>
+>;
+export type RoleStoreMutationBody = StoreRoleRequest;
+export type RoleStoreMutationError = ErrorType<
+  | AuthenticationExceptionResponse
+  | AuthorizationExceptionResponse
+  | ValidationExceptionResponse
+>;
+export type RoleStoreMutationVariables = { data: StoreRoleRequest };
+
+export const useRoleStore = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ValidationExceptionResponse
+  >,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof roleStore>>,
+      TError,
+      RoleStoreMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof transportApi>;
+  },
+  queryClient?: QueryClient,
+): UseMutationReturnType<
+  Awaited<ReturnType<typeof roleStore>>,
+  TError,
+  RoleStoreMutationVariables,
+  TContext
+> => {
+  return useMutation(getRoleStoreMutationOptions(options), queryClient);
+};
 export const roleIndex = (
   params?: MaybeRefOrGetter<RoleIndexParams>,
   options?: SecondParameter<typeof transportApi>,
@@ -128,6 +230,100 @@ export function useRoleIndex<
   return query;
 }
 
+export const roleDestroy = (
+  role: MaybeRefOrGetter<number>,
+  options?: SecondParameter<typeof transportApi>,
+  signal?: AbortSignal,
+) => {
+  role = toValue(role);
+
+  return transportApi<string[]>(
+    { url: `/api/v1/roles/${role}`, method: "DELETE", signal },
+    options,
+  );
+};
+
+export const getRoleDestroyMutationKey = () => ["roleDestroy"] as const;
+
+export const getRoleDestroyMutationOptions = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ModelNotFoundExceptionResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof roleDestroy>>,
+    TError,
+    RoleDestroyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof transportApi>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof roleDestroy>>,
+  TError,
+  RoleDestroyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRoleDestroyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof roleDestroy>>,
+    RoleDestroyMutationVariables
+  > = (props) => {
+    const { role } = props ?? {};
+
+    return roleDestroy(role, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RoleDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof roleDestroy>>
+>;
+
+export type RoleDestroyMutationError = ErrorType<
+  | AuthenticationExceptionResponse
+  | AuthorizationExceptionResponse
+  | ModelNotFoundExceptionResponse
+>;
+export type RoleDestroyMutationVariables = { role: number };
+
+export const useRoleDestroy = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ModelNotFoundExceptionResponse
+  >,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof roleDestroy>>,
+      TError,
+      RoleDestroyMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof transportApi>;
+  },
+  queryClient?: QueryClient,
+): UseMutationReturnType<
+  Awaited<ReturnType<typeof roleDestroy>>,
+  TError,
+  RoleDestroyMutationVariables,
+  TContext
+> => {
+  return useMutation(getRoleDestroyMutationOptions(options), queryClient);
+};
 export const roleUpdatePermissions = (
   role: MaybeRefOrGetter<number>,
   updateRolePermissionsRequest: MaybeRefOrGetter<UpdateRolePermissionsRequest>,

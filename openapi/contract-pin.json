@@ -3,7 +3,7 @@
   "policy_source": "Parent authorization in FEAT-7 retake prompt, 2026-10-05",
   "source": {
     "repository": "yanpenalva/starter-kit-api",
-    "commit_sha": "a78aef8422de6948eb34a1a35df01471a214199f",
+    "commit_sha": "3ac49d96c73a49266f526e89bdb29be5390720cd",
     "branch": "main"
   },
   "workflow": {
@@ -13,20 +13,20 @@
     "event": "workflow_dispatch"
   },
   "run": {
-    "id": 37609280063,
+    "id": 38061578439,
     "attempt": 1,
     "status": "completed",
     "conclusion": "success"
   },
   "artifact": {
-    "id": 11476826042,
-    "name": "openapi-a78aef8422de6948eb34a1a35df01471a214199f",
+    "id": 11673585936,
+    "name": "openapi-3ac49d96c73a49266f526e89bdb29be5390720cd",
     "archive_file": "artifact.zip",
-    "archive_bytes": 4636,
-    "archive_sha256": "92c4209b05f5010e89097ac52a2c63f27ea524b1ff3ca7728ffb44909ee7ef8a",
+    "archive_bytes": 4982,
+    "archive_sha256": "68e40222828c6718075bf37b4efe2f6de5ae98d864851995e9ea8026305d71e1",
     "contract_file": "openapi.json",
-    "contract_bytes": 74584,
-    "contract_sha256": "0f0128834d7cf21b5b8de9ddeaa57945b86fcf4bbd9963508c9f86fb2b5a522e"
+    "contract_bytes": 83059,
+    "contract_sha256": "98a8e505f43226f368f88795ca491f861d9011ec919ee25b79ed7032208a6386"
   },
   "verification": {
     "mode": "verify-committed",
