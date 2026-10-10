@@ -12,6 +12,7 @@
     "build": "npm run client:check && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "smoke:browser": "node scripts/smoke-browser.mjs",
+    "smoke:auth": "node scripts/smoke-auth-browser.mjs",
     "contract:verify": "python3 scripts/verify_contract.py",
     "client:generate": "node scripts/generate-client.mjs",
     "client:check": "npm run client:generate && node scripts/check-client-generated.mjs",

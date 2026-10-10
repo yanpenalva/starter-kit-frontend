@@ -21,9 +21,10 @@ Guia prático e conciso para validação manual ou semi-automatizada imediatamen
 - [ ] **Bootstrap CSRF Cookie**: Ao navegar para `/login`, a requisição `GET /sanctum/csrf-cookie` ocorre com sucesso (204) e o cookie `XSRF-TOKEN` é armazenado no navegador.
 - [ ] **Login Válido**:
   1. Submeter credenciais válidas.
-  2. Requisição `POST /api/v1/login` inclui cabeçalho `X-XSRF-TOKEN` e retorna `200`.
+  2. Requisição `POST /api/v1/login` inclui cabeçalho `X-XSRF-TOKEN` e retorna `204`.
   3. Redirecionamento automático para a tela `/dashboard`.
 - [ ] **Sessão Persistente**: Atualizar a página (F5) no `/dashboard` mantém o usuário autenticado sem redirecionar para `/login`.
+- [ ] **Smoke automatizado (`npm run smoke:auth`)**: cobre login → my-profile 200 → reload com sessão → logout → my-profile 401 em Chromium headless via CDP. Exige `BROWSER_SMOKE_URL`, `API_SMOKE_URL`, `SMOKE_AUTH_EMAIL` e `SMOKE_AUTH_PASSWORD` no ambiente (credenciais nunca commitadas).
 
 ---
 
