@@ -1,5 +1,6 @@
 import { execFileSync, spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -9,9 +10,11 @@ import { setTimeout as sleep } from "node:timers/promises";
 const BASE_URL = process.env.BROWSER_SMOKE_URL ?? "http://localhost:5173";
 const API_URL = (process.env.API_SMOKE_URL ?? "").replace(/\/$/, "");
 const LARAVEL_LOG = process.env.SMOKE_LARAVEL_LOG ?? "";
-const DB_PATH =
-  process.env.SMOKE_DB_PATH ?? "/opt/data/cache/scratch/verify-smoke.sqlite";
+const DEFAULT_DB_PATH = "/opt/data/cache/scratch/verify-smoke.sqlite";
+const DB_PATH = process.env.SMOKE_DB_PATH ?? DEFAULT_DB_PATH;
 const CHROME_BIN = process.env.CHROME_BIN ?? "google-chrome";
+const ALLOW_REMOTE_API = process.env.SMOKE_ALLOW_REMOTE === "1";
+const LOCAL_API_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const EMAIL = `verify.smoke.${Date.now()}@example.test`;
 const PASSWORD = "correct-horse-99";
 
@@ -39,6 +42,55 @@ async function waitForBrowser(endpoint, tries = 50, delay = 200) {
     }
   }
   throw new Error(`Browser not reachable at ${endpoint}`);
+}
+
+function isTcpPortFree(port, host = "127.0.0.1", timeoutMs = 1000) {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host, port });
+    const done = (free) => {
+      try {
+        socket.destroy();
+      } catch {
+        /* noop */
+      }
+      resolve(free);
+    };
+    socket.once("connect", () => done(false));
+    socket.once("error", () => done(true));
+    setTimeout(() => done(true), timeoutMs);
+  });
+}
+
+async function pickFreePort(tries = 10) {
+  for (let i = 0; i < tries; i++) {
+    const port = 9349 + Math.floor(Math.random() * 500);
+    if (await isTcpPortFree(port)) return port;
+  }
+  throw new Error(
+    "Nenhuma porta livre para o Chrome (colisao apos 10 tentativas)",
+  );
+}
+
+async function shutdownChrome(chrome, timeoutMs = 5000) {
+  if (!chrome || chrome.exitCode !== null || chrome.signalCode !== null) return;
+  const exited = new Promise((resolve) => chrome.once("exit", () => resolve()));
+  try {
+    chrome.kill("SIGTERM");
+  } catch {
+    return;
+  }
+  const done = await Promise.race([
+    exited.then(() => true),
+    sleep(timeoutMs).then(() => false),
+  ]);
+  if (!done) {
+    try {
+      chrome.kill("SIGKILL");
+    } catch {
+      /* noop */
+    }
+    await Promise.race([exited, sleep(3000)]);
+  }
 }
 
 class Cdp {
@@ -104,23 +156,141 @@ class Cdp {
   }
 }
 
-function extractVerifyLink(sinceBytes) {
-  const log = readFileSync(LARAVEL_LOG, "utf8").slice(sinceBytes);
-  const matches = [
-    ...log.matchAll(/http:\/\/localhost:5173\/verify-email\?[^\s"'<]+/g),
-  ];
-  if (matches.length === 0) return null;
-  return matches[matches.length - 1][0].replace(/&amp;/g, "&");
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-async function waitForVerifyLink(sinceBytes) {
+function decodeQuotedPrintable(text) {
+  return text
+    .replace(/=\r?\n/g, "")
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    );
+}
+
+function extractVerifyLink(sinceBytes, { email = "", baseUrl = "" } = {}) {
+  let log;
+  try {
+    log = readFileSync(LARAVEL_LOG, "utf8").slice(sinceBytes);
+  } catch {
+    return null;
+  }
+  const decoded = decodeQuotedPrintable(log);
+  let origin;
+  try {
+    origin = new globalThis.URL(baseUrl).origin;
+  } catch {
+    origin = "";
+  }
+  const pattern = origin
+    ? new RegExp(`${escapeRegExp(origin)}/verify-email\\?[^\\s"'<]+`, "g")
+    : /https?:\/\/[^\s"'<]*\/verify-email\?[^\s"'<]+/g;
+  const matches = [...decoded.matchAll(pattern)];
+  if (matches.length === 0) return null;
+  const clean = (m) => m.replace(/&amp;/g, "&").replace(/[).,;:!?'"\]]+$/, "");
+  if (email) {
+    const encoded = encodeURIComponent(email);
+    const nearby = matches.filter((m) => {
+      const idx = m.index ?? 0;
+      const ctx = decoded.slice(Math.max(0, idx - 4000), idx + 4000);
+      return ctx.includes(email) || ctx.includes(encoded);
+    });
+    if (nearby.length > 0) return clean(nearby[nearby.length - 1][0]);
+  }
+  return clean(matches[matches.length - 1][0]);
+}
+
+async function waitForVerifyLink(sinceBytes, opts = {}) {
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
-    const link = extractVerifyLink(sinceBytes);
+    const link = extractVerifyLink(sinceBytes, opts);
     if (link !== null) return link;
     await sleep(500);
   }
   return null;
+}
+
+async function waitForPage(
+  cdp,
+  expression,
+  { timeoutMs = 15000, pollMs = 300 } = {},
+) {
+  const deadline = Date.now() + timeoutMs;
+  let last = null;
+  while (Date.now() < deadline) {
+    last = await cdp.evaluate(expression);
+    if (last) return last;
+    await sleep(pollMs);
+  }
+  return last;
+}
+
+async function readVisibleError(cdp) {
+  try {
+    return await cdp.evaluate(`(() => {
+      const selectors = [
+        '.register-form__error',
+        '.register-form__server-error',
+        '.login-form__error',
+        '.login-form__server-error',
+        '[role="alert"]',
+        '.q-notification__message',
+      ];
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el && el.textContent.trim()) return el.textContent.trim().slice(0, 300);
+      }
+      return '';
+    })()`);
+  } catch {
+    return "";
+  }
+}
+
+function extractUserId(link) {
+  const m = link?.match(/\/verify-email\/(\d+)\//);
+  return m ? m[1] : null;
+}
+
+async function cleanupTestUser(link) {
+  const userId = extractUserId(link);
+  if (userId) {
+    try {
+      const res = await globalThis.fetch(`${API_URL}/api/v1/users/${userId}`, {
+        method: "DELETE",
+        signal: globalThis.AbortSignal.timeout(5000),
+      });
+      globalThis.console.log(
+        `[INFO] limpeza via API: DELETE users/${userId} -> HTTP ${res.status}`,
+      );
+    } catch (e) {
+      globalThis.console.log(
+        `[INFO] limpeza via API ignorada (best-effort): ${e.message}`,
+      );
+    }
+  }
+  try {
+    execFileSync(
+      "php",
+      [
+        "-r",
+        `$dbPath = getenv("SMOKE_DB_PATH") ?: ${JSON.stringify(DEFAULT_DB_PATH)}; $pdo = new PDO("sqlite:" . $dbPath); $stmt = $pdo->prepare("DELETE FROM users WHERE email = ?"); $stmt->execute([getenv("SMOKE_VERIFY_EMAIL")]);`,
+      ],
+      {
+        env: {
+          ...process.env,
+          SMOKE_VERIFY_EMAIL: EMAIL,
+          SMOKE_DB_PATH: DB_PATH,
+        },
+        stdio: "ignore",
+      },
+    );
+    globalThis.console.log("[INFO] usuario de teste removido (best-effort)");
+  } catch {
+    globalThis.console.log(
+      "[INFO] limpeza do usuario de teste ignorada (best-effort)",
+    );
+  }
 }
 
 async function fillRegister(cdp) {
@@ -148,16 +318,34 @@ async function main() {
     );
     process.exit(1);
   }
+  let apiHost;
+  try {
+    apiHost = new globalThis.URL(API_URL).hostname;
+  } catch {
+    apiHost = "";
+  }
+  if (!apiHost) {
+    globalThis.console.error("Erro: API_SMOKE_URL invalida (sem host).");
+    process.exit(1);
+  }
+  if (!LOCAL_API_HOSTS.has(apiHost) && !ALLOW_REMOTE_API) {
+    globalThis.console.error(
+      `Erro: API_SMOKE_URL aponta para host nao local (${apiHost}). ` +
+        "O smoke cria usuarios de teste: use host local ou SMOKE_ALLOW_REMOTE=1.",
+    );
+    process.exit(1);
+  }
 
   let chrome = null;
   let profileDir = null;
   let cdp = null;
   let targetId = null;
   let endpoint = null;
+  let verifyLink = null;
 
   try {
     profileDir = mkdtempSync(join(tmpdir(), "smoke-verify-browser-"));
-    const port = 9349 + Math.floor(Math.random() * 500);
+    const port = await pickFreePort();
     endpoint = `http://127.0.0.1:${port}`;
     chrome = spawn(
       CHROME_BIN,
@@ -181,6 +369,11 @@ async function main() {
       waitForBrowser(endpoint),
       chromeSpawnFailed,
     ]);
+    if (!version?.Browser) {
+      throw new Error(
+        "Endpoint CDP inesperado (sem Browser): possivel colisao de porta",
+      );
+    }
     globalThis.console.log(`Browser: ${version.Browser}`);
 
     const target = await fetchJson(`${endpoint}/json/new?about:blank`, {
@@ -191,20 +384,15 @@ async function main() {
     await cdp.command("Page.enable");
 
     await cdp.command("Page.navigate", { url: `${BASE_URL}/register` });
-    await sleep(1500);
-    assert(
-      (await cdp.evaluate("location.pathname")) === "/register",
-      "navegou para /register",
+    const registerReady = await waitForPage(
+      cdp,
+      "(() => location.pathname === '/register' && !!document.querySelector('#register-email'))()",
+      { timeoutMs: 15000 },
     );
-
-    await cdp.evaluate(`(async () => {
-      const deadline = Date.now() + 10000;
-      while (Date.now() < deadline) {
-        if (document.querySelector('#register-email')) return true;
-        await new Promise((r) => setTimeout(r, 200));
-      }
-      return false;
-    })()`);
+    assert(
+      registerReady === true,
+      "formulario de registro carregou (/register com #register-email)",
+    );
 
     let logOffset = 0;
     try {
@@ -213,31 +401,38 @@ async function main() {
       logOffset = 0;
     }
     await fillRegister(cdp);
-    const registered = await (async () => {
-      const deadline = Date.now() + 15000;
-      while (Date.now() < deadline) {
-        const path = await cdp.evaluate("location.pathname");
-        if (path === "/login") return true;
-        await sleep(300);
-      }
-      return false;
-    })();
-    assert(registered, "registro redirecionou para /login");
+    const registered = await waitForPage(
+      cdp,
+      "(() => (location.pathname === '/login' ? 'login' : null))()",
+      { timeoutMs: 15000 },
+    );
+    if (registered !== "login") {
+      const errText = await readVisibleError(cdp);
+      assert(
+        false,
+        `registro redirecionou para /login (erro visivel: ${errText || "nenhum"})`,
+      );
+    } else {
+      assert(true, "registro redirecionou para /login");
+    }
 
-    const link = await waitForVerifyLink(logOffset);
+    const link = await waitForVerifyLink(logOffset, {
+      email: EMAIL,
+      baseUrl: BASE_URL,
+    });
+    verifyLink = link;
     assert(link !== null, "link de verificacao presente no laravel.log");
     assert(
       link !== null && link.includes("expires=") && link.includes("signature="),
       "link contem expires e signature",
     );
 
-    await cdp.evaluate(`(async () => {
-      const deadline = Date.now() + 10000;
-      while (Date.now() < deadline) {
-        if (document.querySelector('#login-email')) return true;
-        await new Promise((r) => setTimeout(r, 200));
-      }
-    })()`);
+    const loginReady = await waitForPage(
+      cdp,
+      "(() => !!document.querySelector('#login-email'))()",
+      { timeoutMs: 10000 },
+    );
+    assert(loginReady === true, "formulario de login carregou (#login-email)");
     await cdp.evaluate(`(async () => {
       const email = document.querySelector('#login-email');
       const pass = document.querySelector('#login-password');
@@ -299,10 +494,14 @@ async function main() {
       "php",
       [
         "-r",
-        `$pdo = new PDO("sqlite:${DB_PATH}"); $r = $pdo->query("SELECT email_verified_at FROM users WHERE email = " . $pdo->quote(getenv("SMOKE_VERIFY_EMAIL")))->fetch(); echo $r && $r["email_verified_at"] ? $r["email_verified_at"] : "NULL";`,
+        `$dbPath = getenv("SMOKE_DB_PATH") ?: ${JSON.stringify(DEFAULT_DB_PATH)}; $pdo = new PDO("sqlite:" . $dbPath); $r = $pdo->query("SELECT email_verified_at FROM users WHERE email = " . $pdo->quote(getenv("SMOKE_VERIFY_EMAIL")))->fetch(); echo $r && $r["email_verified_at"] ? $r["email_verified_at"] : "NULL";`,
       ],
       {
-        env: { ...process.env, SMOKE_VERIFY_EMAIL: EMAIL },
+        env: {
+          ...process.env,
+          SMOKE_VERIFY_EMAIL: EMAIL,
+          SMOKE_DB_PATH: DB_PATH,
+        },
         encoding: "utf8",
       },
     ).trim();
@@ -318,6 +517,11 @@ async function main() {
     globalThis.console.log("SMOKE-VERIFY ok:true failures:0");
   } finally {
     try {
+      await cleanupTestUser(verifyLink);
+    } catch {
+      /* noop */
+    }
+    try {
       if (cdp) cdp.close();
     } catch {
       /* noop */
@@ -331,7 +535,7 @@ async function main() {
       /* noop */
     }
     try {
-      chrome?.kill();
+      await shutdownChrome(chrome);
     } catch {
       /* noop */
     }
