@@ -61,6 +61,19 @@ flowchart TD
 
 Se a API responder 419 no meio de uma escrita, o coordenador CSRF reinicia o estado antes de devolver o erro tipado, então a próxima escrita refaz o bootstrap do zero em vez de repetir um cookie morto.
 
+## Domínio compartilhado e HTTPS
+
+O cookie de sessão da API usa `SameSite=Lax` (padrão) e só viaja entre subdomínios do mesmo domínio registrável. Na prática: SPA e API sob o mesmo domínio, em subdomínios distintos — `app.exemplo.com` + `api.exemplo.com` funciona; `app.exemplo.com` + `api.exemplo.net` não funciona, e nenhuma configuração de frontend contorna isso.
+
+Pontos de atenção:
+
+- **HTTPS em produção** — a API emite o cookie com `Secure`: a SPA também precisa ser servida em HTTPS. Em uma página servida por HTTP o navegador não envia o cookie de volta, e a primeira escrita falha com 419.
+- **`SameSite=None`** — não é o padrão e só se cogita com `Secure` ativo e domínio compartilhado real. Não adote como correção de 419: se o 419 acontece, a causa é host/domínio fora de alinhamento ou sessão/CSRF ausente, não a flag.
+- **Valores concretos** — `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS` e `CORS_ALLOWED_ORIGINS` vivem nas variáveis da API (documentadas lá). Antes de subir o ambiente, confirme que SPA e API apontam para subdomínios do domínio definido nelas.
+- **`VITE_API_URL` de produção** — vem de segredo de deploy e deve apontar para o host HTTPS da API, nunca para `localhost` nem para HTTP.
+
+Se o 419 persistir com `withCredentials` e CSRF corretos, verifique o alinhamento de domínio antes de qualquer ajuste no código.
+
 ## Quando o contrato OpenAPI muda
 
 O contrato é publicado pela API e pinado neste repositório: `openapi/openapi.json` é o snapshot aprovado, acompanhado do pin verificável (origem, commit, execução, resumo criptográfico) e do recibo do pacote. A SPA nunca consome a API fora do contrato aprovado. O procedimento quando chega um contrato novo:
