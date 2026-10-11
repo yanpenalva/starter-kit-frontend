@@ -916,6 +916,18 @@ describe("api base url validation and factory boundary", () => {
     });
     expect(validProd.environment).toBe("production");
     expect(validProd.apiBaseUrl).toBe("https://api.starterkit.com");
+    expect(() =>
+      resolveEnvironmentConfig({
+        VITE_APP_ENV: "production",
+        VITE_API_URL: "http://api.starterkit.com",
+      }),
+    ).toThrow(InvalidEnvironmentConfigError);
+    expect(
+      resolveEnvironmentConfig({
+        VITE_APP_ENV: "staging",
+        VITE_API_URL: "http://localhost:8000",
+      }).apiBaseUrl,
+    ).toBe("http://localhost:8000");
   });
 });
 describe("type guards and structural variant validation", () => {

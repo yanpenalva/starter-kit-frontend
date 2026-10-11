@@ -132,6 +132,11 @@ export const isProductionApiUrl = (apiUrl: string): boolean => {
 export const resolveEnvironmentConfig = (env: unknown): EnvironmentConfig => {
   const appEnv = resolveAppEnvironment(env);
   const apiBaseUrl = apiBaseUrlFromEnv(env);
+  if (appEnv === "production" && !apiBaseUrl.startsWith("https://")) {
+    throw new InvalidEnvironmentConfigError(
+      "production environment requires an HTTPS API URL",
+    );
+  }
   if (appEnv === "preview" && isProductionApiUrl(apiBaseUrl)) {
     throw new InvalidEnvironmentConfigError(
       "preview environment must never point to production API",
