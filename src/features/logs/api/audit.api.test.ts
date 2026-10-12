@@ -47,8 +47,18 @@ describe("audit.api", () => {
     await listActivities();
 
     const call = calls[0];
+    expect(call?.query.get("search")).toBeNull();
+    expect(call?.query.get("log_name")).toBeNull();
     expect(call?.query.get("event")).toBeNull();
     expect(call?.query.get("subject_type")).toBeNull();
+  });
+
+  it("envia busca textual e canal log_name quando informados", async () => {
+    await listActivities({ search: "papel", log_name: "cli" });
+
+    const call = calls[0];
+    expect(call?.query.get("search")).toBe("papel");
+    expect(call?.query.get("log_name")).toBe("cli");
   });
 
   it("propagates API errors as HttpError", async () => {

@@ -77,4 +77,94 @@ describe("LogsPage", () => {
       ),
     );
   });
+
+  it("filtra por busca textual e canal log_name", async () => {
+    const mocks = makeAuditRouteMocks([
+      makeAdminActivity({ id: 1, description: "Papel atualizado" }),
+    ]);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain("Papel atualizado"),
+    );
+
+    const search = wrapper.get('input[aria-label="Buscar na auditoria"]');
+    await search.setValue("papel");
+    await search.trigger("input");
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some((call) => call.query.get("search") === "papel"),
+      ).toBe(true),
+    );
+
+    await wrapper.get('select[aria-label="Filtrar por canal"]').setValue("cli");
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some((call) => call.query.get("log_name") === "cli"),
+      ).toBe(true),
+    );
+  });
+
+  it("abre drawer com os detalhes do registro e fecha", async () => {
+    const mocks = makeAuditRouteMocks([
+      makeAdminActivity({
+        id: 7,
+        description: "Papéis sincronizados",
+        properties: {
+          correlation_id: "corr-42",
+          actor_type: "user",
+          actor_id: 3,
+          attributes: { roles: ["admin", "user"] },
+        },
+      }),
+    ]);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain("Papéis sincronizados"),
+    );
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+
+    await wrapper
+      .get('button[aria-label="Ver detalhes do registro 7"]')
+      .trigger("click");
+
+    const dialog = wrapper.get('[role="dialog"]');
+    expect(dialog.text()).toContain("Papéis sincronizados");
+    expect(dialog.text()).toContain("corr-42");
+    expect(dialog.text()).toContain("attributes");
+
+    await wrapper
+      .get('button[aria-label="Fechar detalhes do registro 7"]')
+      .trigger("click");
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+  });
+
+  it("formata o payload do drawer como JSON legível", async () => {
+    const mocks = makeAuditRouteMocks([
+      makeAdminActivity({
+        id: 9,
+        description: "Registro simples",
+        properties: { correlation_id: "corr-9", actor_type: "cli" },
+      }),
+    ]);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain("Registro simples"),
+    );
+    await wrapper
+      .get('button[aria-label="Ver detalhes do registro 9"]')
+      .trigger("click");
+
+    const pre = wrapper.get('[role="dialog"] pre');
+    const formatted = JSON.parse(pre.text());
+    expect(formatted).toEqual({
+      correlation_id: "corr-9",
+      actor_type: "cli",
+    });
+  });
 });

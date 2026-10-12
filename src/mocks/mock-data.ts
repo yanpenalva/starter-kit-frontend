@@ -134,6 +134,7 @@ const makeMockActivities = (): AdminActivity[] => {
     return {
       id,
       event,
+      log_name: id % 7 === 0 ? "cli" : "web",
       subject_type: subjectType,
       subject_id: (id % 32) + 1,
       description: `${ACTIVITY_DESCRIPTIONS[index % ACTIVITY_DESCRIPTIONS.length]} (registro ${id} de 48).`,
