@@ -1,5 +1,8 @@
 import { computed, toRef } from "vue";
 import { useSessionStore } from "@/features/auth/stores/session";
+import { routeDescriptors } from "@/app/router/descriptors";
+import type { NavigationDescriptor } from "@/app/router/descriptors";
+
 export interface NavMenuItem {
   key: string;
   label: string;
@@ -11,53 +14,31 @@ export interface NavMenuItem {
   roles?: string[];
   permissions?: string[];
 }
-export const APP_NAV_ITEMS: readonly NavMenuItem[] = [
-  {
-    key: "home",
-    label: "Início",
-    to: "/",
-  },
-  {
-    key: "dashboard",
-    label: "Painel",
-    to: "/dashboard",
-    requiresAuth: true,
-  },
-  {
-    key: "users",
-    label: "Usuários",
-    to: "/users",
-    requiresAuth: true,
-    permissions: ["users.view"],
-  },
-  {
-    key: "roles",
-    label: "Papéis",
-    to: "/roles",
-    requiresAuth: true,
-    permissions: ["roles.view"],
-  },
-  {
-    key: "logs",
-    label: "Auditoria",
-    to: "/logs",
-    requiresAuth: true,
-    permissions: ["logs.view"],
-  },
-  {
-    key: "manual",
-    label: "Manual",
-    to: "/manual",
-    requiresAuth: true,
-  },
-  {
-    key: "limited",
-    label: "Verificação",
-    to: "/limited",
-    requiresAuth: true,
-    allowLimited: true,
-  },
-];
+
+const navLabelOverrides: Readonly<Record<string, string>> = {
+  home: "Início",
+};
+
+type NavDescriptor = NavigationDescriptor & {
+  nav: { label: string; allowLimited?: boolean };
+};
+
+const hasNav = (
+  descriptor: NavigationDescriptor,
+): descriptor is NavDescriptor => descriptor.nav !== undefined;
+
+export const APP_NAV_ITEMS: readonly NavMenuItem[] = routeDescriptors
+  .filter(hasNav)
+  .map((descriptor) => ({
+    key: descriptor.name,
+    label: navLabelOverrides[descriptor.name] ?? descriptor.nav.label,
+    to: descriptor.path,
+    requiresAuth: descriptor.meta?.requiresAuth,
+    guestOnly: descriptor.meta?.guestOnly,
+    allowLimited: descriptor.nav.allowLimited,
+    roles: descriptor.meta?.roles,
+    permissions: descriptor.meta?.permissions,
+  }));
 export const useAuthorization = () => {
   const session = useSessionStore();
   const isAuthenticated = toRef(session, "isAuthenticated");

@@ -6,98 +6,26 @@ import {
   type RouteRecordRaw,
 } from "vue-router";
 import { useSessionStore } from "@/features/auth/stores/session";
-export const routes: RouteRecordRaw[] = [
-  {
-    path: "/",
-    redirect: { name: "login" },
-  },
-  {
-    path: "/login",
-    name: "login",
-    component: () => import("@features/auth/pages/LoginPage.vue"),
-    meta: { guestOnly: true },
-  },
-  {
-    path: "/register",
-    name: "register",
-    component: () => import("@features/auth/pages/RegisterPage.vue"),
-    meta: { guestOnly: true },
-  },
-  {
-    path: "/forgot-password",
-    name: "forgot-password",
-    component: () => import("@features/auth/pages/ForgotPasswordPage.vue"),
-    meta: { guestOnly: true },
-  },
-  {
-    path: "/reset-password",
-    name: "reset-password",
-    component: () => import("@features/auth/pages/ResetPasswordPage.vue"),
-    meta: { guestOnly: true },
-  },
-  {
-    path: "/verify-email",
-    name: "verify-email",
-    component: () => import("@features/auth/pages/VerifyEmailPage.vue"),
-  },
-  {
-    path: "/dashboard",
-    name: "dashboard",
-    component: () => import("@features/auth/pages/DashboardPage.vue"),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: "/users",
-    name: "users",
-    component: () => import("@features/users/pages/UsersPage.vue"),
-    meta: { requiresAuth: true, permissions: ["users.view"] },
-  },
-  {
-    path: "/users/:userId",
-    name: "user-detail",
-    component: () => import("@features/users/pages/UserDetailPage.vue"),
-    meta: { requiresAuth: true, permissions: ["users.view"] },
-  },
-  {
-    path: "/roles",
-    name: "roles",
-    component: () => import("@features/roles/pages/RolesPage.vue"),
-    meta: { requiresAuth: true, permissions: ["roles.view"] },
-  },
-  {
-    path: "/logs",
-    name: "logs",
-    component: () => import("@features/logs/pages/LogsPage.vue"),
-    meta: { requiresAuth: true, permissions: ["logs.view"] },
-  },
-  {
-    path: "/manual",
-    name: "manual",
-    component: () => import("@features/manual/pages/ManualPage.vue"),
-    meta: { requiresAuth: true, allowLimited: true },
-  },
-  {
-    path: "/limited",
-    name: "limited",
-    component: () => import("@features/auth/pages/LimitedPage.vue"),
-    meta: { requiresAuth: true, allowLimited: true },
-  },
-  {
-    path: "/403",
-    name: "forbidden",
-    component: () => import("@features/auth/pages/ForbiddenPage.vue"),
-  },
-  {
-    path: "/404",
-    name: "not-found",
-    component: () => import("@features/auth/pages/NotFoundPage.vue"),
-  },
-  {
-    path: "/:pathMatch(.*)*",
-    name: "catch-all",
-    component: () => import("@features/auth/pages/NotFoundPage.vue"),
-  },
-];
+import { routeDescriptors } from "./descriptors";
+
+const toRouteRecord = ({
+  path,
+  name,
+  component,
+  redirect,
+  meta,
+}: (typeof routeDescriptors)[number]): RouteRecordRaw => {
+  if (redirect) {
+    return { path, name, redirect, meta };
+  }
+  if (!component) {
+    throw new Error(`rota ${name} sem component nem redirect`);
+  }
+  return { path, name, component, meta };
+};
+
+export const routes: RouteRecordRaw[] = routeDescriptors.map(toRouteRecord);
+
 export const navigationGuard = async (
   to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
