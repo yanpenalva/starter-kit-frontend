@@ -84,6 +84,7 @@ describe("router routes and navigation guards", () => {
     expect(paths).toContain("/verify-email");
     expect(paths).toContain("/dashboard");
     expect(paths).toContain("/users");
+    expect(paths).toContain("/users/:userId");
     expect(paths).toContain("/roles");
     expect(paths).toContain("/logs");
     expect(paths).toContain("/manual");

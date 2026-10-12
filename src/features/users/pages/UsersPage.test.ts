@@ -2,6 +2,7 @@ import { VueQueryPlugin } from "@tanstack/vue-query";
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createMemoryHistory, createRouter } from "vue-router";
 import { delay, http, HttpResponse } from "msw";
 import { makeAdminUser, makeUsersRouteMocks } from "@/test/admin-handlers";
 import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
@@ -20,7 +21,23 @@ const users = Array.from({ length: 16 }, (_, index) =>
   }),
 );
 
-const mountPage = () => {
+const makeRouter = async () => {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      {
+        path: "/users/:userId",
+        name: "user-detail",
+        component: { template: "<div />" },
+      },
+    ],
+  });
+  await router.push("/users");
+  await router.isReady();
+  return router;
+};
+
+const mountPage = async () => {
   useSessionStore().user = {
     id: 1,
     name: "Admin",
@@ -31,7 +48,7 @@ const mountPage = () => {
   };
   return mount(UsersPage, {
     global: {
-      plugins: [[VueQueryPlugin, { queryClient }]],
+      plugins: [[VueQueryPlugin, { queryClient }], await makeRouter()],
       stubs: { AppLayout: { template: "<div><slot /></div>" } },
     },
   });
@@ -43,7 +60,7 @@ describe("UsersPage", () => {
   it("lists users and changes pages", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(
@@ -72,7 +89,7 @@ describe("UsersPage", () => {
   it("filters users and submits status changes", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Nome de Pessoa 1"]').exists()).toBe(
@@ -129,7 +146,7 @@ describe("UsersPage", () => {
         },
       ),
     );
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Nome de Pessoa 1"]').exists()).toBe(
@@ -159,7 +176,7 @@ describe("UsersPage", () => {
   it("ignores duplicate submits while a request is pending", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Nome de Pessoa 1"]').exists()).toBe(
@@ -181,7 +198,7 @@ describe("UsersPage", () => {
   it("creates a user through the creation form", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Criar usuário"]').exists()).toBe(true),
@@ -222,7 +239,7 @@ describe("UsersPage", () => {
   it("deletes a user after confirmation", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
     const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
 
     try {
@@ -260,7 +277,7 @@ describe("UsersPage", () => {
         ),
       ),
     );
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Criar usuário"]').exists()).toBe(true),
@@ -304,12 +321,26 @@ describe("UsersPage", () => {
         ),
       ),
     );
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[role="alert"]').text()).toContain(
         "Aguarde 30 segundos",
       ),
+    );
+  });
+
+  it("expõe atalho para o detalhe do usuário na listagem", async () => {
+    const mocks = makeUsersRouteMocks(users);
+    server.use(...mocks.handlers);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .get('[aria-label="Ver detalhe de Pessoa 1"]')
+          .attributes("href"),
+      ).toBe("/users/1"),
     );
   });
 });

@@ -109,6 +109,13 @@
         <tbody>
           <tr v-for="user in query.data.value.data" :key="user.id">
             <td>
+              <RouterLink
+                :to="{ name: 'user-detail', params: { userId: user.id } }"
+                class="user-link"
+                :aria-label="`Ver detalhe de ${user.name}`"
+              >
+                {{ user.name }}
+              </RouterLink>
               <input
                 v-model="editedNames[user.id]"
                 :aria-label="`Nome de ${user.name}`"
@@ -219,6 +226,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
+import { RouterLink } from "vue-router";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
@@ -441,6 +449,17 @@ td:first-child,
 td:nth-child(4) {
   display: flex;
   gap: 0.5rem;
+}
+
+.user-link {
+  align-self: center;
+  color: var(--color-evergreen, #314830);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.user-link:hover {
+  text-decoration: underline;
 }
 
 .pagination {
