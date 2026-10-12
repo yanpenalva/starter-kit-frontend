@@ -80,7 +80,7 @@
             </RouterLink>
 
             <RouterLink
-              v-if="hasRole('admin')"
+              v-if="can('roles.view')"
               to="/roles"
               class="dashboard-action-btn"
             >
@@ -97,7 +97,7 @@
 
             <p
               v-if="
-                !can('users.view') && !hasRole('admin') && !can('logs.view')
+                !can('users.view') && !can('roles.view') && !can('logs.view')
               "
               class="dashboard-card__empty"
             >
@@ -116,8 +116,7 @@ import { RouterLink } from "vue-router";
 import AppLayout from "@/shared/layouts/AppLayout.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 
-const { user, isLimited, roles, permissions, can, hasRole } =
-  useAuthorization();
+const { user, isLimited, roles, permissions, can } = useAuthorization();
 </script>
 
 <style scoped>
