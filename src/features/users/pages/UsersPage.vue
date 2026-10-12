@@ -25,8 +25,13 @@
         Papel
         <select v-model="filters.role" aria-label="Filtrar por papel">
           <option value="">Todos</option>
-          <option value="admin">admin</option>
-          <option value="user">user</option>
+          <option
+            v-for="role in filterRoleOptions"
+            :key="role.id"
+            :value="role.name"
+          >
+            {{ role.name }}
+          </option>
         </select>
       </label>
     </div>
@@ -137,10 +142,14 @@
             <td>{{ user.email }}</td>
             <td>{{ user.deactivated_at === null ? "Ativo" : "Desativado" }}</td>
             <td>
-              <input
-                v-model="editedRoles[user.id]"
+              <RoleMultiSelect
+                v-if="can('users.assign-roles')"
+                :model-value="editedRoles[user.id] ?? []"
                 :aria-label="`Papéis de ${user.name}`"
+                :disabled="isMutating"
+                @update:model-value="editedRoles[user.id] = $event"
               />
+              <span v-else>{{ user.roles.join(", ") }}</span>
               <button
                 v-if="can('users.assign-roles')"
                 type="button"
@@ -230,8 +239,11 @@ import { RouterLink } from "vue-router";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
+import RoleMultiSelect from "@/shared/components/RoleMultiSelect.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { useRoleOptions } from "@/features/roles/composables/useRoleOptions";
+import { listRoles } from "@/features/roles/api/roles.api";
 import { useUsersList } from "@/features/users/composables/useUsersList";
 
 type PendingActionKind = "name" | "roles" | "status" | "create" | "delete";
@@ -243,6 +255,10 @@ interface PendingAction {
 
 const { can } = useAuthorization();
 const feedback = useFormFeedback();
+const roleOptionsController = useRoleOptions(
+  (filters) => listRoles(filters) as ReturnType<typeof listRoles>,
+);
+const filterRoleOptions = roleOptionsController.options;
 const {
   filters,
   query,
@@ -253,7 +269,7 @@ const {
   deleteMutation,
 } = useUsersList();
 const editedNames = reactive<Record<number, string>>({});
-const editedRoles = reactive<Record<number, string>>({});
+const editedRoles = reactive<Record<number, string[]>>({});
 const newUser = reactive({
   name: "",
   email: "",
@@ -278,7 +294,7 @@ watch(
   (page) => {
     page?.data.forEach((user) => {
       editedNames[user.id] = user.name;
-      editedRoles[user.id] = user.roles.join(", ");
+      editedRoles[user.id] = [...user.roles];
     });
   },
   { immediate: true },
@@ -303,10 +319,7 @@ const saveRoles = async (userId: number): Promise<void> => {
   if (pendingAction.value !== null || !can("users.assign-roles")) return;
   pendingAction.value = { kind: "roles", userId };
   try {
-    const roles = (editedRoles[userId] ?? "")
-      .split(",")
-      .map((role) => role.trim())
-      .filter(Boolean);
+    const roles = editedRoles[userId] ?? [];
     await rolesMutation.mutateAsync({ userId, payload: { roles } });
     feedback.reportSuccess("Papéis atualizados com sucesso.");
   } catch (error: unknown) {
