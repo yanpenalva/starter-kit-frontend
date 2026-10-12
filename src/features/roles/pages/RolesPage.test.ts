@@ -8,6 +8,7 @@ import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
 import { useSessionStore } from "@/features/auth/stores/session";
 import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
+import { queryClient } from "@/app/providers/query";
 import RolesPage from "./RolesPage.vue";
 
 const roles = [
@@ -26,7 +27,7 @@ const mountPage = () => {
   };
   return mount(RolesPage, {
     global: {
-      plugins: [VueQueryPlugin],
+      plugins: [[VueQueryPlugin, { queryClient }]],
       stubs: { AppLayout: { template: "<div><slot /></div>" } },
     },
   });
@@ -198,5 +199,57 @@ describe("RolesPage", () => {
     } finally {
       confirmSpy.mockRestore();
     }
+  });
+
+  it("mostra erros por campo quando a criação recebe 422", async () => {
+    const mocks = makeRolesRouteMocks(roles);
+    server.use(...mocks.handlers);
+    server.use(
+      http.post(`${TEST_API_BASE}/api/v1/roles`, async ({ request }) =>
+        HttpResponse.json(
+          {
+            message: "Dados inválidos.",
+            errors: { name: ["O nome do papel já existe."] },
+          },
+          { status: 422, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Criar papel"]').exists()).toBe(true),
+    );
+    await wrapper.get('[aria-label="Nome do novo papel"]').setValue("auditor");
+    await wrapper.get('[aria-label="Criar papel"]').trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[role="alert"]').text()).toContain(
+        "O nome do papel já existe.",
+      ),
+    );
+  });
+
+  it("mostra contagem regressiva quando a listagem recebe 429", async () => {
+    const mocks = makeRolesRouteMocks(roles);
+    server.use(...mocks.handlers);
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/roles`, async ({ request }) =>
+        HttpResponse.json(
+          { message: "Muitas tentativas." },
+          {
+            status: 429,
+            headers: { ...makeCorsHeaders(request), "Retry-After": "30" },
+          },
+        ),
+      ),
+    );
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[role="alert"]').text()).toContain(
+        "Aguarde 30 segundos",
+      ),
+    );
   });
 });

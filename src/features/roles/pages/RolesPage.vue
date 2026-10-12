@@ -15,10 +15,7 @@
     </label>
 
     <p v-if="query.isPending.value" role="status">Carregando papéis...</p>
-    <p v-if="query.isError.value" role="alert">
-      Não foi possível carregar os papéis.
-    </p>
-    <p v-if="mutationError" role="alert">{{ mutationError }}</p>
+    <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
     <form
       v-if="can('roles.manage')"
@@ -28,6 +25,10 @@
     >
       Nome do papel
       <input v-model="newRoleName" aria-label="Nome do novo papel" required />
+      <FieldErrors
+        :errors="feedback.fieldErrors.value.name ?? []"
+        field-label="Nome do novo papel"
+      />
       <button type="submit" :disabled="creatingRole">Criar papel</button>
     </form>
 
@@ -132,7 +133,10 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from "vue";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
+import FormFeedback from "@/shared/components/FormFeedback.vue";
+import FieldErrors from "@/shared/components/FieldErrors.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
+import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import {
   CATALOGUE_PERMISSIONS,
   CATALOGUE_PERMISSION_LABELS,
@@ -142,11 +146,11 @@ import { isRoleImmutable } from "@/features/roles/api/roles.types";
 import { useRolesList } from "@/features/roles/composables/useRolesList";
 
 const { can } = useAuthorization();
+const feedback = useFormFeedback();
 const { filters, query, permissionMutation, createMutation, deleteMutation } =
   useRolesList();
 const editedPermissions = reactive<Record<number, CataloguePermission[]>>({});
 const newRoleName = ref("");
-const mutationError = ref<string | null>(null);
 const pendingRoleId = ref<number | null>(null);
 const creatingRole = ref(false);
 const deletingRoleId = ref<number | null>(null);
@@ -159,32 +163,37 @@ watch(
   },
   { immediate: true },
 );
+watch(query.error, (error) => {
+  if (error !== null && query.isError.value) {
+    feedback.handleFailure(error);
+  }
+});
 
 const savePermissions = async (roleId: number): Promise<void> => {
   if (permissionMutation.isPending.value) return;
   if (!can("roles.update-permissions")) return;
-  mutationError.value = null;
   pendingRoleId.value = roleId;
   try {
     await permissionMutation.mutateAsync({
       roleId,
       payload: { permissions: editedPermissions[roleId] ?? [] },
     });
-  } catch {
-    mutationError.value = "Não foi possível atualizar as permissões do papel.";
+    feedback.reportSuccess("Permissões atualizadas com sucesso.");
+  } catch (error: unknown) {
+    feedback.handleFailure(error);
   } finally {
     pendingRoleId.value = null;
   }
 };
 const createNewRole = async (): Promise<void> => {
   if (creatingRole.value || !can("roles.manage")) return;
-  mutationError.value = null;
   creatingRole.value = true;
   try {
     await createMutation.mutateAsync({ name: newRoleName.value });
     newRoleName.value = "";
-  } catch {
-    mutationError.value = "Não foi possível criar o papel.";
+    feedback.reportSuccess("Papel criado com sucesso.");
+  } catch (error: unknown) {
+    feedback.handleFailure(error);
   } finally {
     creatingRole.value = false;
   }
@@ -192,12 +201,12 @@ const createNewRole = async (): Promise<void> => {
 const removeRole = async (roleId: number, roleName: string): Promise<void> => {
   if (deletingRoleId.value !== null || !can("roles.manage")) return;
   if (!globalThis.confirm(`Excluir o papel ${roleName}?`)) return;
-  mutationError.value = null;
   deletingRoleId.value = roleId;
   try {
     await deleteMutation.mutateAsync(roleId);
-  } catch {
-    mutationError.value = "Não foi possível excluir o papel.";
+    feedback.reportSuccess("Papel excluído com sucesso.");
+  } catch (error: unknown) {
+    feedback.handleFailure(error);
   } finally {
     deletingRoleId.value = null;
   }

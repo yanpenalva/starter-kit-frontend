@@ -8,6 +8,7 @@ import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
 import { useSessionStore } from "@/features/auth/stores/session";
 import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
+import { queryClient } from "@/app/providers/query";
 import UsersPage from "./UsersPage.vue";
 
 const users = Array.from({ length: 16 }, (_, index) =>
@@ -30,7 +31,7 @@ const mountPage = () => {
   };
   return mount(UsersPage, {
     global: {
-      plugins: [VueQueryPlugin],
+      plugins: [[VueQueryPlugin, { queryClient }]],
       stubs: { AppLayout: { template: "<div><slot /></div>" } },
     },
   });
@@ -243,5 +244,72 @@ describe("UsersPage", () => {
     } finally {
       confirmSpy.mockRestore();
     }
+  });
+
+  it("mostra erros por campo quando a API rejeita o formulário com 422", async () => {
+    const mocks = makeUsersRouteMocks(users);
+    server.use(...mocks.handlers);
+    server.use(
+      http.post(`${TEST_API_BASE}/api/v1/users`, async ({ request }) =>
+        HttpResponse.json(
+          {
+            message: "Dados inválidos.",
+            errors: { email: ["O email já está em uso."] },
+          },
+          { status: 422, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Criar usuário"]').exists()).toBe(true),
+    );
+    await wrapper
+      .get('[aria-label="Nome do novo usuário"]')
+      .setValue("Novo Usuário");
+    await wrapper
+      .get('[aria-label="Email do novo usuário"]')
+      .setValue("tomada@example.test");
+    await wrapper
+      .get('[aria-label="CPF do novo usuário"]')
+      .setValue("12345678909");
+    await wrapper
+      .get('[aria-label="Senha do novo usuário"]')
+      .setValue("Alterar123!x");
+    await wrapper.get('[aria-label="Criar usuário"]').trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[role="alert"]').text()).toContain(
+        "O email já está em uso.",
+      ),
+    );
+    expect(wrapper.find(".create-form [role=alert]").exists()).toBe(true);
+  });
+
+  it("inicia contagem regressiva quando a listagem recebe 429", async () => {
+    const mocks = makeUsersRouteMocks(users);
+    server.use(...mocks.handlers);
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) =>
+        HttpResponse.json(
+          { message: "Muitas tentativas." },
+          {
+            status: 429,
+            headers: {
+              ...makeCorsHeaders(request),
+              "Retry-After": "30",
+            },
+          },
+        ),
+      ),
+    );
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[role="alert"]').text()).toContain(
+        "Aguarde 30 segundos",
+      ),
+    );
   });
 });
