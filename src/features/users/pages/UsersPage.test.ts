@@ -302,7 +302,7 @@ describe("UsersPage", () => {
 
   it("mostra erros por campo quando a API rejeita o formulário com 422", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
+    server.use(...mocks.handlers, rolesListHandler);
     server.use(
       http.post(`${TEST_API_BASE}/api/v1/users`, async ({ request }) =>
         HttpResponse.json(
@@ -343,7 +343,7 @@ describe("UsersPage", () => {
 
   it("inicia contagem regressiva quando a listagem recebe 429", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
+    server.use(...mocks.handlers, rolesListHandler);
     server.use(
       http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) =>
         HttpResponse.json(
