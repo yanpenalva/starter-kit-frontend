@@ -6,59 +6,18 @@
     </template>
 
     <p v-if="query.isPending.value" role="status">Carregando usuário...</p>
-    <FormFeedback :feedback="feedback" @retry="feedback.retry" />
+    <FormFeedback :feedback="feedback" />
 
     <p v-if="query.isError.value" role="alert">
       Usuário não encontrado ou indisponível.
     </p>
 
-    <form
-      v-if="user"
-      class="detail-form"
-      aria-label="Editar usuário"
-      @submit.prevent="saveEdits"
-    >
-      <div class="detail-grid">
-        <label>
-          Nome
-          <input
-            v-model="form.name"
-            data-testid="edit-name"
-            aria-label="Nome do usuário"
-            required
-          />
-        </label>
-        <label>
-          Email
-          <input
-            v-model="form.email"
-            data-testid="edit-email"
-            aria-label="Email do usuário"
-            type="email"
-            required
-          />
-          <FieldErrors
-            :errors="feedback.fieldErrors.value.email ?? []"
-            field-label="Email do usuário"
-          />
-        </label>
-        <label v-if="can('users.read-cpf')">
-          CPF
-          <input
-            v-model="form.cpf"
-            data-testid="edit-cpf"
-            aria-label="CPF do usuário"
-            inputmode="numeric"
-            maxlength="14"
-          />
-          <FieldErrors
-            :errors="feedback.fieldErrors.value.cpf ?? []"
-            field-label="CPF do usuário"
-          />
-        </label>
-      </div>
-
+    <div v-if="user" class="detail">
       <dl class="detail-meta" aria-label="Informações da conta">
+        <div>
+          <dt>Nome</dt>
+          <dd data-testid="user-name">{{ user.name }}</dd>
+        </div>
         <div>
           <dt>Email</dt>
           <dd data-testid="user-email">{{ user.email }}</dd>
@@ -106,44 +65,43 @@
       <div class="detail-actions">
         <button
           v-if="can('users.update')"
-          type="submit"
-          data-testid="save-user"
-          :disabled="isSaving || !isDirty"
-        >
-          {{ isSaving ? "Salvando..." : "Salvar alterações" }}
-        </button>
-        <button
           type="button"
-          data-testid="cancel-edit"
-          :disabled="isSaving"
-          @click="resetForm"
+          class="ui-control ui-control--primary"
+          data-testid="edit-user"
+          @click="editOpen = true"
         >
-          Cancelar
+          Editar usuário
         </button>
       </div>
-    </form>
+    </div>
+
+    <!-- Mesmo modal de edição da listagem: nenhuma lógica de form duplicada
+         aqui; a rota continua acessível por URL, refresh e histórico. -->
+    <UserEditForm
+      :model-value="editOpen"
+      :user="user"
+      @update:model-value="closeEdit"
+      @profile-saved="handleProfileSaved"
+      @roles-saved="handleRolesSaved"
+    />
   </AdminPageLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, watch } from "vue";
+import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
-import FieldErrors from "@/shared/components/FieldErrors.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
-import {
-  useUserDetail,
-  useUsersList,
-} from "@/features/users/composables/useUsersList";
+import { useUserDetail } from "@/features/users/composables/useUsersList";
 import { formatCpf } from "@/features/users/utils/cpf-mask";
+import UserEditForm from "@/features/users/components/UserEditForm.vue";
 import type { AdminUser } from "@/features/users/api/users.types";
 
 const route = useRoute();
 const { can } = useAuthorization();
 const feedback = useFormFeedback();
-const { updateMutation } = useUsersList();
 
 const userId = computed(() => {
   const raw = route.params.userId;
@@ -156,108 +114,28 @@ const query = useUserDetail(() => userId.value);
 
 const user = computed<AdminUser | null>(() => query.data.value?.data ?? null);
 
-const form = reactive({ name: "", email: "", cpf: "" });
-const saved = reactive({ name: "", email: "", cpf: "" });
+const editOpen = ref(false);
 
-const isDirty = computed(
-  () =>
-    form.name !== saved.name ||
-    form.email !== saved.email ||
-    form.cpf !== saved.cpf,
-);
-
-watch(
-  user,
-  (value) => {
-    if (value === null) return;
-    form.name = value.name;
-    form.email = value.email;
-    form.cpf = formatCpf(value.cpf ?? "") ?? "";
-    saved.name = form.name;
-    saved.email = form.email;
-    saved.cpf = form.cpf;
-  },
-  { immediate: true },
-);
-
-const resetForm = (): void => {
-  form.name = saved.name;
-  form.email = saved.email;
-  form.cpf = saved.cpf;
-  feedback.clearFeedback();
+const closeEdit = (value: boolean): void => {
+  if (!value) editOpen.value = false;
 };
 
-const saveEdits = async (): Promise<void> => {
-  if (userId.value === null || isSaving.value || !can("users.update")) return;
-  const payload: { name?: string; email?: string; cpf?: string | null } = {};
-  if (form.name !== saved.name) payload.name = form.name;
-  if (form.email !== saved.email) payload.email = form.email;
-  if (form.cpf !== saved.cpf) {
-    payload.cpf = form.cpf === "" ? null : form.cpf;
-  }
-  if (Object.keys(payload).length === 0) return;
-  try {
-    await updateMutation.mutateAsync({ userId: userId.value, payload });
-    feedback.reportSuccess("Usuário atualizado com sucesso.");
-  } catch (error: unknown) {
-    feedback.handleFailure(error);
-  }
+// O estado de rascunho, a confirmação de descarte e o beforeunload vivem no
+// modal extraído; a página só reflete o resultado.
+const handleProfileSaved = (): void => {
+  editOpen.value = false;
+  feedback.reportSuccess("Usuário atualizado com sucesso.");
 };
-
-const isSaving = computed(() => updateMutation.isPending.value);
-
-const beforeWindowUnload = (event: BeforeUnloadEvent): void => {
-  if (!isDirty.value) return;
-  if (!globalThis.confirm("Há alterações não salvas. Sair mesmo assim?")) {
-    event.preventDefault();
-  }
+const handleRolesSaved = (): void => {
+  editOpen.value = false;
+  feedback.reportSuccess("Papéis atualizados com sucesso.");
 };
-
-onMounted(() => {
-  window.addEventListener("beforeunload", beforeWindowUnload);
-});
-onUnmounted(() => {
-  window.removeEventListener("beforeunload", beforeWindowUnload);
-});
-
-defineExpose({ beforeWindowUnload });
 </script>
 
 <style scoped>
-.detail-form {
+.detail {
   display: grid;
   gap: 1.5rem;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 1rem;
-}
-
-label {
-  display: grid;
-  gap: 0.375rem;
-  font-size: 0.875rem;
-}
-
-input,
-button {
-  min-height: 2.25rem;
-  padding: 0.375rem 0.625rem;
-  border: 1px solid rgb(58 77 60 / 20%);
-  border-radius: 0.375rem;
-  background: white;
-  color: var(--color-ink, #252b25);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
 }
 
 .detail-meta {
@@ -291,7 +169,7 @@ button:disabled {
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
   background: rgb(58 77 60 / 10%);
-  color: var(--color-evergreen, #314830);
+  color: var(--color-evergreen, #456b56);
   font-size: 0.75rem;
   font-weight: 600;
 }
