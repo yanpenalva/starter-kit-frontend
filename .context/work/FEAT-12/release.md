@@ -35,10 +35,10 @@
 - Finalization mode: `automatic` under EXC-0001.
 - Startup authorization recorded in work item: explicit user request, scoped to this branch/remote/target.
 - Validation summary and exact commands: all frontend, CSD, and required Python gates passed; exact commands and exits are in `verification.md`.
-- Proposed commit message: `feat(lists): integrate list query slice with main`.
+- Commit message: `feat(lists): reconcile list slice with latest main`.
 - Commit approval: `AUTHORIZED` by the explicit user request to commit.
-- Commit hash: pending.
+- Commit hash: `255cf79be516cb7a5d4ef776e9e199a1f68f23a6`.
 - Push target: `origin/feat/fe-layout-w3-lists`.
 - Push approval: `AUTHORIZED` by the explicit user request to push.
-- Push result: pending.
+- Push result: PASS. The implementation commit was pushed fast-forward to `origin/feat/fe-layout-w3-lists`; `git ls-remote` confirmed `255cf79be516cb7a5d4ef776e9e199a1f68f23a6`.
 - Tag approval/result: not applicable; no tag requested.

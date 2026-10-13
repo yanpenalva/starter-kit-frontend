@@ -4,8 +4,8 @@
   "title": "List query enhancements across users, roles, and logs (Issue #12)",
   "track": "product",
   "type": "feature",
-  "phase": "release",
-  "status": "active",
+  "phase": "close",
+  "status": "completed",
   "risk": "high",
   "owner": "yanpenalva",
   "conversation_profile": "senior-software-engineer",
@@ -18,7 +18,9 @@
     "preflight",
     "execute",
     "verify",
-    "release"
+    "release",
+    "observe",
+    "close"
   ],
   "classification": {
     "complexity": "high",
