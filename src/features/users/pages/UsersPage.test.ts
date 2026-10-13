@@ -5,6 +5,7 @@ import type { VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, createRouter } from "vue-router";
 import { delay, http, HttpResponse } from "msw";
+import { Notify } from "quasar";
 import {
   makeAdminRole,
   makeAdminUser,
@@ -182,6 +183,7 @@ afterEach(() => {
     mountedWrappers.pop()?.unmount();
   }
   document.body.innerHTML = "";
+  vi.restoreAllMocks();
 });
 
 describe("UsersPage", () => {
@@ -205,7 +207,8 @@ describe("UsersPage", () => {
     );
     expect(
       wrapper.get('[aria-label="Desativar Pessoa 1"]').classes(),
-    ).toContain("action-button--warning");
+    ).toContain("action-button--secondary");
+    expect(wrapper.get(".user-status--active").text()).toBe("Ativo");
     expect(wrapper.get('[aria-label="Excluir Pessoa 1"]').classes()).toContain(
       "action-button--error",
     );
@@ -294,6 +297,7 @@ describe("UsersPage", () => {
         mocks.calls.some((call) => call.query.get("status") === "active"),
       ).toBe(true),
     );
+    const notify = vi.spyOn(Notify, "create").mockReturnValue(() => undefined);
     await wrapper
       .get('button[aria-label="Desativar Pessoa 2"]')
       .trigger("click");
@@ -308,6 +312,100 @@ describe("UsersPage", () => {
         ),
       ).toBe(true),
     );
+    await vi.waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "Usuário desativado.",
+          timeout: 4000,
+          attrs: expect.objectContaining({ role: "status" }),
+        }),
+      ),
+    );
+  });
+
+  it("shows a success toast and transitions the status when activating a user", async () => {
+    const deactivatedUser = makeAdminUser({
+      id: 5,
+      name: "Pessoa 5",
+      email: "pessoa5@example.test",
+      deactivated_at: "2026-01-01T00:00:00Z",
+    });
+    const mocks = makeUsersRouteMocks([deactivatedUser]);
+    server.use(
+      http.post(
+        `${TEST_API_BASE}/api/v1/users/:userId/status`,
+        async ({ request }) => {
+          deactivatedUser.deactivated_at = null;
+          return HttpResponse.json(
+            { data: deactivatedUser },
+            {
+              headers: makeCorsHeaders(request),
+            },
+          );
+        },
+      ),
+      ...mocks.handlers,
+      rolesListHandler,
+    );
+    const wrapper = await mountPage();
+    await vi.waitFor(() =>
+      expect(wrapper.get(".user-status--deactivated").text()).toBe(
+        "Desativado",
+      ),
+    );
+
+    const notify = vi.spyOn(Notify, "create").mockReturnValue(() => undefined);
+    await wrapper.get('[aria-label="Ativar Pessoa 5"]').trigger("click");
+
+    await vi.waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "Usuário ativado.",
+          timeout: 4000,
+          attrs: expect.objectContaining({ role: "status" }),
+        }),
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(wrapper.get(".user-status--active").text()).toBe("Ativo"),
+    );
+    expect(
+      wrapper.get('[aria-label="Desativar Pessoa 5"]').classes(),
+    ).toContain("action-button--secondary");
+  });
+
+  it("shows an error toast when changing user status fails", async () => {
+    server.use(
+      http.post(`${TEST_API_BASE}/api/v1/users/:userId/status`, ({ request }) =>
+        HttpResponse.json(
+          { message: "Falha interna." },
+          { status: 500, headers: makeCorsHeaders(request) },
+        ),
+      ),
+      ...makeUsersRouteMocks([users[0]!]).handlers,
+      rolesListHandler,
+    );
+    const wrapper = await mountPage();
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Desativar Pessoa 1"]').exists()).toBe(
+        true,
+      ),
+    );
+
+    const notify = vi.spyOn(Notify, "create").mockReturnValue(() => undefined);
+    await wrapper.get('[aria-label="Desativar Pessoa 1"]').trigger("click");
+
+    await vi.waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message:
+            "O serviço está temporariamente indisponível. Tente novamente em alguns instantes.",
+          timeout: 4000,
+          attrs: expect.objectContaining({ role: "status" }),
+        }),
+      ),
+    );
+    expect(wrapper.get(".user-status--active").text()).toBe("Ativo");
   });
 
   it("keeps the user search editable and shows the latest result after a late response", async () => {

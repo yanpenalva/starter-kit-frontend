@@ -1,5 +1,5 @@
 import { createApp } from "vue";
-import { Quasar } from "quasar";
+import { Notify, Quasar } from "quasar";
 import iconSet from "quasar/icon-set/material-icons";
 import "quasar/src/css/index.sass";
 import "@shared/styles/app.css";
@@ -10,7 +10,7 @@ import { queryClient, VueQueryPlugin } from "./app/providers/query";
 
 const mountApp = (): void => {
   createApp(App)
-    .use(Quasar, { iconSet })
+    .use(Quasar, { iconSet, plugins: { Notify } })
     .use(pinia)
     .use(VueQueryPlugin, { queryClient })
     .use(router)
