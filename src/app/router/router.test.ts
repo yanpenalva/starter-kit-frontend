@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
-import type { RouteLocationNormalized } from "vue-router";
+import {
+  createMemoryHistory,
+  createRouter,
+  type RouteLocationNormalized,
+} from "vue-router";
 import { navigationGuard, routes } from "./index";
 import { useSessionStore } from "@/features/auth/stores/session";
 import type { MyProfileResource } from "@/lib/api/generated/models";
@@ -108,9 +112,9 @@ describe("router routes and navigation guards", () => {
     expect(bootstrapSpy).toHaveBeenCalledTimes(1);
     expect(next).toHaveBeenCalledWith();
   });
-  it("redirects root to login via route record", () => {
+  it("redirects root to the existing dashboard route", () => {
     const root = routes.find((r) => r.path === "/");
-    expect(root?.redirect).toEqual({ name: "login" });
+    expect(root?.redirect).toEqual({ name: "dashboard" });
   });
   it("redirects unauthenticated user from protected route to login with redirect query", async () => {
     const session = useSessionStore();
@@ -393,5 +397,103 @@ describe("router routes and navigation guards", () => {
     await navigationGuard(to, createMockRoute({ path: "/" }), next);
 
     expect(next).toHaveBeenCalledWith();
+  });
+
+  const navigateDirectly = async (path: string) => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes,
+    });
+    router.beforeEach(navigationGuard);
+    await router.push(path);
+    await router.isReady();
+    return router.currentRoute.value;
+  };
+
+  it.each([
+    ["guest", "unauthenticated", null, "/login"],
+    [
+      "authenticated without permissions",
+      "authenticated",
+      verifiedStandardUser,
+      "/dashboard",
+    ],
+    ["admin", "authenticated", verifiedAdmin, "/dashboard"],
+    ["limited", "limited", limitedUser, "/limited"],
+    ["MFA pending", "mfa_required", null, "/mfa-challenge"],
+  ] as const)(
+    "routes / to the allowed destination for %s",
+    async (_label, status, user, expected) => {
+      const session = useSessionStore();
+      session.isInitialized = true;
+      session.status = status;
+      session.user = user;
+
+      const route = await navigateDirectly("/");
+
+      expect(route.path).toBe(expected);
+    },
+  );
+
+  it("allows direct access and a fresh-router reload of dashboard, account and manual without admin permissions", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "authenticated";
+    session.user = verifiedStandardUser;
+
+    for (const path of ["/dashboard", "/manual", "/profile"]) {
+      const route = await navigateDirectly(path);
+      expect(route.path).toBe(path);
+      expect(route.name).not.toBe("not-found");
+    }
+  });
+
+  it("allows an administrator to reload each existing welcome and account URL", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "authenticated";
+    session.user = verifiedAdmin;
+
+    for (const path of ["/dashboard", "/manual", "/profile"]) {
+      expect((await navigateDirectly(path)).path).toBe(path);
+    }
+  });
+
+  it("sends a guest directly opening protected URLs to login", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "unauthenticated";
+    session.user = null;
+
+    for (const path of ["/dashboard", "/manual", "/profile"]) {
+      expect((await navigateDirectly(path)).path).toBe("/login");
+    }
+  });
+
+  it("keeps limited sessions in the allowed verification and manual flow on direct access", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "limited";
+    session.user = limitedUser;
+
+    expect((await navigateDirectly("/")).path).toBe("/limited");
+    expect((await navigateDirectly("/dashboard")).path).toBe("/limited");
+    expect((await navigateDirectly("/profile")).path).toBe("/limited");
+    expect((await navigateDirectly("/manual")).path).toBe("/manual");
+  });
+
+  it("preserves the MFA challenge on direct access and reload", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "mfa_required";
+    session.user = null;
+
+    for (const path of ["/", "/dashboard", "/manual", "/profile"]) {
+      const route = await navigateDirectly(path);
+      expect(route.path).toBe("/mfa-challenge");
+    }
+    expect((await navigateDirectly("/mfa-challenge")).path).toBe(
+      "/mfa-challenge",
+    );
   });
 });

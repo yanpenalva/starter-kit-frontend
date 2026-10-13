@@ -11,16 +11,13 @@ export interface NavMenuItem {
   requiresAuth?: boolean;
   guestOnly?: boolean;
   allowLimited?: boolean;
+  limitedOnly?: boolean;
   roles?: string[];
   permissions?: string[];
 }
 
-const navLabelOverrides: Readonly<Record<string, string>> = {
-  home: "Início",
-};
-
 type NavDescriptor = NavigationDescriptor & {
-  nav: { label: string; allowLimited?: boolean };
+  nav: { label: string; allowLimited?: boolean; limitedOnly?: boolean };
 };
 
 const hasNav = (
@@ -31,11 +28,12 @@ export const APP_NAV_ITEMS: readonly NavMenuItem[] = routeDescriptors
   .filter(hasNav)
   .map((descriptor) => ({
     key: descriptor.name,
-    label: navLabelOverrides[descriptor.name] ?? descriptor.nav.label,
+    label: descriptor.nav.label,
     to: descriptor.path,
     requiresAuth: descriptor.meta?.requiresAuth,
     guestOnly: descriptor.meta?.guestOnly,
     allowLimited: descriptor.nav.allowLimited,
+    limitedOnly: descriptor.nav.limitedOnly,
     roles: descriptor.meta?.roles,
     permissions: descriptor.meta?.permissions,
   }));
@@ -94,7 +92,7 @@ export const useAuthorization = () => {
       !(item.guestOnly && authenticated) &&
       !(item.requiresAuth && !authenticated) &&
       (!limited || Boolean(item.allowLimited || !item.requiresAuth)) &&
-      !(authenticated && !session.isLimited && item.allowLimited);
+      !(item.limitedOnly && authenticated && !limited);
     const authorizationAllowsItem =
       limited ||
       ((!item.roles?.length || hasAnyRole(item.roles)) &&

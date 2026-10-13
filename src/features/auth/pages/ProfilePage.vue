@@ -20,19 +20,39 @@
           </div>
           <div>
             <dt>Perfis atribuídos</dt>
-            <dd>{{ roles.length > 0 ? roles.join(", ") : "Nenhum" }}</dd>
+            <dd>
+              <button
+                v-if="roles.length > 0"
+                type="button"
+                class="profile-page__detail-link"
+                aria-haspopup="dialog"
+                @click="rolesDialogOpen = true"
+              >
+                Ver perfis ({{ roles.length }})
+              </button>
+              <span v-else>Nenhum</span>
+            </dd>
           </div>
           <div>
             <dt>Permissões ativas</dt>
             <dd>
-              {{
-                permissions.length > 0
-                  ? permissions.map(cataloguePermissionLabel).join(", ")
-                  : "Nenhuma"
-              }}
+              <button
+                v-if="permissions.length > 0"
+                type="button"
+                class="profile-page__detail-link"
+                aria-haspopup="dialog"
+                @click="permissionsDialogOpen = true"
+              >
+                Ver permissões ({{ permissions.length }})
+              </button>
+              <span v-else>Nenhuma</span>
             </dd>
           </div>
         </dl>
+
+        <RouterLink class="profile-page__sessions-link" to="/sessions">
+          Ver sessões ativas
+        </RouterLink>
 
         <form
           class="profile-page__form"
@@ -177,11 +197,72 @@
         </form>
       </section>
     </div>
+
+    <q-dialog v-model="rolesDialogOpen">
+      <q-card
+        class="profile-page__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="roles-dialog-title"
+      >
+        <q-card-section>
+          <h2 id="roles-dialog-title" class="profile-page__dialog-title">
+            Perfis atribuídos
+          </h2>
+        </q-card-section>
+        <q-card-section>
+          <ul class="profile-page__dialog-list">
+            <li v-for="role in roles" :key="role">{{ roleLabel(role) }}</li>
+          </ul>
+        </q-card-section>
+        <q-card-actions align="right">
+          <button
+            type="button"
+            class="profile-page__dialog-close"
+            @click="rolesDialogOpen = false"
+          >
+            Fechar
+          </button>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="permissionsDialogOpen">
+      <q-card
+        class="profile-page__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="permissions-dialog-title"
+      >
+        <q-card-section>
+          <h2 id="permissions-dialog-title" class="profile-page__dialog-title">
+            Permissões ativas
+          </h2>
+        </q-card-section>
+        <q-card-section>
+          <ul class="profile-page__dialog-list">
+            <li v-for="permission in permissions" :key="permission">
+              {{ cataloguePermissionLabel(permission) }}
+            </li>
+          </ul>
+        </q-card-section>
+        <q-card-actions align="right">
+          <button
+            type="button"
+            class="profile-page__dialog-close"
+            @click="permissionsDialogOpen = false"
+          >
+            Fechar
+          </button>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { RouterLink } from "vue-router";
 import AppLayout from "@/shared/layouts/AppLayout.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
@@ -200,6 +281,8 @@ import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 
 const { user, isLimited, roles, permissions } = useAuthorization();
 const session = useSessionStore();
+const rolesDialogOpen = ref(false);
+const permissionsDialogOpen = ref(false);
 const profileFeedback = useFormFeedback();
 const passwordFeedback = useFormFeedback();
 const name = ref("");
@@ -208,6 +291,13 @@ const password = ref("");
 const passwordConfirmation = ref("");
 const isSavingName = ref(false);
 const isSavingPassword = ref(false);
+
+const roleLabels: Readonly<Record<string, string>> = {
+  admin: "Administrador",
+  user: "Usuário",
+};
+
+const roleLabel = (role: string): string => roleLabels[role] ?? role;
 
 watch(
   user,
@@ -348,6 +438,67 @@ const retryPasswordChange = async (): Promise<void> => {
 .profile-page__details dd {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.profile-page__detail-link,
+.profile-page__sessions-link {
+  color: var(--color-evergreen, #314830);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.profile-page__detail-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.profile-page__detail-link:focus-visible,
+.profile-page__sessions-link:focus-visible,
+.profile-page__dialog-close:focus-visible {
+  outline: 3px solid rgb(49 72 48 / 35%);
+  outline-offset: 3px;
+}
+
+.profile-page__sessions-link {
+  justify-self: start;
+}
+
+.profile-page__dialog {
+  width: min(100%, 32rem);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--color-panel, #fffefb);
+}
+
+.profile-page__dialog-title {
+  margin: 0;
+  color: var(--color-ink, #252b25);
+  font-family: var(--type-display, inherit);
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.profile-page__dialog-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--color-ink, #252b25);
+}
+
+.profile-page__dialog-close {
+  padding: 0.5rem 0.875rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: var(--color-evergreen, #314830);
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .profile-page__form {

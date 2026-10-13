@@ -5,8 +5,8 @@
         <p class="manual__eyebrow">AJUDA</p>
         <h1 class="manual__title">Manual de uso</h1>
         <p class="manual__lead">
-          Guia rápido do Starter Kit: o que cada tela faz, o que você precisa
-          para acessá-la e o que fazer quando algo não sai como esperado.
+          Guia rápido para acessar sua conta, encontrar as ferramentas
+          disponíveis e entender as proteções da plataforma.
         </p>
       </header>
 
@@ -16,6 +16,7 @@
           <li v-for="section in MANUAL_SECTIONS" :key="section.id">
             <a :href="`#${section.id}`">{{ section.title }}</a>
           </li>
+          <li><a href="#perguntas-frequentes">Perguntas frequentes</a></li>
         </ul>
       </nav>
 
@@ -24,27 +25,44 @@
         :id="section.id"
         :key="section.id"
         class="manual__section"
-        :aria-labelledby="`${section.id}-title`"
       >
-        <h2 :id="`${section.id}-title`" class="manual__section-title">
-          {{ section.title }}
-        </h2>
-        <p class="manual__paragraph">{{ section.summary }}</p>
-        <ul class="manual__steps">
-          <li v-for="item in section.items" :key="item">{{ item }}</li>
-        </ul>
+        <q-expansion-item
+          expand-separator
+          :label="section.title"
+          :caption="section.summary"
+          header-class="manual__expansion-header"
+        >
+          <q-card flat>
+            <q-card-section class="manual__expansion-content">
+              <ul class="manual__steps">
+                <li v-for="item in section.items" :key="item">{{ item }}</li>
+              </ul>
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
       </section>
 
-      <section class="manual__section" aria-labelledby="duvidas-title">
+      <section
+        id="perguntas-frequentes"
+        class="manual__section"
+        aria-labelledby="duvidas-title"
+      >
         <h2 id="duvidas-title" class="manual__section-title">
           Perguntas frequentes
         </h2>
-        <dl class="manual__faq">
-          <template v-for="faq in MANUAL_FAQ" :key="faq.question">
-            <dt class="manual__faq-question">{{ faq.question }}</dt>
-            <dd class="manual__faq-answer">{{ faq.answer }}</dd>
-          </template>
-        </dl>
+        <q-expansion-item
+          v-for="faq in MANUAL_FAQ"
+          :key="faq.question"
+          expand-separator
+          :label="faq.question"
+          header-class="manual__expansion-header manual__faq-header"
+        >
+          <q-card flat>
+            <q-card-section class="manual__faq-answer">
+              {{ faq.answer }}
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
       </section>
     </article>
   </AppLayout>
@@ -61,9 +79,9 @@ import {
 <style scoped>
 .manual {
   display: flex;
-  max-width: 48rem;
+  max-width: 54rem;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 .manual__header {
@@ -103,9 +121,9 @@ import {
 
 .manual__toc-title {
   margin: 0 0 0.5rem;
+  color: var(--color-evergreen, #314830);
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--color-evergreen, #314830);
 }
 
 .manual__toc-list {
@@ -128,22 +146,20 @@ import {
 
 .manual__section-title {
   margin: 0 0 0.5rem;
+  padding: 0.25rem 0;
   color: var(--color-ink, #252b25);
   font-size: 1.25rem;
   font-weight: 600;
 }
 
-.manual__paragraph {
-  margin: 0 0 0.75rem;
-  color: var(--color-ink, #252b25);
-  font-size: 0.9375rem;
-  line-height: 1.6;
+.manual__expansion-content {
+  padding-top: 0;
 }
 
 .manual__steps {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.625rem;
   margin: 0;
   padding-left: 1.25rem;
   color: var(--color-muted, #666);
@@ -151,21 +167,19 @@ import {
   line-height: 1.6;
 }
 
-.manual__faq {
-  margin: 0;
-}
-
-.manual__faq-question {
-  margin-top: 1rem;
-  color: var(--color-ink, #252b25);
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
 .manual__faq-answer {
-  margin: 0.25rem 0 0;
   color: var(--color-muted, #666);
   font-size: 0.875rem;
   line-height: 1.6;
+}
+
+:deep(.manual__expansion-header .q-item__label) {
+  color: var(--color-ink, #252b25);
+  font-weight: 600;
+}
+
+:deep(.manual__expansion-header .q-item__label--caption) {
+  color: var(--color-muted, #626b61);
+  line-height: 1.5;
 }
 </style>

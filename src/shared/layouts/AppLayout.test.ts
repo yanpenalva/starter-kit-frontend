@@ -139,7 +139,7 @@ describe("AppLayout.vue", () => {
 
     const link = wrapper.get(".app-navigation__link");
     expect(link.element.tagName).toBe("A");
-    expect(link.attributes("href")).toBe("/");
+    expect(link.attributes("href")).toBe("/dashboard");
     expect(link.attributes("title")).toBe("Início");
     expect(wrapper.get(".app-navigation__label").text()).toBe("Início");
 

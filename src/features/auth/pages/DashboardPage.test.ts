@@ -10,6 +10,11 @@ const makeRouter = async () => {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
+      { path: "/", component: { template: "<div />" } },
+      { path: "/login", component: { template: "<div />" } },
+      { path: "/profile", component: { template: "<div />" } },
+      { path: "/manual", component: { template: "<div />" } },
+      { path: "/dashboard", component: { template: "<div />" } },
       { path: "/users", name: "users", component: { template: "<div />" } },
       { path: "/roles", name: "roles", component: { template: "<div />" } },
       { path: "/logs", name: "logs", component: { template: "<div />" } },
@@ -42,6 +47,19 @@ const mountPage = async () => {
 describe("DashboardPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
+  it("acolhe a pessoa e apresenta o valor do projeto sem uma matriz de permissões", async () => {
+    useSessionStore().user = makeUser();
+    const wrapper = await mountPage();
+
+    expect(wrapper.get("h1").text()).toBe("Olá, Maria!");
+    expect(wrapper.text()).toContain("organizar contas e perfis");
+    expect(wrapper.text()).toContain("Minha Conta");
+    expect(wrapper.text()).toContain("Consultar o Manual");
+    expect(wrapper.text()).not.toContain("Permissões ativas");
+    expect(wrapper.text()).not.toContain("Perfil da Conta");
+    expect(wrapper.text()).not.toContain("users.view");
+  });
+
   it("expõe o atalho de perfis para quem tem roles.view, sem perfil admin", async () => {
     useSessionStore().user = makeUser({
       permissions: ["roles.view", "logs.view"],
@@ -51,7 +69,7 @@ describe("DashboardPage", () => {
     const links = wrapper.findAll(".dashboard-action-btn");
     expect(links.map((link) => link.text())).toContain("Gerenciar Perfis");
     expect(wrapper.text()).not.toContain("Gerenciar Usuários");
-    expect(wrapper.text()).toContain("Ver perfis");
+    expect(wrapper.text()).toContain("Olá, Maria!");
     expect(wrapper.text()).not.toContain("roles.view");
   });
 
@@ -80,17 +98,20 @@ describe("DashboardPage", () => {
         { text: "Gerenciar Usuários", href: "/users" },
         { text: "Gerenciar Perfis", href: "/roles" },
         { text: "Ver Logs de Auditoria", href: "/logs" },
+        { text: "Minha Conta", href: "/profile" },
+        { text: "Consultar o Manual", href: "/manual" },
       ]),
     );
   });
 
-  it("mostra mensagem de vazio quando nenhum atalho é permitido", async () => {
+  it("mantém os atalhos de conta e Manual sem atalhos administrativos", async () => {
     useSessionStore().user = makeUser({});
     const wrapper = await mountPage();
 
-    expect(wrapper.findAll(".dashboard-action-btn")).toHaveLength(0);
-    expect(wrapper.text()).toContain(
-      "Nenhum atalho administrativo adicional configurado para seu perfil.",
-    );
+    const links = wrapper.findAll(".dashboard-action-btn");
+    expect(links.map((link) => link.attributes("href"))).toEqual([
+      "/profile",
+      "/manual",
+    ]);
   });
 });

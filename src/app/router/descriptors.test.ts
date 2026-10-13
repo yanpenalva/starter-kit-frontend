@@ -30,6 +30,44 @@ describe("descritores de rota tipados", () => {
     expect(profile?.nav?.label).toBe("Minha Conta");
   });
 
+  it("usa o dashboard como destino único de Início e mantém / compatível", () => {
+    const home = routeDescriptors.find(
+      (descriptor) => descriptor.name === "home",
+    );
+    const dashboard = routeDescriptors.find(
+      (descriptor) => descriptor.name === "dashboard",
+    );
+
+    expect(home?.path).toBe("/");
+    expect(home?.redirect).toEqual({ name: "dashboard" });
+    expect(home?.nav).toBeUndefined();
+    expect(dashboard?.path).toBe("/dashboard");
+    expect(dashboard?.nav?.label).toBe("Início");
+    expect(
+      APP_NAV_ITEMS.filter((item) => item.label === "Início"),
+    ).toHaveLength(1);
+  });
+
+  it("exibe Manual no menu de sessão limitada e protege Minha Conta", () => {
+    const manual = routeDescriptors.find(
+      (descriptor) => descriptor.name === "manual",
+    );
+    const manualMenuItem = APP_NAV_ITEMS.find((item) => item.key === "manual");
+    const profile = routeDescriptors.find(
+      (descriptor) => descriptor.name === "profile",
+    );
+
+    expect(manual?.meta).toMatchObject({
+      requiresAuth: true,
+      allowLimited: true,
+    });
+    expect(manualMenuItem?.allowLimited).toBe(true);
+    expect(
+      APP_NAV_ITEMS.find((item) => item.key === "limited")?.limitedOnly,
+    ).toBe(true);
+    expect(profile?.meta).toEqual({ requiresAuth: true });
+  });
+
   it("marks the MFA challenge as guest-only and pending-MFA-only", () => {
     const challenge = routeDescriptors.find(
       (descriptor) => descriptor.name === "mfa-challenge",
@@ -59,6 +97,7 @@ describe("descritores de rota tipados", () => {
       expect(item.requiresAuth).toBe(descriptor.meta?.requiresAuth);
       expect(item.guestOnly).toBe(descriptor.meta?.guestOnly);
       expect(item.allowLimited).toBe(descriptor.nav?.allowLimited);
+      expect(item.limitedOnly).toBe(descriptor.nav?.limitedOnly);
       expect(item.permissions).toEqual(descriptor.meta?.permissions);
       expect(item.roles).toEqual(descriptor.meta?.roles);
     }

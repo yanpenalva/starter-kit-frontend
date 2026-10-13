@@ -60,8 +60,7 @@ describe("AppNavigation.vue", () => {
 
     expect(wrapper.find(".app-navigation__login-link").exists()).toBe(true);
     expect(wrapper.find(".app-navigation__logout-btn").exists()).toBe(false);
-    expect(wrapper.text()).toContain("Início");
-    expect(wrapper.text()).not.toContain("Painel");
+    expect(wrapper.findAll(".app-navigation__link")).toHaveLength(0);
   });
 
   it("renders authenticated navigation with role and permitted links", () => {
@@ -73,7 +72,8 @@ describe("AppNavigation.vue", () => {
     expect(wrapper.find(".app-navigation__logout-btn").exists()).toBe(true);
     expect(wrapper.text()).toContain("Maria Admin");
     expect(wrapper.text()).toContain("admin");
-    expect(wrapper.text()).toContain("Painel");
+    expect(wrapper.text()).toContain("Início");
+    expect(wrapper.text()).not.toContain("Painel");
     expect(wrapper.text()).toContain("Usuários");
     expect(wrapper.text()).toContain("Perfis");
     expect(wrapper.text()).toContain("Auditoria");
@@ -99,7 +99,6 @@ describe("AppNavigation.vue", () => {
 
     expect(labels).toEqual([
       "Início",
-      "Painel",
       "Sessões",
       "Minha Conta",
       "Usuários",
@@ -108,7 +107,6 @@ describe("AppNavigation.vue", () => {
       "Manual",
     ]);
     expect(links.map((link) => link.attributes("href"))).toEqual([
-      "/",
       "/dashboard",
       "/sessions",
       "/profile",
@@ -124,6 +122,64 @@ describe("AppNavigation.vue", () => {
       expect(icon.attributes("aria-hidden")).toBe("true");
       expect(icon.text().trim().length).toBeGreaterThan(0);
     });
+  });
+
+  it("shows one welcome destination and no administrative shortcuts without permissions", () => {
+    authenticate({
+      ...adminUser,
+      roles: ["member"],
+      permissions: [],
+    });
+
+    const wrapper = mount(AppNavigation);
+
+    expect(labelsOf(wrapper)).toEqual([
+      "Início",
+      "Sessões",
+      "Minha Conta",
+      "Manual",
+    ]);
+    expect(
+      wrapper
+        .findAll(".app-navigation__link")
+        .map((link) => link.attributes("href")),
+    ).toEqual(["/dashboard", "/sessions", "/profile", "/manual"]);
+    expect(wrapper.text()).not.toContain("Usuários");
+    expect(wrapper.text()).not.toContain("Perfis");
+    expect(wrapper.text()).not.toContain("Auditoria");
+  });
+
+  it("keeps Manual visible to a limited account without exposing business areas", () => {
+    const session = useSessionStore();
+    session.status = "limited";
+    session.user = {
+      ...adminUser,
+      roles: [],
+      permissions: [],
+      email_verified_at: null,
+    };
+
+    const wrapper = mount(AppNavigation);
+
+    expect(labelsOf(wrapper)).toEqual(["Manual", "Verificação"]);
+    expect(
+      wrapper
+        .findAll(".app-navigation__link")
+        .map((link) => link.attributes("href")),
+    ).toEqual(["/manual", "/limited"]);
+    expect(wrapper.text()).not.toContain("Minha Conta");
+    expect(wrapper.text()).not.toContain("Usuários");
+  });
+
+  it("does not show a second menu destination while MFA is pending", () => {
+    const session = useSessionStore();
+    session.status = "mfa_required";
+    session.user = null;
+
+    const wrapper = mount(AppNavigation);
+
+    expect(wrapper.findAll(".app-navigation__link")).toHaveLength(0);
+    expect(wrapper.find(".app-navigation__login-link").exists()).toBe(true);
   });
 
   it("marks the active route, including the user detail route", () => {
