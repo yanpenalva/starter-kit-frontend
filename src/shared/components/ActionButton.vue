@@ -1,5 +1,9 @@
 <template>
-  <span class="action-button-shell" :title="tooltip">
+  <span
+    class="action-button-shell"
+    :tabindex="isUnavailable && tooltip ? 0 : undefined"
+    :aria-describedby="isUnavailable && tooltip ? tooltipId : undefined"
+  >
     <button
       class="ui-control action-button"
       :class="[
@@ -10,7 +14,11 @@
       :disabled="disabled || loading"
       :aria-busy="loading ? 'true' : undefined"
       :aria-label="icon === undefined ? undefined : label"
-      :title="tooltip ?? (icon === undefined ? undefined : label)"
+      :title="
+        isUnavailable
+          ? undefined
+          : (tooltip ?? (icon === undefined ? undefined : label))
+      "
       :aria-description="tooltip"
       :style="iconSize ? { '--action-icon-size': `${iconSize}px` } : undefined"
       @click="handleClick"
@@ -22,10 +30,20 @@
         {{ label }}
       </span>
     </button>
+    <span
+      v-if="isUnavailable && tooltip"
+      :id="tooltipId"
+      class="action-button-tooltip"
+      role="tooltip"
+    >
+      {{ tooltip }}
+    </span>
   </span>
 </template>
 
 <script setup lang="ts">
+import { computed, useId } from "vue";
+
 const props = withDefaults(
   defineProps<{
     label: string;
@@ -52,6 +70,9 @@ const emit = defineEmits<{
   click: [event: MouseEvent];
 }>();
 
+const tooltipId = `action-button-tooltip-${useId()}`;
+const isUnavailable = computed(() => props.disabled || props.loading);
+
 const handleClick = (event: MouseEvent): void => {
   if (props.disabled || props.loading) {
     event.preventDefault();
@@ -63,7 +84,31 @@ const handleClick = (event: MouseEvent): void => {
 
 <style scoped>
 .action-button-shell {
+  position: relative;
   display: inline-flex;
+}
+
+.action-button-tooltip {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.375rem);
+  left: 50%;
+  width: max-content;
+  max-width: 18rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--color-ink, #252a25);
+  color: white;
+  font-size: 0.75rem;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 120ms ease;
+}
+
+.action-button-shell:hover .action-button-tooltip,
+.action-button-shell:focus .action-button-tooltip {
+  opacity: 1;
 }
 
 .action-button--icon {

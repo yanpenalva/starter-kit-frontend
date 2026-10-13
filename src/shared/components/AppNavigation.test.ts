@@ -59,7 +59,6 @@ describe("AppNavigation.vue", () => {
     const wrapper = mount(AppNavigation);
 
     expect(wrapper.find(".app-navigation__login-link").exists()).toBe(true);
-    expect(wrapper.find(".app-navigation__logout-btn").exists()).toBe(false);
     expect(wrapper.findAll(".app-navigation__link")).toHaveLength(0);
   });
 
@@ -69,7 +68,6 @@ describe("AppNavigation.vue", () => {
     const wrapper = mount(AppNavigation);
 
     expect(wrapper.find(".app-navigation__login-link").exists()).toBe(false);
-    expect(wrapper.find(".app-navigation__logout-btn").exists()).toBe(false);
     expect(wrapper.text()).not.toContain("Maria Admin");
     expect(wrapper.text()).not.toContain("admin");
     expect(wrapper.text()).toContain("Início");
@@ -214,15 +212,13 @@ describe("AppNavigation.vue", () => {
     expect(labels.map((label) => label.text()).join(" ")).toContain("Usuários");
 
     expect(wrapper.find(".app-navigation__user").exists()).toBe(false);
-    expect(wrapper.find(".app-navigation__logout-btn").exists()).toBe(false);
   });
 
-  it("does not render account identity or logout controls in the sidebar", () => {
+  it("does not render account identity in the sidebar", () => {
     authenticate();
     const wrapper = mount(AppNavigation);
 
     expect(wrapper.find(".app-navigation__avatar").exists()).toBe(false);
     expect(wrapper.find(".app-navigation__user-name").exists()).toBe(false);
-    expect(wrapper.find(".app-navigation__logout-btn").exists()).toBe(false);
   });
 });

@@ -10,12 +10,8 @@ import { useRouter } from "vue-router";
 
 const router = useRouter();
 const goBack = (): void => {
-  const historyState = router.options?.history?.state;
-  if (
-    Number(historyState?.position) > 0 ||
-    Boolean(historyState?.back) ||
-    (typeof window !== "undefined" && window.history.length > 1)
-  ) {
+  const historyState = router.options.history.state;
+  if (Number(historyState.position) > 0) {
     router.back();
     return;
   }

@@ -151,9 +151,13 @@ describe("RolesPage", () => {
       '[aria-label="Editar permissões do perfil admin"]',
     );
     expect(blockedAdminEdit.attributes("disabled")).toBeDefined();
-    expect(blockedAdminEdit.attributes("title")).toBe(
-      "Ação indisponível para o perfil Administrador.",
-    );
+    const blockedAdminShell = blockedAdminEdit.element.parentElement;
+    expect(blockedAdminShell?.getAttribute("tabindex")).toBe("0");
+    expect(blockedAdminShell?.getAttribute("aria-describedby")).toBeTruthy();
+    expect(blockedAdminEdit.attributes("title")).toBeUndefined();
+    expect(
+      blockedAdminShell?.querySelector('[role="tooltip"]')?.textContent,
+    ).toBe("Ação indisponível para o perfil Administrador.");
     expect(blockedAdminEdit.attributes("aria-description")).toBe(
       "Ação indisponível para o perfil Administrador.",
     );

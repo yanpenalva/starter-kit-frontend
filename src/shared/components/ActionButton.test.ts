@@ -44,7 +44,7 @@ describe("ActionButton.vue", () => {
     expect(button.classes()).toContain("action-button--icon");
   });
 
-  it("mantém cor e explicação nos controles bloqueados", () => {
+  it("mantém cor e disponibiliza explicação no hover e no foco quando bloqueado", () => {
     const wrapper = mountButton({
       icon: "edit",
       color: "warning",
@@ -53,13 +53,21 @@ describe("ActionButton.vue", () => {
       tooltip: "Ação indisponível para o perfil Administrador.",
     });
     const button = wrapper.get("button");
+    const shell = wrapper.get(".action-button-shell");
+    const tooltipId = shell.attributes("aria-describedby");
 
     expect(button.classes()).toContain("action-button--warning");
     expect(button.attributes("disabled")).toBeDefined();
-    expect(button.attributes("title")).toBe(
+    expect(button.attributes("title")).toBeUndefined();
+    expect(button.attributes("aria-description")).toBe(
       "Ação indisponível para o perfil Administrador.",
     );
-    expect(button.attributes("aria-description")).toBe(
+    expect(shell.attributes("tabindex")).toBe("0");
+    expect(tooltipId).toBeTruthy();
+    expect(wrapper.get(`[id="${tooltipId}"]`).attributes("role")).toBe(
+      "tooltip",
+    );
+    expect(wrapper.get(`[id="${tooltipId}"]`).text()).toBe(
       "Ação indisponível para o perfil Administrador.",
     );
   });

@@ -24,17 +24,23 @@
       <span v-if="context" class="app-header__context">{{ context }}</span>
 
       <button
+        ref="accountButton"
         type="button"
         class="app-header__account"
         aria-label="Abrir menu da conta"
         :aria-expanded="accountMenuOpen"
-        @click="accountMenuOpen = !accountMenuOpen"
       >
         <span class="app-header__avatar" aria-hidden="true">{{
           initials
         }}</span>
       </button>
-      <q-menu v-model="accountMenuOpen" anchor="bottom right" self="top right">
+      <q-menu
+        v-if="accountButton"
+        v-model="accountMenuOpen"
+        :target="accountButton"
+        anchor="bottom right"
+        self="top right"
+      >
         <div class="app-header__account-menu">
           <strong>{{ user?.name ?? "Conta" }}</strong>
           <span>{{ roles.map(roleLabel).join(", ") || "Sem perfil" }}</span>
@@ -67,6 +73,7 @@ const { user, roles } = useAuthorization();
 const session = useSessionStore();
 const router = useRouter();
 const accountMenuOpen = ref(false);
+const accountButton = ref<HTMLButtonElement | null>(null);
 const isLoggingOut = ref(false);
 const logoutError = ref<string | null>(null);
 const initials = computed(() => {
