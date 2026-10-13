@@ -4,37 +4,43 @@
       Área restrita para usuários com permissão <code>users.view</code>.
     </template>
 
-    <div class="filters" aria-label="Filtros de usuários">
-      <label>
-        Buscar
-        <input
-          v-model="filters.search"
-          aria-label="Buscar usuários"
-          type="search"
+    <template #toolbar>
+      <div class="filters" aria-label="Filtros de usuários">
+        <SearchInput
+          :model-value="filters.search ?? ''"
+          label="Buscar"
+          placeholder="Nome ou email"
+          :disabled="query.isFetching.value"
+          @update:model-value="filters.search = $event"
         />
-      </label>
-      <label>
-        Status
-        <select v-model="filters.status" aria-label="Filtrar por status">
-          <option value="">Todos</option>
-          <option value="active">Ativos</option>
-          <option value="deactivated">Desativados</option>
-        </select>
-      </label>
-      <label>
-        Papel
-        <select v-model="filters.role" aria-label="Filtrar por papel">
-          <option value="">Todos</option>
-          <option
-            v-for="role in filterRoleOptions"
-            :key="role.id"
-            :value="role.name"
-          >
-            {{ role.name }}
-          </option>
-        </select>
-      </label>
-    </div>
+        <label>
+          Status
+          <select v-model="filters.status" aria-label="Filtrar por status">
+            <option value="">Todos</option>
+            <option value="active">Ativos</option>
+            <option value="deactivated">Desativados</option>
+          </select>
+        </label>
+        <label>
+          Papel
+          <select v-model="filters.role" aria-label="Filtrar por papel">
+            <option value="">Todos</option>
+            <option
+              v-for="role in filterRoleOptions"
+              :key="role.id"
+              :value="role.name"
+            >
+              {{ role.name }}
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <p class="selection-counter" role="status">
+        {{ selection.selectedCount.value }} de {{ visibleUserIds.length }}
+        selecionados
+      </p>
+    </template>
 
     <p v-if="query.isPending.value" role="status">Carregando usuários...</p>
     <FormFeedback :feedback="feedback" @retry="feedback.retry" />
@@ -104,6 +110,21 @@
       <table>
         <thead>
           <tr>
+            <th scope="col" class="selection-cell">
+              <input
+                type="checkbox"
+                class="selection-toggle"
+                aria-label="Selecionar todos os usuários desta página"
+                :checked="selection.isAllSelected.value"
+                :indeterminate.prop="selection.isIndeterminate.value"
+                :disabled="!selection.isSelectable.value"
+                @change="
+                  selection.toggleAll(
+                    ($event.target as HTMLInputElement).checked,
+                  )
+                "
+              />
+            </th>
             <th scope="col">Nome</th>
             <th scope="col">Email</th>
             <th scope="col">Status</th>
@@ -113,6 +134,21 @@
         </thead>
         <tbody>
           <tr v-for="user in query.data.value.data" :key="user.id">
+            <td class="selection-cell">
+              <input
+                type="checkbox"
+                class="selection-toggle"
+                :aria-label="`Selecionar ${user.name}`"
+                :checked="selection.isSelected(user.id)"
+                :disabled="!selection.isSelectable.value"
+                @change="
+                  selection.setSelected(
+                    user.id,
+                    ($event.target as HTMLInputElement).checked,
+                  )
+                "
+              />
+            </td>
             <td>
               <RouterLink
                 :to="{ name: 'user-detail', params: { userId: user.id } }"
@@ -166,6 +202,13 @@
             </td>
             <td>
               <button
+                type="button"
+                :aria-label="`Ver detalhes de ${user.name}`"
+                @click="openDetail(user.id)"
+              >
+                Detalhes
+              </button>
+              <button
                 v-if="can('users.set-status')"
                 type="button"
                 :aria-label="`${user.deactivated_at === null ? 'Desativar' : 'Ativar'} ${user.name}`"
@@ -196,40 +239,26 @@
             </td>
           </tr>
           <tr v-if="query.data.value.data.length === 0">
-            <td colspan="5">Nenhum usuário encontrado.</td>
+            <td colspan="6">Nenhum usuário encontrado.</td>
           </tr>
         </tbody>
       </table>
+
+      <Pagination
+        aria-label="Paginação de usuários"
+        :disabled="query.isFetching.value"
+        :meta="query.data.value.meta"
+        @change="filters.page = $event"
+      />
     </div>
 
-    <nav
-      v-if="query.data.value"
-      class="pagination"
-      aria-label="Paginação de usuários"
-    >
-      <button
-        type="button"
-        aria-label="Página anterior"
-        :disabled="query.data.value.meta.current_page <= 1"
-        @click="filters.page = Math.max(1, (filters.page ?? 1) - 1)"
-      >
-        Anterior
-      </button>
-      <span
-        >Página {{ query.data.value.meta.current_page }} de
-        {{ query.data.value.meta.last_page }}</span
-      >
-      <button
-        type="button"
-        aria-label="Próxima página"
-        :disabled="
-          query.data.value.meta.current_page >= query.data.value.meta.last_page
-        "
-        @click="filters.page = (filters.page ?? 1) + 1"
-      >
-        Próxima
-      </button>
-    </nav>
+    <UserDetails
+      :model-value="detailUserId !== null"
+      :user="detailQuery.data.value?.data ?? null"
+      :is-pending="detailQuery.isPending.value"
+      :is-error="detailQuery.isError.value"
+      @update:model-value="closeDetail"
+    />
   </AdminPageLayout>
 </template>
 
@@ -239,12 +268,19 @@ import { RouterLink } from "vue-router";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
+import Pagination from "@/shared/components/Pagination.vue";
 import RoleMultiSelect from "@/shared/components/RoleMultiSelect.vue";
+import SearchInput from "@/shared/components/SearchInput.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { usePageSelection } from "@/shared/composables/usePageSelection";
 import { useRoleOptions } from "@/features/roles/composables/useRoleOptions";
 import { listRoles } from "@/features/roles/api/roles.api";
-import { useUsersList } from "@/features/users/composables/useUsersList";
+import {
+  useUserDetail,
+  useUsersList,
+} from "@/features/users/composables/useUsersList";
+import UserDetails from "@/features/users/components/UserDetails.vue";
 
 type PendingActionKind = "name" | "roles" | "status" | "create" | "delete";
 
@@ -281,6 +317,34 @@ const pendingAction = ref<PendingAction | null>(null);
 const isMutating = computed(() => pendingAction.value !== null);
 const isActionPending = (kind: PendingActionKind, userId: number): boolean =>
   pendingAction.value?.kind === kind && pendingAction.value?.userId === userId;
+
+// A seleção cobre apenas os registros carregados na página atual: busca,
+// filtros, página e per_page limpam; refetch mantém só os IDs presentes.
+const visibleUserIds = computed<readonly number[]>(() =>
+  (query.data.value?.data ?? []).map((user) => user.id),
+);
+const selection = usePageSelection({
+  visibleIds: () => visibleUserIds.value,
+  enabled: () => !query.isFetching.value && !query.isError.value,
+  scopeKey: () =>
+    [
+      filters.page,
+      filters.per_page,
+      filters.search ?? "",
+      filters.status ?? "",
+      filters.role ?? "",
+    ].join("|"),
+});
+
+const detailUserId = ref<number | null>(null);
+const detailQuery = useUserDetail(() => detailUserId.value);
+const openDetail = (userId: number): void => {
+  detailUserId.value = userId;
+};
+const closeDetail = (): void => {
+  detailUserId.value = null;
+};
+
 watch([() => filters.search, () => filters.status, () => filters.role], () => {
   filters.page = 1;
 });
@@ -406,12 +470,24 @@ const removeUser = async (userId: number, userName: string): Promise<void> => {
 
 <style scoped>
 .filters,
-.pagination,
 .create-form {
   display: flex;
   align-items: end;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.filters {
+  margin-bottom: 0;
+}
+
+.selection-counter {
+  margin: 0;
+  color: var(--color-muted, #73766e);
+  font-size: 0.875rem;
+}
+
+.create-form {
   margin-bottom: 1rem;
 }
 
@@ -443,6 +519,7 @@ button:disabled {
 
 .table-wrap {
   overflow-x: auto;
+  margin-top: 1rem;
 }
 
 table {
@@ -458,8 +535,26 @@ td {
   vertical-align: top;
 }
 
-td:first-child,
-td:nth-child(4) {
+.selection-cell {
+  width: 2.5rem;
+  padding-right: 0;
+  text-align: center;
+}
+
+.selection-toggle {
+  min-height: 0;
+  padding: 0;
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.selection-toggle:disabled {
+  cursor: not-allowed;
+}
+
+td:nth-child(2),
+td:nth-child(5) {
   display: flex;
   gap: 0.5rem;
 }
@@ -473,11 +568,5 @@ td:nth-child(4) {
 
 .user-link:hover {
   text-decoration: underline;
-}
-
-.pagination {
-  justify-content: flex-end;
-  align-items: center;
-  margin: 1rem 0 0;
 }
 </style>

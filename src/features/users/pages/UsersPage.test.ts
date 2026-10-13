@@ -1,12 +1,14 @@
 import { VueQueryPlugin } from "@tanstack/vue-query";
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { VueWrapper } from "@vue/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, createRouter } from "vue-router";
 import { delay, http, HttpResponse } from "msw";
 import {
   makeAdminRole,
   makeAdminUser,
+  makePaginated,
   makeUsersRouteMocks,
 } from "@/test/admin-handlers";
 import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
@@ -16,14 +18,17 @@ import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
 import { queryClient } from "@/app/providers/query";
 import UsersPage from "./UsersPage.vue";
 
-const users = Array.from({ length: 16 }, (_, index) =>
-  makeAdminUser({
-    id: index + 1,
-    name: `Pessoa ${index + 1}`,
-    email: `pessoa${index + 1}@example.test`,
-    roles: index === 0 ? ["admin"] : ["user"],
-  }),
-);
+const makeUsers = (count: number) =>
+  Array.from({ length: count }, (_, index) =>
+    makeAdminUser({
+      id: index + 1,
+      name: `Pessoa ${index + 1}`,
+      email: `pessoa${index + 1}@example.test`,
+      roles: index === 0 ? ["admin"] : ["user"],
+    }),
+  );
+
+const users = makeUsers(16);
 
 const makeRouter = async () => {
   const router = createRouter({
@@ -74,6 +79,8 @@ const rolesListHandler = http.get(
   },
 );
 
+const mountedWrappers: VueWrapper[] = [];
+
 const mountPage = async () => {
   useSessionStore().user = {
     id: 1,
@@ -83,13 +90,45 @@ const mountPage = async () => {
     roles: ["admin"],
     permissions: [...CATALOGUE_PERMISSIONS],
   };
-  return mount(UsersPage, {
+  // Cada caso parte de um cache limpo: o queryClient é compartilhado pelo
+  // arquivo e dados de fixtures anteriores mudariam as contagens de seleção.
+  queryClient.clear();
+  const wrapper = mount(UsersPage, {
     global: {
       plugins: [[VueQueryPlugin, { queryClient }], await makeRouter()],
       stubs: { AppLayout: { template: "<div><slot /></div>" } },
     },
   });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 };
+
+const counter = (wrapper: VueWrapper) => wrapper.get(".selection-counter");
+const headerCheckbox = (wrapper: VueWrapper) =>
+  wrapper.get<HTMLInputElement>(
+    '[aria-label="Selecionar todos os usuários desta página"]',
+  );
+const rowCheckbox = (wrapper: VueWrapper, index: number) =>
+  wrapper.get<HTMLInputElement>(`[aria-label="Selecionar Pessoa ${index}"]`);
+
+// O diálogo é renderizado em Teleport no document.body pelo Quasar, então as
+// asserções usam o documento e não o wrapper (sem stub que apague o modal).
+const dialogElement = (): HTMLElement | null =>
+  document.body.querySelector<HTMLElement>('[role="dialog"]');
+
+const dialogClose = (): HTMLButtonElement | undefined =>
+  [...(dialogElement()?.querySelectorAll("button") ?? [])].find(
+    (button) => button.textContent?.trim() === "Fechar",
+  );
+
+afterEach(() => {
+  // Componentes abandonados entre casos reagiriam ao cache compartilhado e
+  // disparariam requisições sem handler.
+  while (mountedWrappers.length > 0) {
+    mountedWrappers.pop()?.unmount();
+  }
+  document.body.innerHTML = "";
+});
 
 describe("UsersPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
@@ -112,7 +151,7 @@ describe("UsersPage", () => {
       false,
     );
 
-    await wrapper.get('[aria-label="Próxima página"]').trigger("click");
+    await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Nome de Pessoa 16"]').exists()).toBe(
         true,
@@ -133,9 +172,7 @@ describe("UsersPage", () => {
         true,
       ),
     );
-    await wrapper
-      .get('input[aria-label="Buscar usuários"]')
-      .setValue("Pessoa 2");
+    await wrapper.get("label.ui-search input").setValue("Pessoa 2");
     await vi.waitFor(() =>
       expect(
         mocks.calls.some((call) => call.query.get("search") === "Pessoa 2"),
@@ -435,5 +472,224 @@ describe("UsersPage", () => {
         ),
       ).toBe(true),
     );
+  });
+});
+
+describe("UsersPage — seleção por página", () => {
+  beforeEach(() => setActivePinia(createPinia()));
+
+  it("seleciona a linha, deixa o header indeterminado e limpa ao clicar de novo", async () => {
+    const localUsers = makeUsers(7);
+    const mocks = makeUsersRouteMocks(localUsers);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
+    );
+    expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
+
+    await rowCheckbox(wrapper, 1).setValue(true);
+
+    expect(headerCheckbox(wrapper).element.indeterminate).toBe(true);
+    expect(headerCheckbox(wrapper).element.checked).toBe(false);
+    expect(counter(wrapper).text()).toContain("1 de 7 selecionados");
+
+    await headerCheckbox(wrapper).setValue(true);
+
+    expect(counter(wrapper).text()).toContain("7 de 7 selecionados");
+    expect(headerCheckbox(wrapper).element.checked).toBe(true);
+    expect(headerCheckbox(wrapper).element.indeterminate).toBe(false);
+    expect(rowCheckbox(wrapper, 7).element.checked).toBe(true);
+
+    await headerCheckbox(wrapper).setValue(false);
+
+    expect(counter(wrapper).text()).toContain("0 de 7 selecionados");
+    expect(rowCheckbox(wrapper, 1).element.checked).toBe(false);
+
+    // Selecionar é independente das permissões: nenhuma escrita é disparada.
+    expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
+  });
+
+  it("limpa a seleção ao buscar e ao trocar de página", async () => {
+    const localUsers = makeUsers(20);
+    const mocks = makeUsersRouteMocks(localUsers);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+    );
+    await rowCheckbox(wrapper, 1).setValue(true);
+    expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
+
+    await wrapper.get("label.ui-search input").setValue("Pessoa 2");
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 2 selecionados"),
+    );
+
+    await wrapper.get("label.ui-search input").setValue("");
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+    );
+    await vi.waitFor(() =>
+      expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined(),
+    );
+    await rowCheckbox(wrapper, 3).setValue(true);
+    expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
+
+    await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 5 selecionados"),
+    );
+    expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
+      true,
+    );
+    expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
+  });
+
+  it("mantém após refetch somente os IDs ainda presentes", async () => {
+    const localUsers = makeUsers(7);
+    const mocks = makeUsersRouteMocks(localUsers);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
+    );
+    await rowCheckbox(wrapper, 1).setValue(true);
+    await rowCheckbox(wrapper, 3).setValue(true);
+    expect(counter(wrapper).text()).toContain("2 de 7 selecionados");
+
+    // Pessoa 1 sai da listagem: o refetch da mesma página não pode manter um
+    // ID que não está mais visível.
+    localUsers.splice(
+      localUsers.findIndex((user) => user.id === 1),
+      1,
+    );
+    await queryClient.invalidateQueries({ queryKey: ["users"] });
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Selecionar Pessoa 1"]').exists()).toBe(
+        false,
+      ),
+    );
+    expect(counter(wrapper).text()).toContain("1 de 6 selecionados");
+    expect(rowCheckbox(wrapper, 3).element.checked).toBe(true);
+  });
+
+  it("esvazia a seleção quando a busca não encontra resultados", async () => {
+    const localUsers = makeUsers(7);
+    const mocks = makeUsersRouteMocks(localUsers);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
+    );
+    await rowCheckbox(wrapper, 2).setValue(true);
+    expect(counter(wrapper).text()).toContain("1 de 7 selecionados");
+
+    await wrapper.get("label.ui-search input").setValue("inexistente");
+
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain("Nenhum usuário encontrado."),
+    );
+    expect(counter(wrapper).text()).toContain("0 de 0 selecionados");
+    expect(headerCheckbox(wrapper).attributes("disabled")).toBeDefined();
+
+    await headerCheckbox(wrapper).setValue(true);
+    expect(counter(wrapper).text()).toContain("0 de 0 selecionados");
+  });
+
+  it("desabilita o header enquanto a listagem recarrega e quando falha", async () => {
+    const localUsers = makeUsers(7);
+    const mocks = makeUsersRouteMocks(localUsers);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
+    );
+    expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
+
+    // Refetch da mesma página com resposta lenta: dados antigos continuam na
+    // tela, mas não podem ser selecionados durante o trânsito.
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) => {
+        await delay(300);
+        return HttpResponse.json(
+          makePaginated(localUsers.slice(0, 7), {
+            current_page: 1,
+            last_page: 1,
+            per_page: 15,
+            total: 7,
+          }),
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+    void queryClient.invalidateQueries({ queryKey: ["users"] });
+
+    await vi.waitFor(() =>
+      expect(headerCheckbox(wrapper).attributes("disabled")).toBeDefined(),
+    );
+    await vi.waitFor(() =>
+      expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined(),
+    );
+
+    // Falha na listagem mantém os dados antigos visíveis e o header desabilitado.
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) =>
+        HttpResponse.json(
+          { message: "Erro interno." },
+          { status: 500, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+    void queryClient.invalidateQueries({ queryKey: ["users"] });
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[role="alert"]').exists()).toBe(true),
+    );
+    expect(headerCheckbox(wrapper).attributes("disabled")).toBeDefined();
+  });
+
+  it("abre a consulta em modal sem selecionar a linha e mantém o link da rota", async () => {
+    const localUsers = makeUsers(7);
+    localUsers[0] = makeAdminUser({
+      id: 1,
+      name: "Pessoa 1",
+      email: "pessoa1@example.test",
+      roles: ["admin"],
+      cpf: "12345678909",
+    });
+    const mocks = makeUsersRouteMocks(localUsers);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
+    );
+    await wrapper
+      .get('[aria-label="Ver detalhes de Pessoa 1"]')
+      .trigger("click");
+
+    await vi.waitFor(() => expect(dialogElement()).not.toBeNull());
+    await vi.waitFor(() =>
+      expect(dialogElement()?.textContent).toContain("Detalhes de Pessoa 1"),
+    );
+    expect(dialogElement()?.textContent).toContain("123.456.789-09");
+
+    // Consultar não seleciona e não libera edição: o detalhe é só leitura.
+    expect(counter(wrapper).text()).toContain("0 de 7 selecionados");
+    expect(dialogElement()?.querySelectorAll("input")).toHaveLength(0);
+    expect(
+      wrapper.get('[aria-label="Ver detalhe de Pessoa 1"]').attributes("href"),
+    ).toBe("/users/1");
+
+    dialogClose()?.click();
+    await vi.waitFor(() => expect(dialogElement()).toBeNull());
   });
 });
