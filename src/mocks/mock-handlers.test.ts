@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { http, HttpResponse } from "msw";
 import { server } from "@/test/server";
 import { isHttpError } from "@/lib/http";
 import { apiBaseUrlFromEnv } from "@/lib/http/config";
+import { makeCorsHeaders } from "@/test/http-handlers";
 import {
   listUsers,
   showUser,
@@ -10,7 +12,10 @@ import {
 } from "@/features/users/api/users.api";
 import { listRoles } from "@/features/roles/api/roles.api";
 import { listActivities } from "@/features/logs/api/audit.api";
-import { registerUser } from "@/features/auth/api/auth.api";
+import {
+  completeMfaChallenge,
+  registerUser,
+} from "@/features/auth/api/auth.api";
 import { createMockDatabase, type MockDatabase } from "./mock-data";
 import { createMockHandlers } from "./mock-handlers";
 import type { MockScenario } from "./mock-scenario";
@@ -44,6 +49,36 @@ describe("mock handlers", () => {
     expect(body.data.permissions).toEqual(
       expect.arrayContaining(["users.view", "roles.view", "logs.view"]),
     );
+  });
+
+  it("serves a successful MFA challenge in the full mock scenario", async () => {
+    useScenario("full");
+
+    await expect(
+      completeMfaChallenge({ code: "123456" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("serves invalid MFA codes as 422 field errors", async () => {
+    useScenario("full");
+    server.use(
+      http.post(`${apiBaseUrl}/api/v1/auth/mfa/challenge`, ({ request }) =>
+        HttpResponse.json(
+          {
+            message: "O código informado é inválido.",
+            errors: { code: ["Confira o código e tente novamente."] },
+          },
+          { status: 422, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    await expect(
+      completeMfaChallenge({ code: "000000" }),
+    ).rejects.toMatchObject({
+      kind: "validation",
+      fieldErrors: { code: ["Confira o código e tente novamente."] },
+    });
   });
 
   it("updates the mock profile and accepts password changes without storing them", async () => {

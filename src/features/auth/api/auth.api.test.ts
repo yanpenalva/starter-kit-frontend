@@ -9,6 +9,8 @@ import {
 import { CSRF_COOKIE_NAME } from "@/lib/http/config";
 import {
   confirmEmailVerification,
+  completeMfaChallenge,
+  loginUser,
   registerUser,
   requestPasswordReset,
   resetPassword,
@@ -20,6 +22,8 @@ const VERIFICATION_NOTIFICATION_URL = `${TEST_API_BASE}/api/v1/email/verificatio
 const FORGOT_PASSWORD_URL = `${TEST_API_BASE}/api/v1/forgot-password`;
 const RESET_PASSWORD_URL = `${TEST_API_BASE}/api/v1/reset-password`;
 const CSRF_COOKIE_URL = `${TEST_API_BASE}/sanctum/csrf-cookie`;
+const LOGIN_URL = `${TEST_API_BASE}/api/v1/login`;
+const MFA_CHALLENGE_URL = `${TEST_API_BASE}/api/v1/auth/mfa/challenge`;
 
 describe("auth.api", () => {
   beforeEach(() => {
@@ -47,6 +51,77 @@ describe("auth.api", () => {
 
   afterEach(() => {
     document.cookie = `${CSRF_COOKIE_NAME}=; Max-Age=0; path=/`;
+  });
+
+  it("loginUser treats direct-login 204 as an empty response", async () => {
+    server.use(
+      http.post(
+        LOGIN_URL,
+        ({ request }) =>
+          new HttpResponse(null, {
+            status: 204,
+            headers: makeCorsHeaders(request),
+          }),
+      ),
+    );
+
+    await expect(
+      loginUser({ email: "maria@example.com", password: "secret-password" }),
+    ).resolves.toEqual({});
+  });
+
+  it("loginUser returns the MFA requirement from the login response", async () => {
+    server.use(
+      http.post(LOGIN_URL, ({ request }) =>
+        HttpResponse.json(
+          { requires_mfa: true },
+          { headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    await expect(
+      loginUser({ email: "admin@example.com", password: "secret-password" }),
+    ).resolves.toEqual({ requires_mfa: true });
+  });
+
+  it("completeMfaChallenge accepts a code and handles 204 success", async () => {
+    let capturedBody: unknown = null;
+    server.use(
+      http.post(MFA_CHALLENGE_URL, async ({ request }) => {
+        capturedBody = await request.json();
+        return new HttpResponse(null, {
+          status: 204,
+          headers: makeCorsHeaders(request),
+        });
+      }),
+    );
+
+    await expect(
+      completeMfaChallenge({ code: "123456" }),
+    ).resolves.toBeUndefined();
+    expect(capturedBody).toEqual({ code: "123456" });
+  });
+
+  it("completeMfaChallenge exposes invalid-code field errors from 422", async () => {
+    server.use(
+      http.post(MFA_CHALLENGE_URL, ({ request }) =>
+        HttpResponse.json(
+          {
+            message: "O código informado é inválido.",
+            errors: { code: ["Confira o código e tente novamente."] },
+          },
+          { status: 422, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    await expect(
+      completeMfaChallenge({ code: "000000" }),
+    ).rejects.toMatchObject({
+      kind: "validation",
+      fieldErrors: { code: ["Confira o código e tente novamente."] },
+    });
   });
 
   it("registerUser sends POST /api/v1/register and returns 201 response", async () => {

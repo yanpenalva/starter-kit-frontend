@@ -1,17 +1,20 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
-import { authLogin, authLogout, authMyProfile } from "@/lib/api/generated";
+import { authLogout, authMyProfile } from "@/lib/api/generated";
 import type {
   LoginRequest,
   MyProfileResource,
 } from "@/lib/api/generated/models";
 import {
   confirmEmailVerification,
+  completeMfaChallenge,
+  loginUser,
   registerUser,
   requestPasswordReset as forgotPassword,
   resetPassword as resetPasswordApi,
   sendVerificationNotification,
 } from "@/features/auth/api/auth.api";
+import type { MfaChallengeRequest } from "@/features/auth/api/auth.api";
 import { isHttpError, onSessionExpired } from "@/lib/http";
 import type { BlockedAccountReason } from "@/lib/http";
 import { queryClient } from "@/app/providers/query";
@@ -80,14 +83,39 @@ export const useSessionStore = defineStore("session", () => {
   });
   invalidateBootstrap = bootstrapCoordinator.invalidate;
   const bootstrap = bootstrapCoordinator.bootstrap;
+  const handleAuthenticationFailure = (error: unknown): void => {
+    user.value = null;
+    isInitialized.value = true;
+    status.value = "unauthenticated";
+    blockedReason.value = null;
+    blockedEmailVerifiedAt.value = null;
+    if (isHttpError(error) && error.kind === "forbidden") {
+      status.value = "blocked";
+      const blocked = blockedDetailsFromError(error);
+      blockedReason.value = blocked.reason;
+      blockedEmailVerifiedAt.value = blocked.emailVerifiedAt;
+    }
+    if (isHttpError(error)) {
+      errorMessage.value = error.message;
+    }
+  };
   const login = async (
     credentials: LoginRequest,
-  ): Promise<MyProfileResource> => {
+  ): Promise<MyProfileResource | null> => {
     bootstrapCoordinator.invalidate();
     status.value = "loading";
     errorMessage.value = null;
     try {
-      await authLogin(credentials);
+      const loginResponse = await loginUser(credentials);
+      if (loginResponse.requires_mfa) {
+        queryClient.clear();
+        user.value = null;
+        status.value = "mfa_required";
+        blockedReason.value = null;
+        blockedEmailVerifiedAt.value = null;
+        isInitialized.value = true;
+        return null;
+      }
       const response = await authMyProfile();
       user.value = response.data;
       status.value = authenticatedStatus(response.data);
@@ -96,20 +124,29 @@ export const useSessionStore = defineStore("session", () => {
       isInitialized.value = true;
       return response.data;
     } catch (error: unknown) {
-      user.value = null;
-      isInitialized.value = true;
-      status.value = "unauthenticated";
+      handleAuthenticationFailure(error);
+      throw error;
+    }
+  };
+  const completeChallenge = async (
+    payload: MfaChallengeRequest,
+  ): Promise<MyProfileResource> => {
+    errorMessage.value = null;
+    try {
+      await completeMfaChallenge(payload);
+      const response = await authMyProfile();
+      user.value = response.data;
+      status.value = authenticatedStatus(response.data);
       blockedReason.value = null;
       blockedEmailVerifiedAt.value = null;
-      if (isHttpError(error) && error.kind === "forbidden") {
-        status.value = "blocked";
-        const blocked = blockedDetailsFromError(error);
-        blockedReason.value = blocked.reason;
-        blockedEmailVerifiedAt.value = blocked.emailVerifiedAt;
-      }
-      if (isHttpError(error)) {
+      isInitialized.value = true;
+      return response.data;
+    } catch (error: unknown) {
+      if (isHttpError(error) && error.kind === "validation") {
         errorMessage.value = error.message;
+        throw error;
       }
+      handleAuthenticationFailure(error);
       throw error;
     }
   };
@@ -159,6 +196,7 @@ export const useSessionStore = defineStore("session", () => {
     isAuthorized,
     bootstrap,
     login,
+    completeChallenge,
     logout,
     register: registerUser,
     resendVerification: sendVerificationNotification,

@@ -141,6 +141,12 @@ const sessionHandlers = (
       headers: corsHeaders(request),
     });
   }),
+  http.post(`${base}/api/v1/auth/mfa/challenge`, ({ request }) => {
+    return new HttpResponse(null, {
+      status: 204,
+      headers: corsHeaders(request),
+    });
+  }),
   http.post(`${base}/api/v1/logout`, ({ request }) => {
     return new HttpResponse(null, {
       status: 204,

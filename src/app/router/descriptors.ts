@@ -1,6 +1,7 @@
 export type RouteAccessMeta = {
   requiresAuth?: boolean;
   guestOnly?: boolean;
+  requiresMfa?: boolean;
   allowLimited?: boolean;
   roles?: string[];
   permissions?: string[];
@@ -37,6 +38,12 @@ export const routeDescriptors: readonly NavigationDescriptor[] = [
     path: "/login",
     component: () => import("@features/auth/pages/LoginPage.vue"),
     meta: { guestOnly: true },
+  },
+  {
+    name: "mfa-challenge",
+    path: "/mfa-challenge",
+    component: () => import("@features/auth/pages/MfaChallengePage.vue"),
+    meta: { guestOnly: true, requiresMfa: true },
   },
   {
     name: "register",

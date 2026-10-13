@@ -41,6 +41,16 @@ export const navigationGuard = async (
     }
     return next();
   }
+  const requiresMfa = to.matched.some((record) => record.meta.requiresMfa);
+  if (session.status === "mfa_required" && requiresMfa) {
+    return next();
+  }
+  if (session.status === "mfa_required") {
+    return next({ name: "mfa-challenge" });
+  }
+  if (requiresMfa) {
+    return next({ name: "login" });
+  }
   const guestOnly = to.matched.some((record) => record.meta.guestOnly);
   if (guestOnly && session.isAuthenticated) {
     return next({ name: "dashboard" });

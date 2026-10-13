@@ -30,6 +30,18 @@ describe("descritores de rota tipados", () => {
     expect(profile?.nav?.label).toBe("Minha Conta");
   });
 
+  it("marks the MFA challenge as guest-only and pending-MFA-only", () => {
+    const challenge = routeDescriptors.find(
+      (descriptor) => descriptor.name === "mfa-challenge",
+    );
+
+    expect(challenge?.path).toBe("/mfa-challenge");
+    expect(challenge?.meta).toEqual({
+      guestOnly: true,
+      requiresMfa: true,
+    });
+  });
+
   it("deriva os itens de menu dos descritores de navegação", () => {
     const navDescriptors = routeDescriptors.filter((d) => d.nav);
     expect(APP_NAV_ITEMS.map((item) => item.key)).toEqual(
