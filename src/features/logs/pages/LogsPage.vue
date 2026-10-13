@@ -109,6 +109,7 @@
 
       <Pagination
         aria-label="Paginação de auditoria"
+        :disabled="query.isFetching.value"
         :meta="query.data.value.meta"
         @change="filters.page = $event"
       />
