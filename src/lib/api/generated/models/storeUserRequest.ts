@@ -16,4 +16,6 @@ export interface StoreUserRequest {
    */
   password: string;
   active: boolean;
+  /** @minItems 1 */
+  roles: string[];
 }

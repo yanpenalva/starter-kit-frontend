@@ -339,13 +339,33 @@ const usersHandlers = (
       ) {
         return json(request, { message: "Dados inválidos." }, 422);
       }
+      const roles = payload.roles;
+      if (
+        !Array.isArray(roles) ||
+        roles.length === 0 ||
+        !roles.every(
+          (role: unknown) =>
+            typeof role === "string" &&
+            database.roles.some((candidate) => candidate.name === role),
+        ) ||
+        new Set(roles).size !== roles.length
+      ) {
+        return json(
+          request,
+          {
+            message: "Dados inválidos.",
+            errors: { roles: ["Selecione ao menos um perfil válido."] },
+          },
+          422,
+        );
+      }
       const created: AdminUser = {
         id: Math.max(0, ...database.users.map((user) => user.id)) + 1,
         name: payload.name,
         email: payload.email,
         email_verified_at: null,
         deactivated_at: payload.active === true ? null : "2026-10-10T12:00:00Z",
-        roles: [],
+        roles: [...(roles as string[])].sort(),
         cpf: payload.cpf,
       };
       database.users.push(created);

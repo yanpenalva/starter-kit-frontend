@@ -157,6 +157,12 @@ const setDialogValue = async (
   element.dispatchEvent(new Event("input", { bubbles: true }));
 };
 
+const selectDialogRole = async (name: string): Promise<void> => {
+  const selector = `[aria-label="Perfil ${name}"][role="option"]`;
+  await vi.waitFor(() => expect(dialogGet(selector)).toBeDefined());
+  await setDialogValue(selector, true);
+};
+
 const pressEscape = (): void => {
   for (const type of ["keydown", "keyup"]) {
     document.dispatchEvent(
@@ -425,13 +431,19 @@ describe("UsersPage", () => {
   });
 
   it("creates a user through the modal form", async () => {
-    const mocks = makeUsersRouteMocks(users);
+    const mocks = makeUsersRouteMocks(makeUsers(16));
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find(".page-toolbar button").exists()).toBe(true),
     );
+    await vi.waitFor(() =>
+      expect(wrapper.find(".table-wrap").exists()).toBe(true),
+    );
+    const initialListRequests = mocks.calls.filter(
+      (call) => call.method === "GET" && call.path === "/api/v1/users",
+    ).length;
     await openDialog(".page-toolbar button", wrapper);
 
     await setDialogValue('[aria-label="Nome do novo usuário"]', "Novo Usuário");
@@ -444,6 +456,7 @@ describe("UsersPage", () => {
       '[aria-label="Senha do novo usuário"]',
       "Alterar123!x",
     );
+    await selectDialogRole("admin");
     expect(
       dialogGet<HTMLInputElement>(
         '[aria-label="Ativar novo usuário imediatamente"]',
@@ -471,7 +484,16 @@ describe("UsersPage", () => {
       email: "novo@example.test",
       cpf: "12345678909",
       active: true,
+      roles: ["admin"],
     });
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.filter(
+          (call) => call.method === "GET" && call.path === "/api/v1/users",
+        ).length,
+      ).toBeGreaterThan(initialListRequests),
+    );
 
     await waitDialogClosed();
     expect(wrapper.text()).toContain("Usuário criado com sucesso.");
@@ -534,6 +556,7 @@ describe("UsersPage", () => {
       '[aria-label="Senha do novo usuário"]',
       "Alterar123!x",
     );
+    await selectDialogRole("admin");
     dialogGet('[data-testid="submit-create-user"]').click();
 
     await vi.waitFor(() =>

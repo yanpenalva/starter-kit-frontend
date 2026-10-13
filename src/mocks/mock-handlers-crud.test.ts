@@ -66,17 +66,31 @@ describe("mock user writes", () => {
 
   it("creates users and validates the payload", async () => {
     const database = useScenario("full");
-    const created = await createUser({
+    const validPayload = {
       name: "Usuária Fictícia de Teste",
       email: "ficticia@example.test",
       password: "senha-longa-123",
       cpf: "12345678901",
       active: true,
-    });
+      roles: ["manager", "user"],
+    };
+    const created = await createUser(validPayload);
     expect(created.data.id).toBe(33);
-    expect(created.data.roles).toEqual([]);
-    expect(database.users[32]?.roles).toEqual([]);
+    expect(created.data.roles).toEqual(["manager", "user"]);
+    expect(database.users[32]?.roles).toEqual(["manager", "user"]);
     expect(database.users).toHaveLength(33);
+
+    const missingRoles = {
+      ...validPayload,
+      roles: undefined,
+    } as unknown as Parameters<typeof createUser>[0];
+    expect(await statusOf(createUser(missingRoles))).toBe(422);
+    expect(await statusOf(createUser({ ...validPayload, roles: [] }))).toBe(
+      422,
+    );
+    expect(
+      await statusOf(createUser({ ...validPayload, roles: ["user", "user"] })),
+    ).toBe(422);
     expect(
       await statusOf(
         createUser({
@@ -85,6 +99,7 @@ describe("mock user writes", () => {
           password: "curta",
           cpf: "123",
           active: true,
+          roles: ["user"],
         }),
       ),
     ).toBe(422);

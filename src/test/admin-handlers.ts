@@ -325,11 +325,26 @@ export const makeUsersRouteMocks = (
       ) {
         return json(request, { message: "Dados inválidos." }, 422);
       }
+      if (
+        !Array.isArray(payload.roles) ||
+        payload.roles.length === 0 ||
+        !payload.roles.every((role: unknown) => typeof role === "string") ||
+        new Set(payload.roles).size !== payload.roles.length
+      ) {
+        return json(
+          request,
+          {
+            message: "Dados inválidos.",
+            errors: { roles: ["Selecione ao menos um perfil válido."] },
+          },
+          422,
+        );
+      }
       const created = makeAdminUser({
         id: Math.max(0, ...users.map((user) => user.id)) + 1,
         name: payload.name,
         email: payload.email,
-        roles: [],
+        roles: [...(payload.roles as string[])].sort(),
       });
       users.push(created);
       return json(request, { data: created }, 201);

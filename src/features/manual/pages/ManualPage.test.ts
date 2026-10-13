@@ -67,6 +67,8 @@ describe("ManualPage.vue", () => {
 
     expect(text).toContain("janelas");
     expect(text).toContain("seletor múltiplo");
+    expect(text).toContain("perfis obrigatórios");
+    expect(text).toContain("única operação");
     expect(text).toContain("nome ou e-mail");
     expect(text).toContain("Itens por página");
     expect(text).toContain("ícones");
