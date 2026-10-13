@@ -6,6 +6,7 @@
   >
     <template v-if="activity">
       <q-expansion-item
+        group="log-details"
         dense
         default-opened
         label="Metadados"
@@ -54,8 +55,8 @@
       <p class="log-detail__description">{{ activity.description }}</p>
 
       <q-expansion-item
+        group="log-details"
         dense
-        default-opened
         label="Payload da auditoria"
         toggle-aria-label="Payload da auditoria"
       >

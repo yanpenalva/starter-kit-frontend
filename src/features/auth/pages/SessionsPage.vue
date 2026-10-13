@@ -1,5 +1,9 @@
 <template>
-  <AdminPageLayout eyebrow="SEGURANÇA DA CONTA" title="Sessões ativas">
+  <AdminPageLayout
+    eyebrow="SEGURANÇA DA CONTA"
+    title="Sessões ativas"
+    help-text="Revise os dispositivos conectados e encerre uma sessão que você não reconhece."
+  >
     <template #subtitle>
       Confira onde sua conta está conectada e encerre acessos que não reconhece.
     </template>

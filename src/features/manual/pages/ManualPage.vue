@@ -4,6 +4,10 @@
       <header class="manual__header">
         <p class="manual__eyebrow">AJUDA</p>
         <h1 class="manual__title">Manual de uso</h1>
+        <InfoTooltip
+          text="Encontre orientações para acessar sua conta e usar os recursos disponíveis."
+          label="Ajuda sobre o Manual de uso"
+        />
         <p class="manual__lead">
           Guia rápido para acessar sua conta, encontrar as ferramentas
           disponíveis e entender as proteções da plataforma.
@@ -27,6 +31,7 @@
         class="manual__section"
       >
         <q-expansion-item
+          group="manual"
           expand-separator
           :label="section.title"
           :caption="section.summary"
@@ -53,6 +58,7 @@
         <q-expansion-item
           v-for="faq in MANUAL_FAQ"
           :key="faq.question"
+          group="manual"
           expand-separator
           :label="faq.question"
           header-class="manual__expansion-header manual__faq-header"
@@ -70,6 +76,7 @@
 
 <script setup lang="ts">
 import AppLayout from "@/shared/layouts/AppLayout.vue";
+import InfoTooltip from "@/shared/components/InfoTooltip.vue";
 import {
   MANUAL_FAQ,
   MANUAL_SECTIONS,

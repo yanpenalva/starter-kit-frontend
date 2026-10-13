@@ -3,7 +3,14 @@
     <div class="admin-page">
       <header class="page-header">
         <p class="page-eyebrow">{{ eyebrow }}</p>
-        <h1 class="page-title">{{ title }}</h1>
+        <div class="page-title-row">
+          <h1 class="page-title">{{ title }}</h1>
+          <InfoTooltip
+            v-if="helpText"
+            :text="helpText"
+            :label="`Ajuda: ${title}`"
+          />
+        </div>
         <p class="page-subtitle"><slot name="subtitle" /></p>
       </header>
 
@@ -23,10 +30,12 @@
 
 <script setup lang="ts">
 import AppLayout from "@/shared/layouts/AppLayout.vue";
+import InfoTooltip from "@/shared/components/InfoTooltip.vue";
 
 defineProps<{
   eyebrow: string;
   title: string;
+  helpText?: string;
 }>();
 </script>
 
@@ -56,6 +65,12 @@ defineProps<{
   font-family: var(--type-display, inherit);
   font-size: 2rem;
   font-weight: 400;
+}
+
+.page-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .page-subtitle {

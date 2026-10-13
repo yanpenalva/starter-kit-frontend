@@ -15,9 +15,14 @@
       class="auth-layout__main"
       :aria-labelledby="headingId"
     >
+      <BackButton />
       <section class="auth-layout__intro">
         <p class="auth-layout__eyebrow">{{ eyebrow }}</p>
         <h1 :id="headingId">{{ title }}</h1>
+        <InfoTooltip
+          text="Se precisar de orientações sobre sua conta, consulte a equipe responsável pelo seu acesso."
+          label="Ajuda de acesso à conta"
+        />
         <p class="auth-layout__description">{{ description }}</p>
         <span class="auth-layout__ornament" aria-hidden="true">✳</span>
       </section>
@@ -35,6 +40,8 @@
 
 <script setup lang="ts">
 import { useId } from "vue";
+import BackButton from "@/shared/components/BackButton.vue";
+import InfoTooltip from "@/shared/components/InfoTooltip.vue";
 
 withDefaults(
   defineProps<{

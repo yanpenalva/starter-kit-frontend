@@ -235,7 +235,9 @@ describe("UserEditForm", () => {
     expect(
       document.body.querySelector('[aria-label="Perfis de Maria Silva"]'),
     ).toBeNull();
-    expect(dialogGet("[data-testid=roles-readonly]").textContent).toBe("user");
+    expect(dialogGet("[data-testid=roles-readonly]").textContent).toBe(
+      "Usuário",
+    );
   });
 
   it("bloqueia atribuição vazia antes do PUT", async () => {
@@ -323,7 +325,7 @@ describe("UserEditForm", () => {
     );
     expect(
       dialogGet('[aria-label="Perfis selecionados"]').textContent,
-    ).toContain("user");
+    ).toContain("Usuário");
     expect(catalogCalls).toBe(0);
   });
 

@@ -6,7 +6,7 @@
   >
     <template v-if="role">
       <p class="role-detail__name" data-testid="role-detail-name">
-        {{ role.name }}
+        {{ roleLabel(role.name) }}
       </p>
       <p v-if="isRoleImmutable(role)" role="note" class="role-detail__notice">
         Perfil Administrador protegido: não pode ser renomeado, excluído nem ter
@@ -54,14 +54,16 @@
       <q-expansion-item
         v-for="group in PERMISSION_GROUPS"
         :key="group.id"
+        group="role-permissions"
+        :default-opened="group.id === PERMISSION_GROUPS[0]?.id"
         dense
         :label="group.label"
-        :caption="`${grantedCount(group)} de ${group.permissions.length} concedidas`"
+        :caption="`${grantedCount(group)} permissões`"
         :toggle-aria-label="`Permissões do grupo ${group.label}`"
       >
         <ul class="role-detail__permissions">
           <li
-            v-for="permission in group.permissions"
+            v-for="permission in group.permissions.filter(isGranted)"
             :key="permission"
             class="role-detail__permission"
             :class="{
@@ -69,9 +71,6 @@
             }"
           >
             <span>{{ CATALOGUE_PERMISSION_LABELS[permission] }}</span>
-            <span class="role-detail__state">
-              {{ isGranted(permission) ? "Concedida" : "Não concedida" }}
-            </span>
           </li>
         </ul>
       </q-expansion-item>
@@ -124,6 +123,7 @@ import {
 } from "@/shared/types/contract";
 import { useFormDismissGuard } from "@/shared/composables/useFormDismissGuard";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { roleLabel } from "@/shared/utils/role-labels";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -153,7 +153,7 @@ const isDirty = computed(() => name.value !== savedName.value);
 const title = computed(() =>
   props.role === null
     ? "Detalhes do perfil"
-    : `Detalhes do perfil ${props.role.name}`,
+    : `Detalhes do perfil ${roleLabel(props.role.name)}`,
 );
 
 const reset = (): void => {

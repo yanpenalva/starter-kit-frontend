@@ -61,6 +61,32 @@ describe("ManualPage.vue", () => {
     expect(wrapper.text()).toContain("Quanto tempo dura a sessão?");
   });
 
+  it("closes an open manual section when another section opens", async () => {
+    const wrapper = mountManual();
+    const usersHeader = wrapper.get('#usuarios [role="button"]');
+    const loginHeader = wrapper.get('#login-e-perfis [role="button"]');
+
+    await usersHeader.trigger("click");
+    expect(usersHeader.attributes("aria-expanded")).toBe("true");
+    await loginHeader.trigger("click");
+
+    expect(loginHeader.attributes("aria-expanded")).toBe("true");
+    expect(usersHeader.attributes("aria-expanded")).toBe("false");
+  });
+
+  it("closes an open section when another manual section opens", async () => {
+    const wrapper = mountManual();
+    const usersHeader = wrapper.get('#usuarios [role="button"]');
+    const loginHeader = wrapper.get('#login-e-perfis [role="button"]');
+
+    await usersHeader.trigger("click");
+    expect(usersHeader.attributes("aria-expanded")).toBe("true");
+    await loginHeader.trigger("click");
+
+    expect(loginHeader.attributes("aria-expanded")).toBe("true");
+    expect(usersHeader.attributes("aria-expanded")).toBe("false");
+  });
+
   it("describes current dialogs, multi-select, search, pagination and icons", () => {
     const wrapper = mountManual();
     const text = wrapper.text();
@@ -97,17 +123,19 @@ describe("ManualPage.vue", () => {
     expect(text).toContain("Como encontro uma conta de usuário?");
     expect(text).toContain("A sessão terminou");
     expect(wrapper.findAll(".manual__faq-answer")).toHaveLength(7);
+    expect(text).toContain("Ação indisponível para o perfil Administrador.");
+    expect(text).toContain("Ação indisponível para o perfil Administrador.");
   });
 
-  it("distinguishes real server expiration from the corrected five-minute cache cleanup", async () => {
+  it("explains server session duration without mentioning browser cache cleanup", async () => {
     const data = await import("../data/manual-content");
     const sessionEntry = data.MANUAL_FAQ.find((faq) =>
       faq.question.includes("Quanto tempo dura a sessão?"),
     );
 
     expect(sessionEntry?.answer).toContain("120 minutos");
-    expect(sessionEntry?.answer).toContain("cinco minutos");
-    expect(sessionEntry?.answer).toContain("foi corrigida");
+    expect(sessionEntry?.answer).toContain("Você");
+    expect(sessionEntry?.answer).not.toMatch(/5\s?min|cache/i);
     expect(mountManual().text()).toContain(sessionEntry?.answer ?? "");
   });
 

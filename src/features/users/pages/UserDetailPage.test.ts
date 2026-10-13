@@ -165,7 +165,7 @@ describe("UserDetailPage", () => {
     expect(wrapper.find('[data-testid="user-verified"]').text()).toContain(
       "Verificado",
     );
-    expect(wrapper.text()).toContain("user");
+    expect(wrapper.text()).toContain("Usuário");
     expect(wrapper.text()).toContain("Ver usuários");
     expect(wrapper.text()).not.toContain("users.view");
     expect(wrapper.get('a[href="/users"]').text()).toBe(

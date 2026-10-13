@@ -1,21 +1,28 @@
 <template>
-  <button
-    class="ui-control action-button"
-    :class="{ 'action-button--icon': icon !== undefined }"
-    :type="type"
-    :disabled="disabled || loading"
-    :aria-busy="loading ? 'true' : undefined"
-    :aria-label="icon === undefined ? undefined : label"
-    :title="icon === undefined ? undefined : label"
-    @click="handleClick"
-  >
-    <span v-if="icon" class="material-icons" aria-hidden="true">{{
-      icon
-    }}</span>
-    <span :class="{ 'action-button__label--hidden': icon !== undefined }">
-      {{ label }}
-    </span>
-  </button>
+  <span class="action-button-shell" :title="tooltip">
+    <button
+      class="ui-control action-button"
+      :class="[
+        { 'action-button--icon': icon !== undefined },
+        color ? `action-button--${color}` : undefined,
+      ]"
+      :type="type"
+      :disabled="disabled || loading"
+      :aria-busy="loading ? 'true' : undefined"
+      :aria-label="icon === undefined ? undefined : label"
+      :title="tooltip ?? (icon === undefined ? undefined : label)"
+      :aria-description="tooltip"
+      :style="iconSize ? { '--action-icon-size': `${iconSize}px` } : undefined"
+      @click="handleClick"
+    >
+      <span v-if="icon" class="material-icons" aria-hidden="true">{{
+        icon
+      }}</span>
+      <span :class="{ 'action-button__label--hidden': icon !== undefined }">
+        {{ label }}
+      </span>
+    </button>
+  </span>
 </template>
 
 <script setup lang="ts">
@@ -26,8 +33,19 @@ const props = withDefaults(
     disabled?: boolean;
     loading?: boolean;
     icon?: string;
+    color?: "info" | "warning" | "error" | "success";
+    iconSize?: number;
+    tooltip?: string;
   }>(),
-  { type: "button", disabled: false, loading: false, icon: undefined },
+  {
+    type: "button",
+    disabled: false,
+    loading: false,
+    icon: undefined,
+    color: undefined,
+    iconSize: undefined,
+    tooltip: undefined,
+  },
 );
 
 const emit = defineEmits<{
@@ -44,6 +62,10 @@ const handleClick = (event: MouseEvent): void => {
 </script>
 
 <style scoped>
+.action-button-shell {
+  display: inline-flex;
+}
+
 .action-button--icon {
   display: inline-flex;
   min-width: 2.75rem;
@@ -54,7 +76,23 @@ const handleClick = (event: MouseEvent): void => {
 }
 
 .action-button--icon .material-icons {
-  font-size: 1.25rem;
+  font-size: var(--action-icon-size, 1.125rem);
+}
+
+.action-button--info {
+  color: var(--color-info);
+}
+
+.action-button--warning {
+  color: var(--color-warning);
+}
+
+.action-button--error {
+  color: var(--color-error);
+}
+
+.action-button--success {
+  color: var(--color-success);
 }
 
 .action-button__label--hidden {

@@ -191,6 +191,19 @@ describe("UsersPage", () => {
         wrapper.find('[aria-label="Ver detalhe de Pessoa 1"]').exists(),
       ).toBe(true),
     );
+    expect(
+      wrapper.get('[aria-label="Ver detalhes de Pessoa 1"]').classes(),
+    ).toContain("action-button--info");
+    expect(wrapper.get('[aria-label="Editar Pessoa 1"]').classes()).toContain(
+      "action-button--warning",
+    );
+    expect(
+      wrapper.get('[aria-label="Desativar Pessoa 1"]').classes(),
+    ).toContain("action-button--warning");
+    expect(wrapper.get('[aria-label="Excluir Pessoa 1"]').classes()).toContain(
+      "action-button--error",
+    );
+    expect(wrapper.get("tbody").text()).toContain("Administrador");
     expect(detailLink(wrapper, 1).text()).toBe("Pessoa 1");
     expect(detailLink(wrapper, 10).text()).toBe("Pessoa 10");
     expect(

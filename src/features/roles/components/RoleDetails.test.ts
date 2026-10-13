@@ -97,12 +97,12 @@ describe("RoleDetails", () => {
     mountDetails(userRole);
 
     await vi.waitFor(() =>
-      expect(dialogText()).toContain("Detalhes do perfil user"),
+      expect(dialogText()).toContain("Detalhes do perfil Usuário"),
     );
     expect(
       document.body.querySelector('[data-testid="role-detail-name"]')
         ?.textContent,
-    ).toContain("user");
+    ).toContain("Usuário");
     expect(dialogText()).toContain("O nome Usuário é reservado");
 
     for (const label of [
@@ -112,12 +112,13 @@ describe("RoleDetails", () => {
     ]) {
       const header = expansionHeader(label);
       expect(header.getAttribute("role")).toBe("button");
-      expect(header.getAttribute("aria-expanded")).toBe("false");
+      expect(header.getAttribute("aria-expanded")).toBe(
+        label === "Permissões do grupo Usuários" ? "true" : "false",
+      );
     }
 
     expect(dialogText()).toContain("Ver usuários");
-    expect(dialogText()).toContain("Concedida");
-    expect(dialogText()).toContain("Não concedida");
+    expect(dialogText()).not.toMatch(/concedida/i);
     expect(dialogElement()?.querySelectorAll("input")).toHaveLength(0);
   });
 
@@ -127,15 +128,15 @@ describe("RoleDetails", () => {
     await vi.waitFor(() => expect(dialogText()).toContain("Ver usuários"));
 
     const header = expansionHeader("Permissões do grupo Usuários");
+    expect(header.getAttribute("aria-expanded")).toBe("true");
     header.click();
     await vi.waitFor(() =>
       expect(
         expansionHeader("Permissões do grupo Usuários").getAttribute(
           "aria-expanded",
         ),
-      ).toBe("true"),
+      ).toBe("false"),
     );
-    expect(dialogText()).toContain("Ver usuários");
 
     header.dispatchEvent(
       new KeyboardEvent("keyup", {
@@ -149,7 +150,7 @@ describe("RoleDetails", () => {
         expansionHeader("Permissões do grupo Usuários").getAttribute(
           "aria-expanded",
         ),
-      ).toBe("false"),
+      ).toBe("true"),
     );
   });
 
@@ -159,7 +160,7 @@ describe("RoleDetails", () => {
     const details = mountDetails(customRole);
 
     await vi.waitFor(() =>
-      expect(dialogText()).toContain("Detalhes do perfil manager"),
+      expect(dialogText()).toContain("Detalhes do perfil Gerente"),
     );
     await setName("operador");
     document.body
@@ -231,7 +232,7 @@ describe("RoleDetails", () => {
     mountDetails(adminRole);
 
     await vi.waitFor(() =>
-      expect(dialogText()).toContain("Detalhes do perfil admin"),
+      expect(dialogText()).toContain("Detalhes do perfil Administrador"),
     );
     expect(dialogText()).toContain(
       "não pode ser renomeado, excluído nem ter permissões alteradas",
@@ -247,7 +248,7 @@ describe("RoleDetails", () => {
     queryClient.clear();
     mountDetails(userRole);
     await vi.waitFor(() =>
-      expect(dialogText()).toContain("Detalhes do perfil user"),
+      expect(dialogText()).toContain("Detalhes do perfil Usuário"),
     );
     expect(dialogText()).toContain("O nome Usuário é reservado");
     expect(

@@ -11,6 +11,11 @@ vi.mock("vue-router", () => ({
     props: ["to"],
     template: "<a><slot /></a>",
   },
+  useRouter: () => ({
+    options: { history: { state: { position: 0, back: null } } },
+    push: vi.fn(),
+    back: vi.fn(),
+  }),
 }));
 
 describe("ForgotPasswordPage.vue", () => {

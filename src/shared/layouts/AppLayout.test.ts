@@ -117,6 +117,22 @@ describe("AppLayout.vue", () => {
     expect(wrapper.find(".q-header #app-navigation").exists()).toBe(false);
   });
 
+  it("keeps the account avatar in the header and opens the account menu", async () => {
+    const { wrapper } = await mountLayout();
+    const account = wrapper.get('[aria-label="Abrir menu da conta"]');
+
+    expect(account.get(".app-header__avatar").text()).toBe("MA");
+    expect(wrapper.find(".app-navigation__avatar").exists()).toBe(false);
+    expect(wrapper.find(".app-navigation__user-name").exists()).toBe(false);
+    expect(wrapper.find(".app-navigation__logout-btn").exists()).toBe(false);
+    await account.trigger("click");
+    await flush();
+
+    expect(document.body.textContent).toContain("Maria Admin");
+    expect(document.body.textContent).toContain("Administrador");
+    expect(document.body.textContent).toContain("Sair");
+  });
+
   it("keeps the drawer expanded on desktop and toggles the mini state by click and keyboard", async () => {
     const { wrapper } = await mountLayout();
 

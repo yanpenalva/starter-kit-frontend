@@ -44,6 +44,26 @@ describe("ActionButton.vue", () => {
     expect(button.classes()).toContain("action-button--icon");
   });
 
+  it("mantém cor e explicação nos controles bloqueados", () => {
+    const wrapper = mountButton({
+      icon: "edit",
+      color: "warning",
+      iconSize: 18,
+      disabled: true,
+      tooltip: "Ação indisponível para o perfil Administrador.",
+    });
+    const button = wrapper.get("button");
+
+    expect(button.classes()).toContain("action-button--warning");
+    expect(button.attributes("disabled")).toBeDefined();
+    expect(button.attributes("title")).toBe(
+      "Ação indisponível para o perfil Administrador.",
+    );
+    expect(button.attributes("aria-description")).toBe(
+      "Ação indisponível para o perfil Administrador.",
+    );
+  });
+
   it("emite click com o evento nativo quando está habilitado", async () => {
     const wrapper = mountButton();
 
