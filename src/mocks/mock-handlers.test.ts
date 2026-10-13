@@ -46,6 +46,35 @@ describe("mock handlers", () => {
     );
   });
 
+  it("updates the mock profile and accepts password changes without storing them", async () => {
+    const database = useScenario("full");
+    const profile = await fetch(`${apiBaseUrl}/api/v1/auth/my-profile`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Nome de Conta Atualizado" }),
+    });
+    expect(profile.status).toBe(200);
+    const profileBody = (await profile.json()) as {
+      data: { name: string };
+    };
+    expect(profileBody.data.name).toBe("Nome de Conta Atualizado");
+    expect(database.profile.name).toBe("Nome de Conta Atualizado");
+
+    const password = await fetch(`${apiBaseUrl}/api/v1/auth/password`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        current_password: "senha-atual-ficticia",
+        password: "senha-nova-ficticia-123",
+        password_confirmation: "senha-nova-ficticia-123",
+      }),
+    });
+    expect(password.status).toBe(200);
+    expect(await password.json()).toEqual({
+      message: "Senha alterada com sucesso.",
+    });
+  });
+
   it("paginates and filters the users list through the real client", async () => {
     useScenario("full");
     const page = await listUsers({ page: 2, per_page: 15 });

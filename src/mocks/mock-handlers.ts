@@ -150,6 +150,54 @@ const sessionHandlers = (
   http.get(`${base}/api/v1/auth/my-profile`, ({ request }) => {
     return json(request, { data: database.profile });
   }),
+  http.patch(`${base}/api/v1/auth/my-profile`, async ({ request }) => {
+    const payload = await readJsonBody(request);
+    const name = typeof payload.name === "string" ? payload.name.trim() : "";
+    if (name.length === 0) {
+      return json(
+        request,
+        {
+          message: "Os dados enviados são inválidos.",
+          errors: { name: ["Informe um nome válido."] },
+        },
+        422,
+      );
+    }
+    database.profile.name = name;
+    return json(request, { data: database.profile });
+  }),
+  http.put(`${base}/api/v1/auth/password`, async ({ request }) => {
+    // shortcut: mock data has no password state; add credential checks if mock login gains one.
+    const payload = await readJsonBody(request);
+    const currentPassword =
+      typeof payload.current_password === "string"
+        ? payload.current_password
+        : "";
+    const password =
+      typeof payload.password === "string" ? payload.password : "";
+    const confirmation =
+      typeof payload.password_confirmation === "string"
+        ? payload.password_confirmation
+        : "";
+    const errors: Record<string, string[]> = {};
+    if (currentPassword.length === 0) {
+      errors.current_password = ["Informe sua senha atual."];
+    }
+    if (password.length < 12) {
+      errors.password = ["A senha deve ter pelo menos 12 caracteres."];
+    }
+    if (confirmation !== password) {
+      errors.password_confirmation = ["A confirmação não confere."];
+    }
+    if (Object.keys(errors).length > 0) {
+      return json(
+        request,
+        { message: "Os dados enviados são inválidos.", errors },
+        422,
+      );
+    }
+    return json(request, { message: "Senha alterada com sucesso." });
+  }),
   http.post(`${base}/api/v1/register`, ({ request }) => {
     return unsupported(request, "cadastro");
   }),

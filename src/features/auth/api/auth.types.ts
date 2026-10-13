@@ -1,3 +1,5 @@
+import type { MyProfileResource } from "@/lib/api/generated/models";
+
 export interface RegisterRequest {
   name: string;
   email: string;
@@ -33,5 +35,23 @@ export interface ResetPasswordResponse {
 }
 
 export interface VerificationNotificationResponse {
+  message: string;
+}
+
+export interface UpdateMyProfileRequest {
+  name: string;
+}
+
+export interface UpdateMyProfileResponse {
+  data: MyProfileResource;
+}
+
+export interface ChangeMyPasswordRequest {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface ChangeMyPasswordResponse {
   message: string;
 }
