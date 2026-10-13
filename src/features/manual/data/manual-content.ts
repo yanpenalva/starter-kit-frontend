@@ -46,7 +46,7 @@ export const MANUAL_SECTIONS: readonly ManualSection[] = [
     items: [
       "Use a busca para localizar pelo nome ou e-mail. A busca não pesquisa CPF.",
       "Os filtros permitem restringir a lista por situação e perfil. Alterar busca ou filtro volta à primeira página.",
-      "Na janela Criar usuário, informe os dados e selecione um ou mais perfis obrigatórios. A conta e os perfis são enviados e gravados em uma única operação.",
+      "Na janela Criar usuário, informe os dados e selecione um ou mais perfis obrigatórios. Cada opção mostra o nome e a descrição do perfil; perfis personalizados informam a quantidade de permissões. A conta e os perfis são enviados e gravados em uma única operação.",
       "Na edição, o seletor múltiplo permite ajustar os perfis disponíveis para sua autorização.",
       "Erros 422 indicam o campo ou bloco que precisa de correção e mantêm os demais dados preenchidos. Erros 403 informam que sua conta não tem autorização para a ação.",
       "A lista é paginada. “Itens por página” altera quantos registros são exibidos em cada página.",

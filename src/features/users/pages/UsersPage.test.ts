@@ -159,7 +159,13 @@ const setDialogValue = async (
 };
 
 const selectDialogRole = async (name: string): Promise<void> => {
-  const selector = `[aria-label="Perfil ${name}"][role="option"]`;
+  const labels: Record<string, string> = {
+    admin: "Administrador — Acesso administrativo ao sistema",
+    manager: "Gerente — Gerencia usuários e operações",
+  };
+  const selector = labels[name]
+    ? `[aria-label="${labels[name]}"][role="option"]`
+    : `[aria-label^="${name} — Perfil personalizado —"][role="option"]`;
   await vi.waitFor(() => expect(dialogGet(selector)).toBeDefined());
   await setDialogValue(selector, true);
 };
@@ -199,6 +205,9 @@ describe("UsersPage", () => {
         wrapper.find('[aria-label="Ver detalhe de Pessoa 1"]').exists(),
       ).toBe(true),
     );
+    const actionsCell = wrapper.get("tbody tr .actions-cell");
+    expect(actionsCell.findAll("button")).toHaveLength(4);
+    expect(actionsCell.classes()).toContain("actions-cell--nowrap");
     expect(
       wrapper.get('[aria-label="Ver detalhes de Pessoa 1"]').classes(),
     ).toContain("action-button--info");
@@ -753,13 +762,13 @@ describe("UsersPage", () => {
       () =>
         expect(
           dialogElement()?.querySelector(
-            '[aria-label="Perfis de Pessoa 2"] input[aria-label="Perfil editor"][role="option"]',
+            '[aria-label="Perfis de Pessoa 2"] input[aria-label^="editor — Perfil personalizado —"][role="option"]',
           ),
         ).not.toBeNull(),
       { timeout: 4000 },
     );
     await setDialogValue(
-      '[aria-label="Perfis de Pessoa 2"] input[aria-label="Perfil editor"][role="option"]',
+      '[aria-label="Perfis de Pessoa 2"] input[aria-label^="editor — Perfil personalizado —"][role="option"]',
       true,
     );
     dialogGet('[aria-label="Salvar perfis de Pessoa 2"]').click();

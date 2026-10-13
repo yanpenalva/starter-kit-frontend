@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
+import type { RoleOption } from "./useRoleOptions";
 import { useRoleOptions } from "./useRoleOptions";
 
 const makeRole = (id: number, name: string) => ({
@@ -11,7 +12,7 @@ const makeRole = (id: number, name: string) => ({
 
 const setupListRoles = (
   pages: {
-    data: { id: number; name: string }[];
+    data: RoleOption[];
     meta: { current_page: number; last_page: number; total: number };
   }[],
 ) => {
@@ -171,7 +172,7 @@ describe("useRoleOptions", () => {
 
     enabled.value = true;
     await vi.waitFor(() =>
-      expect(options.value).toEqual([makeRole(1, "user")]),
+      expect(options.value).toEqual([{ id: 1, name: "user", permissions: [] }]),
     );
     expect(listRoles).toHaveBeenCalledTimes(1);
   });

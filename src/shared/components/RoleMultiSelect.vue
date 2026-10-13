@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 import { useRoleOptions } from "@/features/roles/composables/useRoleOptions";
 import { listRoles } from "@/features/roles/api/roles.api";
 import { roleLabel } from "@/shared/utils/role-labels";
+import { roleDescription } from "@/shared/utils/role-descriptions";
 
 const props = withDefaults(
   defineProps<{
@@ -122,12 +123,13 @@ const onListScroll = (event: Event): void => {
                 type="checkbox"
                 :checked="selectedNames.has(option.name)"
                 :disabled="props.disabled"
-                :aria-label="`Perfil ${option.name}`"
+                :aria-label="`${roleLabel(option.name)} — ${roleDescription(option.name, option.permissions)}`"
                 role="option"
                 :aria-selected="selectedNames.has(option.name)"
                 @change="toggle(option.name)"
               />
-              {{ roleLabel(option.name) }}
+              {{ roleLabel(option.name) }} —
+              {{ roleDescription(option.name, option.permissions) }}
             </label>
           </li>
         </template>
