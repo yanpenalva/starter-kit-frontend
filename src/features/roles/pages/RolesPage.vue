@@ -19,25 +19,16 @@
         {{ selection.selectedCount.value }} de {{ visibleRoleIds.length }}
         selecionados
       </p>
+
+      <ActionButton
+        v-if="can('roles.manage')"
+        label="Criar papel"
+        @click="createOpen = true"
+      />
     </template>
 
     <p v-if="query.isPending.value" role="status">Carregando papéis...</p>
     <FormFeedback :feedback="feedback" @retry="feedback.retry" />
-
-    <form
-      v-if="can('roles.manage')"
-      class="search-field"
-      aria-label="Criar papel"
-      @submit.prevent="createNewRole"
-    >
-      Nome do papel
-      <input v-model="newRoleName" aria-label="Nome do novo papel" required />
-      <FieldErrors
-        :errors="feedback.fieldErrors.value.name ?? []"
-        field-label="Nome do novo papel"
-      />
-      <button type="submit" :disabled="creatingRole">Criar papel</button>
-    </form>
 
     <div v-if="query.data.value" class="table-wrap">
       <table>
@@ -80,38 +71,26 @@
                 "
               />
             </td>
-            <th scope="row">{{ role.name }}</th>
-            <td>
-              <q-expansion-item
-                dense
-                :label="`Permissões de ${role.name}`"
-                :caption="`${editedPermissions[role.id]?.length ?? 0} de ${CATALOGUE_PERMISSIONS.length} concedidas`"
-                :toggle-aria-label="`Permissões de ${role.name}`"
+            <th scope="row">
+              {{ role.name }}
+              <span
+                v-if="isRoleImmutable(role)"
+                class="role-immutable"
+                role="note"
               >
-                <fieldset v-for="group in PERMISSION_GROUPS" :key="group.id">
-                  <legend>{{ group.label }}</legend>
-                  <label
-                    v-for="permission in group.permissions"
-                    :key="permission"
-                  >
-                    <input
-                      v-model="editedPermissions[role.id]"
-                      type="checkbox"
-                      :value="permission"
-                      :disabled="
-                        isRoleImmutable(role) ||
-                        !can('roles.update-permissions')
-                      "
-                      :aria-label="`Permissão ${CATALOGUE_PERMISSION_LABELS[permission]} para ${role.name}`"
-                    />
-                    {{ CATALOGUE_PERMISSION_LABELS[permission] }}
-                  </label>
-                </fieldset>
-              </q-expansion-item>
-            </td>
+                protegido
+              </span>
+            </th>
             <td>
+              <span class="permission-summary">
+                {{ role.permissions.length }} de
+                {{ CATALOGUE_PERMISSIONS.length }} concedidas
+              </span>
+            </td>
+            <td class="actions-cell">
               <button
                 type="button"
+                class="ui-control"
                 :aria-label="`Ver detalhes do papel ${role.name}`"
                 @click="openDetail(role)"
               >
@@ -120,22 +99,17 @@
               <button
                 v-if="can('roles.update-permissions')"
                 type="button"
-                :disabled="
-                  isRoleImmutable(role) || permissionMutation.isPending.value
-                "
+                class="ui-control"
+                :disabled="isRoleImmutable(role)"
                 :aria-label="`Editar permissões de ${role.name}`"
-                @click="savePermissions(role.id)"
+                @click="openEdit(role)"
               >
-                {{
-                  pendingRoleId === role.id &&
-                  permissionMutation.isPending.value
-                    ? "Salvando..."
-                    : "Salvar permissões"
-                }}
+                Editar permissões
               </button>
               <button
                 v-if="can('roles.manage') && !isRoleImmutable(role)"
                 type="button"
+                class="ui-control"
                 :disabled="deletingRoleId !== null"
                 :aria-label="`Excluir papel ${role.name}`"
                 @click="removeRole(role.id, role.name)"
@@ -165,40 +139,47 @@
       :role="detailRole"
       @update:model-value="closeDetail"
     />
+
+    <RoleFormModal
+      :model-value="createOpen"
+      mode="create"
+      @created="handleCreated"
+    />
+
+    <RoleFormModal
+      :model-value="editRole !== null"
+      mode="edit"
+      :role="editRole"
+      @update:model-value="handleEditVisibility"
+      @permissions-saved="handlePermissionsSaved"
+    />
   </AdminPageLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
+import ActionButton from "@/shared/components/ActionButton.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
-import FieldErrors from "@/shared/components/FieldErrors.vue";
 import Pagination from "@/shared/components/Pagination.vue";
 import SearchInput from "@/shared/components/SearchInput.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { usePageSelection } from "@/shared/composables/usePageSelection";
-import {
-  CATALOGUE_PERMISSIONS,
-  CATALOGUE_PERMISSION_LABELS,
-  type CataloguePermission,
-} from "@/shared/types/contract";
-import { PERMISSION_GROUPS } from "@/features/roles/permission-groups";
+import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
 import {
   isRoleImmutable,
   type AdminRole,
 } from "@/features/roles/api/roles.types";
 import { useRolesList } from "@/features/roles/composables/useRolesList";
 import RoleDetails from "@/features/roles/components/RoleDetails.vue";
+import RoleFormModal from "@/features/roles/components/RoleFormModal.vue";
 
 const { can } = useAuthorization();
 const feedback = useFormFeedback();
-const { filters, query, permissionMutation, createMutation, deleteMutation } =
-  useRolesList();
-const editedPermissions = reactive<Record<number, CataloguePermission[]>>({});
-const newRoleName = ref("");
-const pendingRoleId = ref<number | null>(null);
-const creatingRole = ref(false);
+const { filters, query, deleteMutation } = useRolesList();
+const createOpen = ref(false);
+const editRole = ref<AdminRole | null>(null);
 const deletingRoleId = ref<number | null>(null);
 const detailRole = ref<AdminRole | null>(null);
 
@@ -220,6 +201,25 @@ const openDetail = (role: AdminRole): void => {
 const closeDetail = (): void => {
   detailRole.value = null;
 };
+const openEdit = (role: AdminRole): void => {
+  // Acionador do modal: o papel protegido não abre edição de permissões.
+  if (isRoleImmutable(role)) return;
+  editRole.value = role;
+};
+const handleEditVisibility = (value: boolean): void => {
+  if (!value) editRole.value = null;
+};
+
+// O sucesso de cada modal entra no feedback da lista (isolado dos erros de
+// listagem), que continua dono dos erros de busca/exclusão.
+const handleCreated = (): void => {
+  createOpen.value = false;
+  feedback.reportSuccess("Papel criado com sucesso.");
+};
+const handlePermissionsSaved = (): void => {
+  editRole.value = null;
+  feedback.reportSuccess("Permissões atualizadas com sucesso.");
+};
 
 watch(
   () => filters.search,
@@ -227,61 +227,24 @@ watch(
     filters.page = 1;
   },
 );
-watch(
-  query.data,
-  (page) => {
-    page?.data.forEach((role) => {
-      editedPermissions[role.id] = [...role.permissions];
-    });
-  },
-  { immediate: true },
-);
 watch(query.error, (error) => {
   if (error !== null && query.isError.value) {
     feedback.handleFailure(error);
   }
 });
 
-const savePermissions = async (roleId: number): Promise<void> => {
-  if (permissionMutation.isPending.value) return;
-  if (!can("roles.update-permissions")) return;
-  pendingRoleId.value = roleId;
-  try {
-    await permissionMutation.mutateAsync({
-      roleId,
-      payload: { permissions: editedPermissions[roleId] ?? [] },
-    });
-    feedback.reportSuccess("Permissões atualizadas com sucesso.");
-  } catch (error: unknown) {
-    feedback.handleFailure(error);
-  } finally {
-    pendingRoleId.value = null;
-  }
-};
-const createNewRole = async (): Promise<void> => {
-  if (creatingRole.value || !can("roles.manage")) return;
-  creatingRole.value = true;
-  try {
-    await createMutation.mutateAsync({ name: newRoleName.value });
-    newRoleName.value = "";
-    feedback.reportSuccess("Papel criado com sucesso.");
-  } catch (error: unknown) {
-    feedback.handleFailure(error);
-  } finally {
-    creatingRole.value = false;
-  }
-};
 const removeRole = async (roleId: number, roleName: string): Promise<void> => {
   if (deletingRoleId.value !== null || !can("roles.manage")) return;
-  if (!globalThis.confirm(`Excluir o papel ${roleName}?`)) return;
-  deletingRoleId.value = roleId;
-  try {
-    await deleteMutation.mutateAsync(roleId);
-    feedback.reportSuccess("Papel excluído com sucesso.");
-  } catch (error: unknown) {
-    feedback.handleFailure(error);
-  } finally {
-    deletingRoleId.value = null;
+  if (globalThis.confirm(`Excluir o papel ${roleName}?`)) {
+    deletingRoleId.value = roleId;
+    try {
+      await deleteMutation.mutateAsync(roleId);
+      feedback.reportSuccess("Papel excluído com sucesso.");
+    } catch (error: unknown) {
+      feedback.handleFailure(error);
+    } finally {
+      deletingRoleId.value = null;
+    }
   }
 };
 </script>
@@ -298,33 +261,6 @@ const removeRole = async (roleId: number, roleName: string): Promise<void> => {
   margin: 0;
   color: var(--color-muted, #73766e);
   font-size: 0.875rem;
-}
-
-.search-field {
-  display: grid;
-  width: min(100%, 24rem);
-  gap: 0.375rem;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-}
-
-input,
-button {
-  min-height: 2.25rem;
-  padding: 0.375rem 0.625rem;
-  border: 1px solid rgb(58 77 60 / 20%);
-  border-radius: 0.375rem;
-  background: white;
-  color: var(--color-ink, #252b25);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
 }
 
 .table-wrap {
@@ -345,6 +281,18 @@ td {
   vertical-align: top;
 }
 
+thead th {
+  color: var(--color-muted, #73766e);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+tbody tr:hover {
+  background: rgb(58 77 60 / 3%);
+}
+
 .selection-cell {
   width: 2.5rem;
   padding-right: 0;
@@ -363,34 +311,25 @@ td {
   cursor: not-allowed;
 }
 
-tbody tr td:last-child {
+.actions-cell {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-fieldset {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: 0.5rem;
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-
-fieldset + fieldset {
-  margin-top: 0.75rem;
-}
-
-legend {
-  margin-bottom: 0.5rem;
+.role-immutable {
+  margin-left: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: rgb(58 77 60 / 10%);
+  color: var(--color-muted, #73766e);
+  font-size: 0.6875rem;
   font-weight: 600;
+  text-transform: uppercase;
 }
 
-fieldset label {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
+.permission-summary {
+  color: var(--color-muted, #73766e);
   font-size: 0.8125rem;
 }
 </style>
