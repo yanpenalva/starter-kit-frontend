@@ -19,7 +19,7 @@
       bordered
       @update:model-value="handleDrawerUpdate"
     >
-      <AppNavigation :mini="mini" />
+      <AppNavigation :mini="mini && isDesktop" />
     </q-drawer>
 
     <q-page-container>
