@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import type { VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
@@ -59,6 +59,7 @@ const mountLayout = async (
     slots: { default: '<p class="slot-probe">conteúdo da página</p>' },
   });
   await flush();
+  mountedLayouts.push(wrapper);
   return { wrapper, router };
 };
 
@@ -66,6 +67,8 @@ const flush = async (): Promise<void> => {
   await nextTick();
   await nextTick();
 };
+
+const mountedLayouts: VueWrapper[] = [];
 
 const resizeTo = async (width: number): Promise<void> => {
   window.innerWidth = width;
@@ -82,6 +85,12 @@ const overlayBackdrop = (wrapper: VueWrapper): string[] => {
 };
 
 describe("AppLayout.vue", () => {
+  afterEach(() => {
+    while (mountedLayouts.length > 0) {
+      mountedLayouts.pop()?.unmount();
+    }
+  });
+
   beforeEach(() => {
     setActivePinia(createPinia());
     const session = useSessionStore();

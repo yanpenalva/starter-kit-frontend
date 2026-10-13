@@ -67,16 +67,14 @@ export const usePageSelection = (
       return;
     }
     if (!value) {
-      if (!selectedSet.value.has(id)) {
-        return;
+      if (selectedSet.value.has(id)) {
+        selected.value = selected.value.filter((candidate) => candidate !== id);
       }
-      selected.value = selected.value.filter((candidate) => candidate !== id);
       return;
     }
-    if (!isSelectable.value || selectedSet.value.has(id)) {
-      return;
+    if (isSelectable.value && !selectedSet.value.has(id)) {
+      selected.value = [...selected.value, id];
     }
-    selected.value = [...selected.value, id];
   };
 
   const toggleAll = (value?: boolean): void => {

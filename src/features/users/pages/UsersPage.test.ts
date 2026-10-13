@@ -35,6 +35,11 @@ const makeRouter = async () => {
     history: createMemoryHistory(),
     routes: [
       {
+        path: "/users",
+        name: "users",
+        component: { template: "<div />" },
+      },
+      {
         path: "/users/:userId",
         name: "user-detail",
         component: { template: "<div />" },
@@ -87,7 +92,8 @@ const mountPage = async () => {
   // O perfil de sessão vive no cache de query (ADR 0002), então a sessão só
   // pode ser gravada depois da limpeza.
   queryClient.clear();
-  useSessionStore().user = {
+  const session = useSessionStore();
+  session.user = {
     id: 1,
     name: "Admin",
     email: "admin@example.test",
@@ -95,6 +101,7 @@ const mountPage = async () => {
     roles: ["admin"],
     permissions: [...CATALOGUE_PERMISSIONS],
   };
+  session.status = "authenticated";
   const wrapper = mount(UsersPage, {
     global: {
       plugins: [[VueQueryPlugin, { queryClient }], await makeRouter()],
@@ -287,10 +294,13 @@ describe("UsersPage", () => {
       .setValue("novo@example.test");
     await wrapper
       .get('[aria-label="CPF do novo usuário"]')
-      .setValue("12345678909");
+      .setValue("00000000000");
     await wrapper
       .get('[aria-label="Senha do novo usuário"]')
       .setValue("Alterar123!x");
+    await wrapper
+      .get('[aria-label="Ativar novo usuário imediatamente"]')
+      .setValue(true);
     await wrapper.get('[aria-label="Criar usuário"]').trigger("submit");
 
     await vi.waitFor(() =>
@@ -307,9 +317,32 @@ describe("UsersPage", () => {
     ).toMatchObject({
       name: "Novo Usuário",
       email: "novo@example.test",
-      cpf: "12345678909",
-      active: false,
+      cpf: "00000000000",
+      active: true,
     });
+    await vi.waitFor(() =>
+      expect(
+        wrapper.get<HTMLInputElement>('[aria-label="Nome do novo usuário"]')
+          .element.value,
+      ).toBe(""),
+    );
+    expect(
+      wrapper.get<HTMLInputElement>('[aria-label="Email do novo usuário"]')
+        .element.value,
+    ).toBe("");
+    expect(
+      wrapper.get<HTMLInputElement>('[aria-label="CPF do novo usuário"]')
+        .element.value,
+    ).toBe("");
+    expect(
+      wrapper.get<HTMLInputElement>('[aria-label="Senha do novo usuário"]')
+        .element.value,
+    ).toBe("");
+    expect(
+      wrapper.get<HTMLInputElement>(
+        '[aria-label="Ativar novo usuário imediatamente"]',
+      ).element.checked,
+    ).toBe(false);
   });
 
   it("deletes a user after confirmation", async () => {
@@ -366,7 +399,7 @@ describe("UsersPage", () => {
       .setValue("tomada@example.test");
     await wrapper
       .get('[aria-label="CPF do novo usuário"]')
-      .setValue("12345678909");
+      .setValue("00000000000");
     await wrapper
       .get('[aria-label="Senha do novo usuário"]')
       .setValue("Alterar123!x");
@@ -680,7 +713,7 @@ describe("UsersPage — seleção por página", () => {
       name: "Pessoa 1",
       email: "pessoa1@example.test",
       roles: ["admin"],
-      cpf: "12345678909",
+      cpf: "00000000000",
     });
     const mocks = makeUsersRouteMocks(localUsers);
     server.use(...mocks.handlers, rolesListHandler);
@@ -697,7 +730,7 @@ describe("UsersPage — seleção por página", () => {
     await vi.waitFor(() =>
       expect(dialogElement()?.textContent).toContain("Detalhes de Pessoa 1"),
     );
-    expect(dialogElement()?.textContent).toContain("123.456.789-09");
+    expect(dialogElement()?.textContent).toContain("000.000.000-00");
 
     // Consultar não seleciona e não libera edição: o detalhe é só leitura.
     expect(counter(wrapper).text()).toContain("0 de 7 selecionados");

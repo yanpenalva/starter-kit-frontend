@@ -5,11 +5,11 @@
     @update:model-value="emit('update:modelValue', $event)"
   >
     <p v-if="isPending" role="status">Carregando usuário...</p>
-    <p v-else-if="isError" role="alert">
+    <p v-if="isErrorVisible" role="alert">
       Usuário não encontrado ou indisponível.
     </p>
 
-    <template v-else-if="user">
+    <template v-if="displayedUser !== null">
       <q-expansion-item
         dense
         default-opened
@@ -19,26 +19,34 @@
         <dl class="user-detail__grid">
           <div>
             <dt>Nome</dt>
-            <dd data-testid="user-detail-name">{{ user.name }}</dd>
+            <dd data-testid="user-detail-name">{{ displayedUser.name }}</dd>
           </div>
           <div>
             <dt>Email</dt>
-            <dd>{{ user.email }}</dd>
+            <dd>{{ displayedUser.email }}</dd>
           </div>
           <div>
             <dt>Status de verificação</dt>
             <dd>
-              {{ user.email_verified_at === null ? "Pendente" : "Verificado" }}
+              {{
+                displayedUser.email_verified_at === null
+                  ? "Pendente"
+                  : "Verificado"
+              }}
             </dd>
           </div>
           <div>
             <dt>Status da conta</dt>
-            <dd>{{ user.deactivated_at === null ? "Ativo" : "Desativado" }}</dd>
+            <dd>
+              {{
+                displayedUser.deactivated_at === null ? "Ativo" : "Desativado"
+              }}
+            </dd>
           </div>
           <div v-if="can('users.read-cpf')">
             <dt>CPF</dt>
             <dd data-testid="user-detail-cpf">
-              {{ formatCpf(user.cpf ?? "") ?? "—" }}
+              {{ formatCpf(displayedUser.cpf ?? "") ?? "—" }}
             </dd>
           </div>
         </dl>
@@ -50,11 +58,11 @@
         label="Papéis"
         toggle-aria-label="Papéis do usuário"
       >
-        <p v-if="user.roles.length === 0" class="user-detail__empty">
+        <p v-if="displayedUser.roles.length === 0" class="user-detail__empty">
           Nenhum papel atribuído.
         </p>
-        <ul v-else class="user-detail__roles">
-          <li v-for="role in user.roles" :key="role">{{ role }}</li>
+        <ul v-if="displayedUser.roles.length > 0" class="user-detail__roles">
+          <li v-for="role in displayedUser.roles" :key="role">{{ role }}</li>
         </ul>
       </q-expansion-item>
     </template>
@@ -89,6 +97,14 @@ const emit = defineEmits<{
 }>();
 
 const { can } = useAuthorization();
+
+const isErrorVisible = computed(() => !props.isPending && props.isError);
+const displayedUser = computed(() => {
+  if (props.isPending || props.isError) {
+    return null;
+  }
+  return props.user;
+});
 
 const title = computed(() =>
   props.user === null

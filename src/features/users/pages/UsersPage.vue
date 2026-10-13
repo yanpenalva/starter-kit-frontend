@@ -5,106 +5,30 @@
     </template>
 
     <template #toolbar>
-      <div class="filters" aria-label="Filtros de usuários">
-        <SearchInput
-          :model-value="filters.search ?? ''"
-          label="Buscar"
-          placeholder="Nome ou email"
-          :disabled="query.isFetching.value"
-          @update:model-value="filters.search = $event"
-        />
-        <label>
-          Status
-          <select v-model="filters.status" aria-label="Filtrar por status">
-            <option value="">Todos</option>
-            <option value="active">Ativos</option>
-            <option value="deactivated">Desativados</option>
-          </select>
-        </label>
-        <label>
-          Papel
-          <select v-model="filters.role" aria-label="Filtrar por papel">
-            <option value="">Todos</option>
-            <option
-              v-for="role in filterRoleOptions"
-              :key="role.id"
-              :value="role.name"
-            >
-              {{ role.name }}
-            </option>
-          </select>
-        </label>
-      </div>
-
-      <p class="selection-counter" role="status">
-        {{ selection.selectedCount.value }} de {{ visibleUserIds.length }}
-        selecionados
-      </p>
+      <UsersListToolbar
+        :search="filters.search ?? ''"
+        :status="filters.status ?? ''"
+        :role="filters.role ?? ''"
+        :roles="filterRoleOptions"
+        :disabled="query.isFetching.value"
+        :selected-count="selection.selectedCount.value"
+        :visible-count="visibleUserIds.length"
+        @update:search="filters.search = $event"
+        @update:status="filters.status = $event || undefined"
+        @update:role="filters.role = $event || undefined"
+      />
     </template>
 
     <p v-if="query.isPending.value" role="status">Carregando usuários...</p>
     <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
-    <form
+    <UserCreateForm
       v-if="can('users.manage')"
-      class="create-form"
-      aria-label="Criar usuário"
-      @submit.prevent="createNewUser"
-    >
-      <label>
-        Nome
-        <input
-          v-model="newUser.name"
-          aria-label="Nome do novo usuário"
-          required
-        />
-      </label>
-      <label>
-        Email
-        <input
-          v-model="newUser.email"
-          aria-label="Email do novo usuário"
-          type="email"
-          required
-        />
-        <FieldErrors
-          :errors="feedback.fieldErrors.value.email ?? []"
-          field-label="Email do novo usuário"
-        />
-      </label>
-      <label>
-        CPF
-        <input
-          v-model="newUser.cpf"
-          aria-label="CPF do novo usuário"
-          inputmode="numeric"
-          required
-        />
-        <FieldErrors
-          :errors="feedback.fieldErrors.value.cpf ?? []"
-          field-label="CPF do novo usuário"
-        />
-      </label>
-      <label>
-        Senha (mínimo 12 caracteres)
-        <input
-          v-model="newUser.password"
-          aria-label="Senha do novo usuário"
-          type="password"
-          minlength="12"
-          required
-        />
-      </label>
-      <label>
-        <input
-          v-model="newUser.active"
-          aria-label="Ativar novo usuário imediatamente"
-          type="checkbox"
-        />
-        Ativo
-      </label>
-      <button type="submit" :disabled="isMutating">Criar usuário</button>
-    </form>
+      :disabled="isMutating"
+      :field-errors="feedback.fieldErrors.value"
+      :reset-key="createFormResetKey"
+      @submit="createNewUser"
+    />
 
     <div v-if="query.data.value" class="table-wrap">
       <table>
@@ -267,10 +191,8 @@ import { computed, reactive, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
-import FieldErrors from "@/shared/components/FieldErrors.vue";
 import Pagination from "@/shared/components/Pagination.vue";
 import RoleMultiSelect from "@/shared/components/RoleMultiSelect.vue";
-import SearchInput from "@/shared/components/SearchInput.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { usePageSelection } from "@/shared/composables/usePageSelection";
@@ -281,6 +203,9 @@ import {
   useUsersList,
 } from "@/features/users/composables/useUsersList";
 import UserDetails from "@/features/users/components/UserDetails.vue";
+import UserCreateForm from "@/features/users/components/UserCreateForm.vue";
+import UsersListToolbar from "@/features/users/components/UsersListToolbar.vue";
+import type { StoreUserRequest } from "@/lib/api/generated/models/storeUserRequest";
 
 type PendingActionKind = "name" | "roles" | "status" | "create" | "delete";
 
@@ -306,13 +231,7 @@ const {
 } = useUsersList();
 const editedNames = reactive<Record<number, string>>({});
 const editedRoles = reactive<Record<number, string[]>>({});
-const newUser = reactive({
-  name: "",
-  email: "",
-  cpf: "",
-  password: "",
-  active: false,
-});
+const createFormResetKey = ref(0);
 const pendingAction = ref<PendingAction | null>(null);
 const isMutating = computed(() => pendingAction.value !== null);
 const isActionPending = (kind: PendingActionKind, userId: number): boolean =>
@@ -414,9 +333,9 @@ const toggleStatus = async (
     pendingAction.value = null;
   }
 };
-const createNewUser = async (): Promise<void> => {
+const createNewUser = async (payload: StoreUserRequest): Promise<void> => {
   if (pendingAction.value !== null || !can("users.manage")) return;
-  if (!/^\d{11}$/.test(newUser.cpf)) {
+  if (!/^\d{11}$/.test(payload.cpf)) {
     feedback.handleFailure(new Error("cpf-local"));
     feedback.clearFeedback();
     feedback.fieldErrors.value = {
@@ -425,7 +344,7 @@ const createNewUser = async (): Promise<void> => {
     };
     return;
   }
-  if (newUser.password.length < 12) {
+  if (payload.password.length < 12) {
     feedback.clearFeedback();
     feedback.fieldErrors.value = {
       password: ["A senha deve ter pelo menos 12 caracteres."],
@@ -435,17 +354,13 @@ const createNewUser = async (): Promise<void> => {
   pendingAction.value = { kind: "create", userId: 0 };
   try {
     await createMutation.mutateAsync({
-      name: newUser.name,
-      email: newUser.email,
-      cpf: newUser.cpf,
-      password: newUser.password,
-      active: newUser.active,
+      name: payload.name,
+      email: payload.email,
+      cpf: payload.cpf,
+      password: payload.password,
+      active: payload.active,
     });
-    newUser.name = "";
-    newUser.email = "";
-    newUser.cpf = "";
-    newUser.password = "";
-    newUser.active = false;
+    createFormResetKey.value += 1;
     feedback.reportSuccess("Usuário criado com sucesso.");
   } catch (error: unknown) {
     feedback.handleFailure(error);
@@ -469,28 +384,6 @@ const removeUser = async (userId: number, userName: string): Promise<void> => {
 </script>
 
 <style scoped>
-.filters,
-.create-form {
-  display: flex;
-  align-items: end;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.filters {
-  margin-bottom: 0;
-}
-
-.selection-counter {
-  margin: 0;
-  color: var(--color-muted, #73766e);
-  font-size: 0.875rem;
-}
-
-.create-form {
-  margin-bottom: 1rem;
-}
-
 label {
   display: grid;
   gap: 0.375rem;
