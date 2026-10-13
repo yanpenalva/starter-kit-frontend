@@ -37,9 +37,9 @@
 - Validation summary: see `verification.md`; all requested gates pass.
 - Proposed commit message: `feat(auth): add MFA login challenge flow`.
 - Commit approval: `APPROVED` by the user's explicit request.
-- Commit hash: pending.
+- Commit hash: `95ae44121c503704ee3cf4436a0c14658e22a9a2`.
 - Push target: `origin/feat/mfa-challenge-flow`.
 - Push approval: `APPROVED` by the user's explicit request.
-- Push result: pending.
+- Push result: PASS; pushed to `origin/feat/mfa-challenge-flow` at the commit above.
 - Pull request / merge: explicitly excluded by the user; neither will be performed.
 - Tag approval/result: not applicable.

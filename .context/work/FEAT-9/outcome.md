@@ -4,7 +4,7 @@
 
 - Deployed or mitigated: implementation committed and pushed to its feature branch; deployment and merge were excluded.
 - Date: 2026-10-13.
-- Evidence: final SHA and push receipt pending in `release.md`.
+- Evidence: implementation commit `95ae44121c503704ee3cf4436a0c14658e22a9a2` is present on `origin/feat/mfa-challenge-flow`; push succeeded.
 
 ## Observation
 
