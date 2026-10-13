@@ -78,6 +78,7 @@ describe("useAuthorization", () => {
       "home",
       "dashboard",
       "sessions",
+      "profile",
       "users",
       "roles",
       "logs",
@@ -98,7 +99,13 @@ describe("useAuthorization", () => {
     const auth = useAuthorization();
 
     const visibleKeys = auth.visibleNavItems.value.map((i) => i.key);
-    expect(visibleKeys).toEqual(["home", "dashboard", "sessions", "manual"]);
+    expect(visibleKeys).toEqual([
+      "home",
+      "dashboard",
+      "sessions",
+      "profile",
+      "manual",
+    ]);
     expect(auth.can("users.view")).toBe(false);
     expect(auth.hasRole("admin")).toBe(false);
     expect(auth.hasRole("member")).toBe(true);

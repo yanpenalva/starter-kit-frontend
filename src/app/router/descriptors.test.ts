@@ -20,6 +20,16 @@ describe("descritores de rota tipados", () => {
     );
   });
 
+  it("protege a rota Minha Conta", () => {
+    const profile = routeDescriptors.find(
+      (descriptor) => descriptor.name === "profile",
+    );
+
+    expect(profile?.path).toBe("/profile");
+    expect(profile?.meta?.requiresAuth).toBe(true);
+    expect(profile?.nav?.label).toBe("Minha Conta");
+  });
+
   it("deriva os itens de menu dos descritores de navegação", () => {
     const navDescriptors = routeDescriptors.filter((d) => d.nav);
     expect(APP_NAV_ITEMS.map((item) => item.key)).toEqual(
