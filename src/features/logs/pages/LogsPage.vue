@@ -64,10 +64,6 @@
           </select>
         </label>
       </div>
-      <p v-if="canViewLogs" class="selection-counter" role="status">
-        {{ selection.selectedCount.value }} de
-        {{ query.data.value?.data.length ?? 0 }} selecionados
-      </p>
     </template>
 
     <p v-if="!canViewLogs" role="alert" data-testid="logs-restricted">
@@ -88,7 +84,6 @@
         <table>
           <thead>
             <tr>
-              <th scope="col" class="selection-cell"></th>
               <th scope="col">Evento</th>
               <th scope="col">Descrição</th>
               <th scope="col">Entidade</th>
@@ -100,21 +95,6 @@
           </thead>
           <tbody>
             <tr v-for="activity in query.data.value.data" :key="activity.id">
-              <td class="selection-cell">
-                <input
-                  type="checkbox"
-                  class="selection-toggle"
-                  :aria-label="`Selecionar registro ${activity.id}`"
-                  :checked="selection.isSelected(activity.id)"
-                  :disabled="!selection.isSelectable.value"
-                  @change="
-                    selection.setSelected(
-                      activity.id,
-                      ($event.target as HTMLInputElement).checked,
-                    )
-                  "
-                />
-              </td>
               <td>
                 {{
                   AUDIT_EVENT_LABELS[activity.event as AuditEvent] ??
@@ -148,7 +128,7 @@
               </td>
             </tr>
             <tr v-if="query.data.value.data.length === 0">
-              <td colspan="6">Nenhum registro encontrado.</td>
+              <td colspan="5">Nenhum registro encontrado.</td>
             </tr>
           </tbody>
         </table>
@@ -182,7 +162,6 @@ import Pagination from "@/shared/components/Pagination.vue";
 import SearchInput from "@/shared/components/SearchInput.vue";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { useDebouncedSearch } from "@/shared/composables/useDebouncedSearch";
-import { usePageSelection } from "@/shared/composables/usePageSelection";
 import { listActivities } from "@/features/logs/api/audit.api";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import LogDetailModal from "@/features/logs/components/LogDetailModal.vue";
@@ -217,21 +196,6 @@ const query = useQuery({
   queryFn: () => listActivities({ ...filters }),
   placeholderData: keepPreviousData,
   enabled: canViewLogs,
-});
-
-const selection = usePageSelection({
-  visibleIds: () =>
-    (query.data.value?.data ?? []).map((activity) => activity.id),
-  enabled: () => !query.isFetching.value && !query.isError.value,
-  scopeKey: () =>
-    [
-      filters.page,
-      filters.per_page,
-      filters.search ?? "",
-      filters.event ?? "",
-      filters.action ?? "",
-      filters.subject_type ?? "",
-    ].join("|"),
 });
 
 watch(query.error, (error) => {
@@ -316,30 +280,6 @@ thead th {
 
 tbody tr:hover {
   background: rgb(58 77 60 / 3%);
-}
-
-.selection-cell {
-  width: 2.5rem;
-  padding-right: 0;
-  text-align: center;
-}
-
-.selection-toggle {
-  min-height: 0;
-  padding: 0;
-  width: 1rem;
-  height: 1rem;
-  cursor: pointer;
-}
-
-.selection-toggle:disabled {
-  cursor: not-allowed;
-}
-
-.selection-counter {
-  margin: 0;
-  color: var(--color-muted, #73766e);
-  font-size: 0.875rem;
 }
 
 .sr-only {

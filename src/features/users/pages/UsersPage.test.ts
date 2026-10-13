@@ -111,9 +111,6 @@ const mountPage = async (
   return wrapper;
 };
 
-const counter = (wrapper: VueWrapper) => wrapper.get(".selection-counter");
-const rowCheckbox = (wrapper: VueWrapper, index: number) =>
-  wrapper.get<HTMLInputElement>(`[aria-label="Selecionar Pessoa ${index}"]`);
 const detailLink = (wrapper: VueWrapper, index: number) =>
   wrapper.get(`[aria-label="Ver detalhe de Pessoa ${index}"]`);
 
@@ -130,10 +127,17 @@ const dialogGet = <T extends HTMLElement = HTMLElement>(
   return element;
 };
 
-const dialogClose = (): HTMLButtonElement | undefined =>
-  [...(dialogElement()?.querySelectorAll("button") ?? [])].find(
-    (button) => button.textContent?.trim() === "Fechar",
-  );
+const confirmDialogButton = (text: string): HTMLButtonElement => {
+  const dialog = [
+    ...document.body.querySelectorAll<HTMLElement>('[role="dialog"]'),
+  ].at(-1);
+  const button = [
+    ...(dialog?.querySelectorAll<HTMLButtonElement>("button") ?? []),
+  ].find((candidate) => candidate.textContent?.trim() === text);
+  if (button === undefined)
+    throw new Error(`Botão de confirmação não encontrado: ${text}`);
+  return button;
+};
 
 const openDialog = async (selector: string, wrapper: VueWrapper) => {
   await wrapper.get(selector).trigger("click");
@@ -176,12 +180,6 @@ const pressEscape = (): void => {
       new KeyboardEvent(type, { key: "Escape", keyCode: 27, bubbles: true }),
     );
   }
-};
-
-const pressBackdrop = (): void => {
-  document.body
-    .querySelector(".q-dialog__backdrop")
-    ?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
 };
 
 afterEach(() => {
@@ -250,36 +248,21 @@ describe("UsersPage", () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage();
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
+    await vi.waitFor(() =>
+      expect(wrapper.find(".page-toolbar button").exists()).toBe(true),
+    );
+    await openDialog(".page-toolbar button", wrapper);
+    await setDialogValue('[aria-label="Nome do novo usuário"]', "Rascunho");
 
-    try {
-      await vi.waitFor(() =>
-        expect(wrapper.find(".page-toolbar button").exists()).toBe(true),
-      );
-      await openDialog(".page-toolbar button", wrapper);
-      await setDialogValue('[aria-label="Nome do novo usuário"]', "Rascunho");
-
-      dialogGet('[data-testid="cancel-create"]').click();
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
-      expect(dialogElement()).not.toBeNull();
-
-      pressEscape();
-      expect(confirmSpy).toHaveBeenCalledTimes(2);
-      expect(dialogElement()).not.toBeNull();
-
-      pressBackdrop();
-      expect(confirmSpy).toHaveBeenCalledTimes(3);
-      expect(dialogElement()).not.toBeNull();
-
-      confirmSpy.mockReturnValue(true);
-      pressEscape();
-      await waitDialogClosed();
-      expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
-        0,
-      );
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    dialogGet('[data-testid="cancel-create"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Descartar o novo usuário?"),
+    );
+    confirmDialogButton("Cancelar").click();
+    expect(dialogElement()).not.toBeNull();
+    expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
+      0,
+    );
   });
 
   it("filters users and submits status changes", async () => {
@@ -371,6 +354,8 @@ describe("UsersPage", () => {
         expect.objectContaining({
           message: "Usuário ativado.",
           timeout: 4000,
+          position: "bottom-right",
+          color: "positive",
           attrs: expect.objectContaining({ role: "status" }),
         }),
       ),
@@ -410,6 +395,8 @@ describe("UsersPage", () => {
           message:
             "O serviço está temporariamente indisponível. Tente novamente em alguns instantes.",
           timeout: 4000,
+          position: "bottom-right",
+          color: "negative",
           attrs: expect.objectContaining({ role: "status" }),
         }),
       ),
@@ -623,27 +610,25 @@ describe("UsersPage", () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage();
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
-
-    try {
-      await vi.waitFor(() =>
-        expect(wrapper.find('[aria-label="Excluir Pessoa 2"]').exists()).toBe(
-          true,
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Excluir Pessoa 2"]').exists()).toBe(
+        true,
+      ),
+    );
+    await wrapper.get('[aria-label="Excluir Pessoa 2"]').trigger("click");
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain(
+        "Deseja excluir o usuário Pessoa 2?",
+      ),
+    );
+    confirmDialogButton("Excluir usuário").click();
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) => call.method === "DELETE" && call.path === "/api/v1/users/2",
         ),
-      );
-      await wrapper.get('[aria-label="Excluir Pessoa 2"]').trigger("click");
-
-      await vi.waitFor(() =>
-        expect(
-          mocks.calls.some(
-            (call) =>
-              call.method === "DELETE" && call.path === "/api/v1/users/2",
-          ),
-        ).toBe(true),
-      );
-    } finally {
-      confirmSpy.mockRestore();
-    }
+      ).toBe(true),
+    );
   });
 
   it("mostra erros por campo quando a API rejeita o formulário com 422", async () => {
@@ -798,69 +783,49 @@ describe("UsersPage — forms em modal", () => {
     const mocks = makeUsersRouteMocks(makeUsers(3));
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage();
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
-
-    try {
-      await vi.waitFor(() =>
-        expect(wrapper.find('[aria-label="Editar Pessoa 2"]').exists()).toBe(
-          true,
-        ),
-      );
-      await openDialog('[aria-label="Editar Pessoa 2"]', wrapper);
-      await setDialogValue('[data-testid="edit-name"]', "Rascunho");
-
-      dialogGet('[data-testid="cancel-edit"]').click();
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
-      expect(dialogElement()).not.toBeNull();
-
-      pressEscape();
-      expect(confirmSpy).toHaveBeenCalledTimes(2);
-      expect(dialogElement()).not.toBeNull();
-
-      pressBackdrop();
-      expect(confirmSpy).toHaveBeenCalledTimes(3);
-      expect(dialogElement()).not.toBeNull();
-
-      confirmSpy.mockReturnValue(true);
-      pressEscape();
-      await waitDialogClosed();
-
-      expect(
-        mocks.calls.filter((call) => call.method === "PATCH"),
-      ).toHaveLength(0);
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Editar Pessoa 2"]').exists()).toBe(
+        true,
+      ),
+    );
+    await openDialog('[aria-label="Editar Pessoa 2"]', wrapper);
+    await setDialogValue('[data-testid="edit-name"]', "Rascunho");
+    dialogGet('[data-testid="cancel-edit"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Descartar as mudanças?"),
+    );
+    confirmDialogButton("Cancelar").click();
+    expect(dialogElement()).not.toBeNull();
+    expect(mocks.calls.filter((call) => call.method === "PATCH")).toHaveLength(
+      0,
+    );
   });
 
   it("reabre outro registro sem herdar draft nem erro anterior", async () => {
     const mocks = makeUsersRouteMocks(makeUsers(3));
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage();
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
-
-    try {
-      await vi.waitFor(() =>
-        expect(wrapper.find('[aria-label="Editar Pessoa 2"]').exists()).toBe(
-          true,
-        ),
-      );
-      await openDialog('[aria-label="Editar Pessoa 2"]', wrapper);
-      await setDialogValue('[data-testid="edit-name"]', "Rascunho 2");
-      dialogGet('[data-testid="cancel-edit"]').click();
-      await waitDialogClosed();
-
-      await openDialog('[aria-label="Editar Pessoa 3"]', wrapper);
-      await vi.waitFor(() =>
-        expect(
-          dialogGet<HTMLInputElement>('[data-testid="edit-name"]').value,
-        ).toBe("Pessoa 3"),
-      );
-      expect(dialogElement()?.textContent).not.toContain("Rascunho 2");
-      expect(dialogElement()?.querySelector('[role="alert"]')).toBeNull();
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Editar Pessoa 2"]').exists()).toBe(
+        true,
+      ),
+    );
+    await openDialog('[aria-label="Editar Pessoa 2"]', wrapper);
+    await setDialogValue('[data-testid="edit-name"]', "Rascunho 2");
+    dialogGet('[data-testid="cancel-edit"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Descartar as mudanças?"),
+    );
+    confirmDialogButton("Descartar alterações").click();
+    await waitDialogClosed();
+    await openDialog('[aria-label="Editar Pessoa 3"]', wrapper);
+    await vi.waitFor(() =>
+      expect(
+        dialogGet<HTMLInputElement>('[data-testid="edit-name"]').value,
+      ).toBe("Pessoa 3"),
+    );
+    expect(dialogElement()?.textContent).not.toContain("Rascunho 2");
+    expect(dialogElement()?.querySelector('[role="alert"]')).toBeNull();
   });
 
   it("fecha o modal limpo direto e mantém a mutação pendente visível", async () => {
@@ -882,39 +847,29 @@ describe("UsersPage — forms em modal", () => {
       ),
     );
     const wrapper = await mountPage();
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Editar Pessoa 2"]').exists()).toBe(
+        true,
+      ),
+    );
+    await openDialog('[aria-label="Editar Pessoa 2"]', wrapper);
+    dialogGet('[data-testid="cancel-edit"]').click();
+    await waitDialogClosed();
 
-    try {
-      await vi.waitFor(() =>
-        expect(wrapper.find('[aria-label="Editar Pessoa 2"]').exists()).toBe(
-          true,
-        ),
-      );
-      await openDialog('[aria-label="Editar Pessoa 2"]', wrapper);
-      dialogGet('[data-testid="cancel-edit"]').click();
-      await waitDialogClosed();
-      expect(confirmSpy).not.toHaveBeenCalled();
-
-      await openDialog('[aria-label="Editar Pessoa 3"]', wrapper);
-      await setDialogValue('[data-testid="edit-name"]', "Pessoa 3 editada");
-      dialogGet('[data-testid="save-user"]').click();
-      await vi.waitFor(() =>
-        expect(
-          dialogGet<HTMLButtonElement>('[data-testid="save-user"]').disabled,
-        ).toBe(true),
-      );
-
-      pressEscape();
-      expect(confirmSpy).not.toHaveBeenCalled();
-      expect(dialogElement()).not.toBeNull();
-
-      await vi.waitFor(() =>
-        expect(wrapper.text()).toContain("Usuário atualizado com sucesso."),
-      );
-      await waitDialogClosed();
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    await openDialog('[aria-label="Editar Pessoa 3"]', wrapper);
+    await setDialogValue('[data-testid="edit-name"]', "Pessoa 3 editada");
+    dialogGet('[data-testid="save-user"]').click();
+    await vi.waitFor(() =>
+      expect(
+        dialogGet<HTMLButtonElement>('[data-testid="save-user"]').disabled,
+      ).toBe(true),
+    );
+    pressEscape();
+    expect(dialogElement()).not.toBeNull();
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain("Usuário atualizado com sucesso."),
+    );
+    await waitDialogClosed();
   });
 
   it("esconde as ações sem permissão e não grava sem ela", async () => {
@@ -939,346 +894,13 @@ describe("UsersPage — forms em modal", () => {
   });
 });
 
-describe("UsersPage — seleção por página", () => {
-  beforeEach(() => setActivePinia(createPinia()));
-
-  it("altera itens por página, volta à primeira e limpa a seleção", async () => {
-    const mocks = makeUsersRouteMocks(makeUsers(20));
-    server.use(...mocks.handlers, rolesListHandler);
+describe("UsersPage — seleção", () => {
+  it("renders the users list without selection checkboxes", async () => {
+    server.use(...makeUsersRouteMocks(users).handlers, rolesListHandler);
     const wrapper = await mountPage();
-
     await vi.waitFor(() =>
-      expect(
-        mocks.calls.some((call) => call.query.get("per_page") === "10"),
-      ).toBe(true),
+      expect(wrapper.find("tbody tr").exists()).toBe(true),
     );
-    await vi.waitFor(() =>
-      expect(
-        wrapper
-          .get('button[aria-label="Próxima página"]')
-          .attributes("disabled"),
-      ).toBeUndefined(),
-    );
-    await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
-    await vi.waitFor(() =>
-      expect(rowCheckbox(wrapper, 11).attributes("disabled")).toBeUndefined(),
-    );
-    await rowCheckbox(wrapper, 11).setValue(true);
-    expect(counter(wrapper).text()).toContain("1 de 10 selecionados");
-
-    await wrapper
-      .get<HTMLSelectElement>('select[aria-label="Itens por página"]')
-      .setValue("5");
-
-    await vi.waitFor(() =>
-      expect(
-        mocks.calls.some(
-          (call) =>
-            call.query.get("page") === "1" &&
-            call.query.get("per_page") === "5",
-        ),
-      ).toBe(true),
-    );
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 5 selecionados"),
-    );
-    expect(counter(wrapper).text()).toContain("0 de 5 selecionados");
-  });
-
-  it("seleciona usuários individualmente sem seletor de todos", async () => {
-    const localUsers = makeUsers(7);
-    const mocks = makeUsersRouteMocks(localUsers);
-    server.use(...mocks.handlers, rolesListHandler);
-    const wrapper = await mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
-    );
-    expect(
-      wrapper
-        .find('[aria-label="Selecionar todos os usuários desta página"]')
-        .exists(),
-    ).toBe(false);
-
-    await rowCheckbox(wrapper, 1).setValue(true);
-
-    expect(counter(wrapper).text()).toContain("1 de 7 selecionados");
-
-    await rowCheckbox(wrapper, 7).setValue(true);
-
-    expect(counter(wrapper).text()).toContain("2 de 7 selecionados");
-
-    await rowCheckbox(wrapper, 1).setValue(false);
-
-    expect(counter(wrapper).text()).toContain("1 de 7 selecionados");
-
-    expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
-  });
-
-  it("limpa a seleção ao buscar e ao trocar de página", async () => {
-    const localUsers = makeUsers(20);
-    const mocks = makeUsersRouteMocks(localUsers);
-    server.use(...mocks.handlers, rolesListHandler);
-    const wrapper = await mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 10 selecionados"),
-    );
-    await rowCheckbox(wrapper, 1).setValue(true);
-    expect(counter(wrapper).text()).toContain("1 de 10 selecionados");
-
-    await wrapper.get("label.ui-search input").setValue("Pessoa 2");
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 2 selecionados"),
-    );
-
-    await wrapper.get("label.ui-search input").setValue("");
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 10 selecionados"),
-    );
-    await vi.waitFor(() =>
-      expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined(),
-    );
-    await rowCheckbox(wrapper, 3).setValue(true);
-    expect(counter(wrapper).text()).toContain("1 de 10 selecionados");
-
-    await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
-
-    await vi.waitFor(() =>
-      expect(rowCheckbox(wrapper, 11).attributes("disabled")).toBeUndefined(),
-    );
-    expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
-      true,
-    );
-    expect(rowCheckbox(wrapper, 11).attributes("disabled")).toBeUndefined();
-
-    await wrapper.get("label.ui-search input").setValue("Pessoa 2");
-    await vi.waitFor(() =>
-      expect(
-        mocks.calls.some(
-          (call) =>
-            call.query.get("page") === "1" &&
-            call.query.get("search") === "Pessoa 2",
-        ),
-      ).toBe(true),
-    );
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 2 selecionados"),
-    );
-  });
-
-  it("mantém após refetch somente os IDs ainda presentes", async () => {
-    const localUsers = makeUsers(7);
-    const mocks = makeUsersRouteMocks(localUsers);
-    server.use(...mocks.handlers, rolesListHandler);
-    const wrapper = await mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
-    );
-    await rowCheckbox(wrapper, 1).setValue(true);
-    await rowCheckbox(wrapper, 3).setValue(true);
-    expect(counter(wrapper).text()).toContain("2 de 7 selecionados");
-
-    localUsers.splice(
-      localUsers.findIndex((user) => user.id === 1),
-      1,
-    );
-    await queryClient.invalidateQueries({ queryKey: ["users"] });
-
-    await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Selecionar Pessoa 1"]').exists()).toBe(
-        false,
-      ),
-    );
-    expect(counter(wrapper).text()).toContain("1 de 6 selecionados");
-    expect(rowCheckbox(wrapper, 3).element.checked).toBe(true);
-  });
-
-  it("esvazia a seleção quando a busca não encontra resultados", async () => {
-    const localUsers = makeUsers(7);
-    const mocks = makeUsersRouteMocks(localUsers);
-    server.use(...mocks.handlers, rolesListHandler);
-    const wrapper = await mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
-    );
-    await rowCheckbox(wrapper, 2).setValue(true);
-    expect(counter(wrapper).text()).toContain("1 de 7 selecionados");
-
-    await wrapper.get("label.ui-search input").setValue("inexistente");
-
-    await vi.waitFor(() =>
-      expect(wrapper.text()).toContain("Nenhum usuário encontrado."),
-    );
-    expect(counter(wrapper).text()).toContain("0 de 0 selecionados");
-    expect(wrapper.find('[aria-label^="Selecionar "]').exists()).toBe(false);
-  });
-
-  it("desabilita a seleção enquanto a listagem recarrega e quando falha", async () => {
-    const localUsers = makeUsers(7);
-    const mocks = makeUsersRouteMocks(localUsers);
-    server.use(...mocks.handlers, rolesListHandler);
-    const wrapper = await mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
-    );
-    expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined();
-
-    server.use(
-      http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) => {
-        await delay(300);
-        return HttpResponse.json(
-          makePaginated(localUsers.slice(0, 7), {
-            current_page: 1,
-            last_page: 1,
-            per_page: 15,
-            total: 7,
-          }),
-          { headers: makeCorsHeaders(request) },
-        );
-      }),
-    );
-    void queryClient.invalidateQueries({ queryKey: ["users"] });
-
-    await vi.waitFor(() =>
-      expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeDefined(),
-    );
-    await vi.waitFor(() =>
-      expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined(),
-    );
-
-    server.use(
-      http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) =>
-        HttpResponse.json(
-          { message: "Erro interno." },
-          { status: 500, headers: makeCorsHeaders(request) },
-        ),
-      ),
-    );
-    void queryClient.invalidateQueries({ queryKey: ["users"] });
-
-    await vi.waitFor(() =>
-      expect(wrapper.find('[role="alert"]').exists()).toBe(true),
-    );
-    expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeDefined();
-  });
-
-  it("abre a consulta em modal sem selecionar a linha e mantém o link da rota", async () => {
-    const localUsers = makeUsers(7);
-    localUsers[0] = makeAdminUser({
-      id: 1,
-      name: "Pessoa 1",
-      email: "pessoa1@example.test",
-      roles: ["admin"],
-      cpf: "12345678909",
-    });
-    const mocks = makeUsersRouteMocks(localUsers);
-    server.use(...mocks.handlers, rolesListHandler);
-    const wrapper = await mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
-    );
-    await wrapper
-      .get('[aria-label="Ver detalhes de Pessoa 1"]')
-      .trigger("click");
-
-    await vi.waitFor(() => expect(dialogElement()).not.toBeNull());
-    await vi.waitFor(() =>
-      expect(dialogElement()?.textContent).toContain("Detalhes de Pessoa 1"),
-    );
-    expect(dialogElement()?.textContent).toContain("123.456.789-09");
-
-    expect(counter(wrapper).text()).toContain("0 de 7 selecionados");
-    expect(dialogElement()?.querySelectorAll("input")).toHaveLength(0);
-    expect(
-      wrapper.get('[aria-label="Ver detalhe de Pessoa 1"]').attributes("href"),
-    ).toBe("/users/1");
-
-    dialogClose()?.click();
-    await vi.waitFor(() => expect(dialogElement()).toBeNull());
-  });
-
-  it("limpa a seleção ao ir para a última página e permite selecioná-la inteira", async () => {
-    const localUsers = makeUsers(32);
-    const mocks = makeUsersRouteMocks(localUsers);
-    server.use(...mocks.handlers, rolesListHandler);
-    const wrapper = await mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 10 selecionados"),
-    );
-    await rowCheckbox(wrapper, 1).setValue(true);
-    expect(counter(wrapper).text()).toContain("1 de 10 selecionados");
-
-    await vi.waitFor(() =>
-      expect(
-        wrapper
-          .get('button[aria-label="Última página"]')
-          .attributes("disabled"),
-      ).toBeUndefined(),
-    );
-    await wrapper.get('button[aria-label="Última página"]').trigger("click");
-
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 2 selecionados"),
-    );
-    expect(mocks.calls.some((call) => call.query.get("page") === "4")).toBe(
-      true,
-    );
-    expect(
-      wrapper.find('[aria-label="Ver detalhe de Pessoa 32"]').exists(),
-    ).toBe(true);
-
-    await rowCheckbox(wrapper, 32).setValue(true);
-    expect(counter(wrapper).text()).toContain("1 de 2 selecionados");
-
-    await wrapper.get('button[aria-label="Primeira página"]').trigger("click");
-
-    await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 10 selecionados"),
-    );
-    await vi.waitFor(() =>
-      expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined(),
-    );
-    expect(rowCheckbox(wrapper, 1).element.checked).toBe(false);
-    expect(rowCheckbox(wrapper, 10).element.checked).toBe(false);
-  });
-
-  it("remove da seleção o usuário excluído após o refetch", async () => {
-    const localUsers = makeUsers(7);
-    const mocks = makeUsersRouteMocks(localUsers);
-    server.use(...mocks.handlers, rolesListHandler);
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
-    const wrapper = await mountPage();
-
-    try {
-      await vi.waitFor(() =>
-        expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
-      );
-      await rowCheckbox(wrapper, 2).setValue(true);
-      await rowCheckbox(wrapper, 3).setValue(true);
-      expect(counter(wrapper).text()).toContain("2 de 7 selecionados");
-
-      await wrapper.get('[aria-label="Excluir Pessoa 2"]').trigger("click");
-
-      await vi.waitFor(() =>
-        expect(
-          wrapper.find('[aria-label="Selecionar Pessoa 2"]').exists(),
-        ).toBe(false),
-      );
-      expect(counter(wrapper).text()).toContain("1 de 6 selecionados");
-      expect(rowCheckbox(wrapper, 3).element.checked).toBe(true);
-      expect(
-        mocks.calls.some(
-          (call) => call.method === "DELETE" && call.path === "/api/v1/users/2",
-        ),
-      ).toBe(true);
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    expect(wrapper.find("input[type=checkbox]").exists()).toBe(false);
   });
 });

@@ -26,8 +26,16 @@ const emit = defineEmits<{
 }>();
 
 const term = ref("");
-const { options, isLoading, hasError, hasMore, search, loadMore, retry } =
-  useRoleOptions(listRoles, () => props.canViewCatalog);
+const {
+  options,
+  isLoading,
+  hasError,
+  hasMore,
+  search,
+  loadMore,
+  loadAll,
+  retry,
+} = useRoleOptions(listRoles, () => props.canViewCatalog);
 watch(term, (value) => search(value));
 
 const selectedNames = computed(() => new Set(props.modelValue));
@@ -44,6 +52,18 @@ const remove = (name: string): void => {
     "update:modelValue",
     props.modelValue.filter((role) => role !== name),
   );
+};
+
+const selectAll = async (): Promise<void> => {
+  if (props.disabled || !props.canViewCatalog) return;
+  term.value = "";
+  await loadAll();
+  emit("update:modelValue", [
+    ...new Set([
+      ...props.modelValue,
+      ...options.value.map((role) => role.name),
+    ]),
+  ]);
 };
 
 const onListScroll = (event: Event): void => {
@@ -94,6 +114,14 @@ const onListScroll = (event: Event): void => {
         placeholder="Buscar perfis..."
         :disabled="props.disabled"
       />
+
+      <button
+        type="button"
+        :disabled="props.disabled || isLoading"
+        @click="selectAll"
+      >
+        Selecionar todos os perfis
+      </button>
 
       <ul
         class="role-multi-select__list"

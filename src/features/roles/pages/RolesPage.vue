@@ -19,11 +19,6 @@
         />
       </div>
 
-      <p class="selection-counter" role="status">
-        {{ selection.selectedCount.value }} de {{ visibleRoleIds.length }}
-        selecionados
-      </p>
-
       <ActionButton
         v-if="can('roles.manage')"
         label="Criar perfil"
@@ -44,21 +39,6 @@
       <table>
         <thead>
           <tr>
-            <th scope="col" class="selection-cell">
-              <input
-                type="checkbox"
-                class="selection-toggle"
-                aria-label="Selecionar todos os perfis desta página"
-                :checked="selection.isAllSelected.value"
-                :indeterminate.prop="selection.isIndeterminate.value"
-                :disabled="!selection.isSelectable.value"
-                @change="
-                  selection.toggleAll(
-                    ($event.target as HTMLInputElement).checked,
-                  )
-                "
-              />
-            </th>
             <th scope="col">Perfil</th>
             <th scope="col">Permissões</th>
             <th scope="col">Ações</th>
@@ -66,21 +46,6 @@
         </thead>
         <tbody>
           <tr v-for="role in query.data.value.data" :key="role.id">
-            <td class="selection-cell">
-              <input
-                type="checkbox"
-                class="selection-toggle"
-                :aria-label="`Selecionar ${role.name}`"
-                :checked="selection.isSelected(role.id)"
-                :disabled="!selection.isSelectable.value"
-                @change="
-                  selection.setSelected(
-                    role.id,
-                    ($event.target as HTMLInputElement).checked,
-                  )
-                "
-              />
-            </td>
             <th scope="row">
               {{ roleLabel(role.name) }}
               <span
@@ -129,12 +94,12 @@
                 :loading="deleteAction(role).loading"
                 :label="deleteAction(role).label"
                 :tooltip="UI_HELP_TEXT.rowDelete"
-                @click="removeRole(role.id, role.name)"
+                @click="requestRemoveRole(role.id, role.name)"
               />
             </td>
           </tr>
           <tr v-if="query.data.value.data.length === 0">
-            <td colspan="4">Nenhum perfil encontrado.</td>
+            <td colspan="3">Nenhum perfil encontrado.</td>
           </tr>
         </tbody>
       </table>
@@ -163,6 +128,16 @@
       @created="handleCreated"
     />
 
+    <ConfirmDialog
+      :model-value="confirmRole !== null"
+      title="Excluir perfil"
+      :message="`Deseja excluir o perfil ${confirmRole?.name ?? ''}?`"
+      confirm-label="Excluir perfil"
+      :busy="deletingRoleId !== null"
+      @update:model-value="confirmRole = null"
+      @confirm="removeRole"
+    />
+
     <RoleFormModal
       :model-value="editRole !== null"
       mode="edit"
@@ -174,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import ActionButton from "@/shared/components/ActionButton.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
@@ -183,7 +158,7 @@ import SearchInput from "@/shared/components/SearchInput.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { useDebouncedSearch } from "@/shared/composables/useDebouncedSearch";
-import { usePageSelection } from "@/shared/composables/usePageSelection";
+import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
 import { cataloguePermissionLabel } from "@/shared/types/contract";
 import {
   isRoleImmutable,
@@ -209,16 +184,7 @@ const editRole = ref<AdminRole | null>(null);
 const deletingRoleId = ref<number | null>(null);
 const detailRole = ref<AdminRole | null>(null);
 const deleteRefusal = ref<string | null>(null);
-
-const visibleRoleIds = computed<readonly number[]>(() =>
-  (query.data.value?.data ?? []).map((role) => role.id),
-);
-const selection = usePageSelection({
-  visibleIds: () => visibleRoleIds.value,
-  enabled: () => !query.isFetching.value && !query.isError.value,
-  scopeKey: () =>
-    [filters.page, filters.per_page, filters.search ?? ""].join("|"),
-});
+const confirmRole = ref<{ id: number; name: string } | null>(null);
 
 const openDetail = (role: AdminRole): void => {
   detailRole.value = role;
@@ -231,7 +197,6 @@ const handleRoleRenamed = (role: AdminRole): void => {
   feedback.reportSuccess("Perfil renomeado com sucesso.");
 };
 const changePerPage = (perPage: number): void => {
-  selection.clear();
   filters.page = 1;
   filters.per_page = perPage;
 };
@@ -283,23 +248,28 @@ watch(query.error, (error) => {
   }
 });
 
-const removeRole = async (roleId: number, roleName: string): Promise<void> => {
+const requestRemoveRole = (roleId: number, roleName: string): void => {
   if (deletingRoleId.value !== null || !can("roles.manage")) return;
-  if (globalThis.confirm(`Excluir o perfil ${roleName}?`)) {
-    feedback.clearFeedback();
-    deleteRefusal.value = null;
-    deletingRoleId.value = roleId;
-    try {
-      await deleteMutation.mutateAsync(roleId);
-      feedback.reportSuccess("Perfil excluído com sucesso.");
-    } catch (error: unknown) {
-      if (isValidationHttpError(error)) {
-        deleteRefusal.value = `O perfil ${roleName} está atribuído a usuários e não pode ser excluído.`;
-      }
-      if (!isValidationHttpError(error)) feedback.handleFailure(error);
-    } finally {
-      deletingRoleId.value = null;
+  confirmRole.value = { id: roleId, name: roleName };
+};
+const removeRole = async (): Promise<void> => {
+  const role = confirmRole.value;
+  if (role === null || deletingRoleId.value !== null || !can("roles.manage"))
+    return;
+  confirmRole.value = null;
+  feedback.clearFeedback();
+  deleteRefusal.value = null;
+  deletingRoleId.value = role.id;
+  try {
+    await deleteMutation.mutateAsync(role.id);
+    feedback.reportSuccess("Perfil excluído com sucesso.");
+  } catch (error: unknown) {
+    if (isValidationHttpError(error)) {
+      deleteRefusal.value = `O perfil ${role.name} está atribuído a usuários e não pode ser excluído.`;
     }
+    if (!isValidationHttpError(error)) feedback.handleFailure(error);
+  } finally {
+    deletingRoleId.value = null;
   }
 };
 </script>
@@ -310,12 +280,6 @@ const removeRole = async (roleId: number, roleName: string): Promise<void> => {
   align-items: end;
   flex-wrap: wrap;
   gap: 1rem;
-}
-
-.selection-counter {
-  margin: 0;
-  color: var(--color-muted, #73766e);
-  font-size: 0.875rem;
 }
 
 .table-wrap {
@@ -346,24 +310,6 @@ thead th {
 
 tbody tr:hover {
   background: rgb(58 77 60 / 3%);
-}
-
-.selection-cell {
-  width: 2.5rem;
-  padding-right: 0;
-  text-align: center;
-}
-
-.selection-toggle {
-  min-height: 0;
-  padding: 0;
-  width: 1rem;
-  height: 1rem;
-  cursor: pointer;
-}
-
-.selection-toggle:disabled {
-  cursor: not-allowed;
 }
 
 .actions-cell {

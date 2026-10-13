@@ -61,6 +61,18 @@ const dialogGet = <T extends HTMLElement = HTMLElement>(
   return element;
 };
 
+const confirmDialogButton = (label: string): HTMLButtonElement => {
+  const dialog = [
+    ...document.body.querySelectorAll<HTMLElement>('[role="dialog"]'),
+  ].at(-1);
+  const button = [
+    ...(dialog?.querySelectorAll<HTMLButtonElement>("button") ?? []),
+  ].find((candidate) => candidate.textContent?.trim() === label);
+  if (button === undefined)
+    throw new Error(`Botão de confirmação não encontrado: ${label}`);
+  return button;
+};
+
 const setValue = async (
   selector: string,
   value: string | boolean,
@@ -101,27 +113,120 @@ describe("RoleFormModal — criação", () => {
     ).toEqual({ name: "auditor" });
   });
 
+  it("cria primeiro o perfil e depois atribui as permissões selecionadas", async () => {
+    const mocks = makeRolesRouteMocks([adminRole]);
+    server.use(...mocks.handlers);
+    const wrapper = await mountModal({ mode: "create" });
+
+    await setValue('[aria-label="Nome do novo perfil"]', "auditor");
+    await setValue(
+      '[aria-label="Permissão Ver auditoria para novo perfil"]',
+      true,
+    );
+    dialogGet('[data-testid="submit-create-role"]').click();
+
+    await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
+    expect(mocks.calls.find((call) => call.method === "POST")?.body).toEqual({
+      name: "auditor",
+    });
+    expect(mocks.calls.find((call) => call.method === "PUT")?.body).toEqual({
+      permissions: ["logs.view"],
+    });
+  });
+
+  it("preserva a criação parcial e tenta novamente só a atribuição após um 422", async () => {
+    const mocks = makeRolesRouteMocks([adminRole]);
+    server.use(...mocks.handlers);
+    let permissionAttempts = 0;
+    server.use(
+      http.put(
+        `${TEST_API_BASE}/api/v1/roles/:roleId/permissions`,
+        async ({ request, params }) => {
+          permissionAttempts += 1;
+          if (permissionAttempts === 1) {
+            return HttpResponse.json(
+              { message: "Dados inválidos.", errors: {} },
+              { status: 422, headers: makeCorsHeaders(request) },
+            );
+          }
+          return HttpResponse.json(
+            {
+              data: makeAdminRole({
+                id: Number(params.roleId),
+                name: "auditor",
+                permissions: ["logs.view"],
+              }),
+            },
+            { headers: makeCorsHeaders(request) },
+          );
+        },
+      ),
+    );
+    const wrapper = await mountModal({ mode: "create" });
+
+    await setValue('[aria-label="Nome do novo perfil"]', "auditor");
+    await setValue(
+      '[aria-label="Permissão Ver auditoria para novo perfil"]',
+      true,
+    );
+    dialogGet('[data-testid="submit-create-role"]').click();
+    await vi.waitFor(() =>
+      expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
+        1,
+      ),
+    );
+
+    dialogGet('[data-testid="submit-create-role"]').click();
+    await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
+    expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
+      1,
+    );
+    expect(permissionAttempts).toBe(2);
+  });
+
+  it("allows name-only creation without roles.update-permissions", async () => {
+    const mocks = makeRolesRouteMocks([adminRole]);
+    server.use(...mocks.handlers);
+    const wrapper = await mountModal({ mode: "create" }, ["roles.manage"]);
+
+    expect(
+      dialogGet<HTMLInputElement>(
+        '[aria-label="Permissão Ver auditoria para novo perfil"]',
+      ).disabled,
+    ).toBe(true);
+    await setValue('[aria-label="Nome do novo perfil"]', "auditor");
+    dialogGet('[data-testid="submit-create-role"]').click();
+
+    await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
+    expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
+      1,
+    );
+    expect(mocks.calls.filter((call) => call.method === "PUT")).toHaveLength(0);
+  });
+
+  it("mantém o marcador de campo obrigatório no nome", async () => {
+    await mountModal({ mode: "create" });
+    expect(document.body.querySelectorAll(".required-mark")).toHaveLength(1);
+    expect(document.body.textContent).not.toContain("(obrigatório)");
+  });
+
   it("pede descarte para nome sujo e não grava sem roles.manage", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
     const wrapper = await mountModal({ mode: "create" }, ["roles.view"]);
+    await setValue('[aria-label="Nome do novo perfil"]', "rascunho");
+    dialogGet('[data-testid="cancel-role-form"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Descartar as mudanças?"),
+    );
+    confirmDialogButton("Cancelar").click();
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
 
-    try {
-      await setValue('[aria-label="Nome do novo perfil"]', "rascunho");
-      dialogGet('[data-testid="cancel-role-form"]').click();
-
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
-      expect(wrapper.emitted("update:modelValue")).toBeUndefined();
-
-      dialogGet('[data-testid="submit-create-role"]').click();
-      await Promise.resolve();
-      expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
-        0,
-      );
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    dialogGet('[data-testid="submit-create-role"]').click();
+    await Promise.resolve();
+    expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
+      0,
+    );
   });
 
   it("preserva o nome digitado quando a API responde 422", async () => {
@@ -217,21 +322,15 @@ describe("RoleFormModal — edição de permissões", () => {
   it("pede confirmação de descarte para permissões sujas", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole]);
     server.use(...mocks.handlers);
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
     const wrapper = await mountModal({ mode: "edit", role: userRole });
-
-    try {
-      await setValue('[aria-label="Permissão Ver auditoria para user"]', true);
-      dialogGet('[data-testid="cancel-role-form"]').click();
-
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
-      expect(wrapper.emitted("update:modelValue")).toBeUndefined();
-      expect(mocks.calls.filter((call) => call.method === "PUT")).toHaveLength(
-        0,
-      );
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    await setValue('[aria-label="Permissão Ver auditoria para user"]', true);
+    dialogGet('[data-testid="cancel-role-form"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Descartar as mudanças?"),
+    );
+    confirmDialogButton("Cancelar").click();
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+    expect(mocks.calls.filter((call) => call.method === "PUT")).toHaveLength(0);
   });
 
   it("seleciona e limpa todas as permissões de uma seção sem afetar as outras", async () => {

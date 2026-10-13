@@ -13,11 +13,13 @@
       >
         <label>
           Nome do perfil
+          <RequiredMark />
           <input
             v-model="name"
             aria-label="Nome do novo perfil"
             autofocus
             required
+            :disabled="pendingCreatedRole !== null || isPending"
           />
           <FieldErrors
             :errors="feedback.fieldErrors.value.name ?? []"
@@ -27,15 +29,35 @@
       </form>
     </template>
 
-    <template v-if="mode === 'edit' && role">
-      <p class="role-form__name" data-testid="role-form-name">
+    <template v-if="mode === 'create' || role">
+      <p
+        v-if="mode === 'edit' && role"
+        class="role-form__name"
+        data-testid="role-form-name"
+      >
         {{ roleLabel(role.name) }}
       </p>
       <p class="role-form__summary" data-testid="role-form-summary">
         {{ selection.length }} de {{ CATALOGUE_PERMISSIONS.length }} concedidas
       </p>
-      <p v-if="isRoleImmutable(role)" role="note" class="role-form__notice">
+      <p
+        v-if="mode === 'edit' && role && isRoleImmutable(role)"
+        role="note"
+        class="role-form__notice"
+      >
         Perfil Administrador protegido: permissões não podem ser alteradas.
+      </p>
+      <p
+        v-if="
+          mode === 'create' &&
+          can('roles.manage') &&
+          !can('roles.update-permissions')
+        "
+        role="note"
+        class="role-form__notice"
+      >
+        A permissão roles.update-permissions é necessária para definir
+        permissões do novo perfil.
       </p>
 
       <label class="role-form__permission role-form__select-all">
@@ -82,7 +104,7 @@
               type="checkbox"
               :value="permission"
               :disabled="isLocked"
-              :aria-label="`Permissão ${CATALOGUE_PERMISSION_LABELS[permission]} para ${role.name}`"
+              :aria-label="`Permissão ${CATALOGUE_PERMISSION_LABELS[permission]} para ${role?.name ?? 'novo perfil'}`"
             />
             {{ CATALOGUE_PERMISSION_LABELS[permission] }}
           </label>
@@ -124,11 +146,22 @@
       </button>
     </template>
   </DialogComponent>
+  <ConfirmDialog
+    :model-value="confirmOpen"
+    title="Descartar alterações"
+    :message="dismissMessage"
+    confirm-label="Descartar alterações"
+    :busy="isPending"
+    @update:model-value="cancelDismiss"
+    @confirm="confirmDismiss"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
+import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
+import RequiredMark from "@/shared/components/RequiredMark.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
@@ -169,20 +202,24 @@ const formId = `role-form-${useId()}`;
 const name = ref("");
 const selection = ref<CataloguePermission[]>([]);
 const saved = ref<CataloguePermission[]>([]);
+const pendingCreatedRole = ref<AdminRole | null>(null);
 
 const isPending = computed(() =>
   props.mode === "create"
-    ? createMutation.isPending.value
+    ? createMutation.isPending.value || permissionMutation.isPending.value
     : permissionMutation.isPending.value,
 );
 
-const isLocked = computed(
-  () =>
+const isLocked = computed(() => {
+  if (props.mode === "create")
+    return !can("roles.manage") || !can("roles.update-permissions");
+  return (
     props.role === null ||
     props.role === undefined ||
     isRoleImmutable(props.role) ||
-    !can("roles.update-permissions"),
-);
+    !can("roles.update-permissions")
+  );
+});
 
 const title = computed(() =>
   props.mode === "create"
@@ -191,7 +228,8 @@ const title = computed(() =>
 );
 
 const isDirty = computed(() => {
-  if (props.mode === "create") return name.value !== "";
+  if (props.mode === "create")
+    return name.value !== "" || selection.value.length > 0;
   return (
     selection.value.length !== saved.value.length ||
     selection.value.some((permission) => !saved.value.includes(permission))
@@ -205,7 +243,13 @@ const isSelectionIndeterminate = computed(
   () => selection.value.length > 0 && !isAllSelected.value,
 );
 
-const { canDismiss } = useFormDismissGuard({
+const {
+  confirmOpen,
+  message: dismissMessage,
+  requestDismiss,
+  confirmDismiss,
+  cancelDismiss,
+} = useFormDismissGuard({
   isDirty: () => isDirty.value,
   isPending: () => isPending.value,
   message: "Há alterações não salvas. Descartar as mudanças?",
@@ -213,6 +257,7 @@ const { canDismiss } = useFormDismissGuard({
 
 const reset = (): void => {
   name.value = "";
+  pendingCreatedRole.value = null;
   const role = props.role ?? null;
   selection.value = role === null ? [] : [...role.permissions];
   saved.value = role === null ? [] : [...role.permissions];
@@ -228,9 +273,10 @@ watch(
 );
 
 const requestClose = (): void => {
-  if (!canDismiss()) return;
-  reset();
-  emit("update:modelValue", false);
+  requestDismiss(() => {
+    reset();
+    emit("update:modelValue", false);
+  });
 };
 
 const handleDialogVisibility = (value: boolean): void => {
@@ -269,8 +315,17 @@ const checked = (event: Event): boolean =>
 
 const submitCreate = async (): Promise<void> => {
   if (isPending.value || !can("roles.manage")) return;
+  if (selection.value.length > 0 && !can("roles.update-permissions")) return;
   try {
-    await createMutation.mutateAsync({ name: name.value });
+    pendingCreatedRole.value ??= (
+      await createMutation.mutateAsync({ name: name.value })
+    ).data;
+    if (selection.value.length > 0 && pendingCreatedRole.value !== null) {
+      await permissionMutation.mutateAsync({
+        roleId: pendingCreatedRole.value.id,
+        payload: { permissions: [...selection.value] },
+      });
+    }
     reset();
     emit("created");
   } catch (error: unknown) {

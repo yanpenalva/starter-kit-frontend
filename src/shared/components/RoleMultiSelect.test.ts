@@ -103,6 +103,53 @@ describe("RoleMultiSelect", () => {
     expect(calls).toContain("1");
   });
 
+  it("seleciona todos os perfis após carregar todas as páginas do catálogo", async () => {
+    const roles = Array.from({ length: 51 }, (_, index) =>
+      makeAdminRole({ id: index + 1, name: `role-${index + 1}` }),
+    );
+    const calls: string[] = [];
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/roles`, async ({ request }) => {
+        const url = new URL(request.url);
+        calls.push(url.searchParams.get("page") ?? "1");
+        const page = Number(url.searchParams.get("page") ?? "1");
+        const start = (page - 1) * 50;
+        return HttpResponse.json(
+          {
+            data: roles.slice(start, start + 50),
+            links: { first: null, last: null, prev: null, next: null },
+            meta: {
+              current_page: page,
+              from: null,
+              last_page: 2,
+              path: "",
+              per_page: 50,
+              to: null,
+              total: roles.length,
+            },
+          },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+    const wrapper = mountSelect();
+
+    await vi.waitFor(() =>
+      expect(wrapper.get("button").attributes("disabled")).toBeUndefined(),
+    );
+    await wrapper.get("button").trigger("click");
+
+    await vi.waitFor(() =>
+      expect(wrapper.emitted("update:modelValue")?.at(-1)?.[0]).toHaveLength(
+        51,
+      ),
+    );
+    expect(calls).toContain("2");
+    expect(wrapper.emitted("update:modelValue")?.at(-1)?.[0]).toContain(
+      "role-51",
+    );
+  });
+
   it("filtra opções pelo termo pesquisado", async () => {
     server.use(
       makeRolesHandler([

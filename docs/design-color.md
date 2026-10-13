@@ -29,7 +29,10 @@ O frontend usa Quasar 2 e CSS próprio; a coluna Vuetify é apenas uma correspon
 | Ícones de ação | Ver detalhes: informação/azul; editar: alerta/âmbar; excluir: erro/vermelho; ativar: sucesso/verde; desativar: neutro/secondary (`--color-muted`). Cada ação mantém sua cor semântica distinta; ativar e desativar não reutilizam a cor de editar. Ícones de 18 px. |
 | Badges | Fundo neutro verde claro e texto evergreen; estado pendente usa alerta. |
 | Indicador de status | Ativo: sucesso/verde; desativado: neutro/secondary. A mudança de cor e fundo transiciona sem alterar o espaço ocupado. |
-| Toast (Quasar Notify) | Fundo neutro escuro e texto branco; aparece por tempo limitado e usa `role="status"` para anúncio acessível. |
+| Toast de sucesso (Quasar Notify) | Fundo `positive`/verde (`#587b61`) e texto branco; `role="status"`. |
+| Toast de erro (Quasar Notify) | Fundo `negative`/vermelho (`#a4473e`) e texto branco; `role="status"`. |
+| Toast de alerta (Quasar Notify) | Fundo `warning`/âmbar (`#c18a48`) e texto escuro (`#252a25`); `role="status"`. |
+| Toast informativo (Quasar Notify) | Fundo `info`/azul (`#557e88`) e texto branco; `role="status"`. Toasts usam duração e posição informadas pela chamada ou padrões do helper. O token `dark` não é usado em toasts. |
 | Header | Superfície clara, texto neutro escuro, avatar evergreen. |
 | Sidebar | Superfície clara; item selecionado com fundo verde translúcido e texto evergreen. |
 | Tooltips | Fundo neutro escuro e texto branco; link em verde claro. |

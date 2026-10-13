@@ -1,7 +1,12 @@
-import { onMounted, onUnmounted, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
+import type { Ref } from "vue";
 
 export interface FormDismissGuard {
-  canDismiss: () => boolean;
+  confirmOpen: Readonly<Ref<boolean>>;
+  message: string;
+  requestDismiss: (dismiss: () => void) => void;
+  confirmDismiss: () => void;
+  cancelDismiss: () => void;
 }
 
 export const useFormDismissGuard = (options: {
@@ -9,10 +14,29 @@ export const useFormDismissGuard = (options: {
   isPending: () => boolean;
   message: string;
 }): FormDismissGuard => {
-  const canDismiss = (): boolean => {
-    if (options.isPending()) return false;
-    if (!options.isDirty()) return true;
-    return globalThis.confirm(options.message);
+  const confirmOpen = ref(false);
+  let pendingDismiss: (() => void) | null = null;
+
+  const requestDismiss = (dismiss: () => void): void => {
+    if (options.isPending()) return;
+    if (!options.isDirty()) {
+      dismiss();
+      return;
+    }
+    pendingDismiss = dismiss;
+    confirmOpen.value = true;
+  };
+
+  const confirmDismiss = (): void => {
+    const dismiss = pendingDismiss;
+    pendingDismiss = null;
+    confirmOpen.value = false;
+    dismiss?.();
+  };
+
+  const cancelDismiss = (): void => {
+    pendingDismiss = null;
+    confirmOpen.value = false;
   };
 
   const beforeWindowUnload = (event: BeforeUnloadEvent): void => {
@@ -51,5 +75,11 @@ export const useFormDismissGuard = (options: {
     }
   });
 
-  return { canDismiss };
+  return {
+    confirmOpen,
+    message: options.message,
+    requestDismiss,
+    confirmDismiss,
+    cancelDismiss,
+  };
 };

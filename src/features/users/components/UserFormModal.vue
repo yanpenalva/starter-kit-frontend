@@ -10,13 +10,11 @@
       aria-label="Formulário de novo usuário"
       @submit.prevent="submit"
     >
-      <p class="user-form__hint">
-        Selecione um ou mais perfis. O usuário e os perfis serão criados em uma
-        única operação.
-      </p>
+      <p class="user-form__hint">Selecione um ou mais perfis para a conta.</p>
       <div class="user-form__row">
         <label>
           Nome
+          <RequiredMark />
           <input
             v-model="form.name"
             aria-label="Nome do novo usuário"
@@ -26,6 +24,7 @@
         </label>
         <label>
           CPF
+          <RequiredMark />
           <input
             v-model="form.cpf"
             aria-label="CPF do novo usuário"
@@ -40,6 +39,7 @@
       </div>
       <label>
         Email
+        <RequiredMark />
         <input
           v-model="form.email"
           aria-label="Email do novo usuário"
@@ -53,6 +53,7 @@
       </label>
       <label>
         Senha (mínimo 12 caracteres)
+        <RequiredMark />
         <input
           v-model="form.password"
           aria-label="Senha do novo usuário"
@@ -77,7 +78,7 @@
         class="user-form__roles user-form__roles--scroll"
         aria-labelledby="user-create-roles-title"
       >
-        <h3 id="user-create-roles-title">Perfis (obrigatório)</h3>
+        <h3 id="user-create-roles-title">Perfis <RequiredMark /></h3>
         <p
           v-if="!can('users.manage')"
           class="user-form__permission"
@@ -132,11 +133,22 @@
       </button>
     </template>
   </DialogComponent>
+  <ConfirmDialog
+    :model-value="confirmOpen"
+    title="Descartar usuário"
+    :message="dismissMessage"
+    confirm-label="Descartar dados"
+    :busy="isPending"
+    @update:model-value="cancelDismiss"
+    @confirm="confirmDismiss"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
+import RequiredMark from "@/shared/components/RequiredMark.vue";
+import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import RoleMultiSelect from "@/shared/components/RoleMultiSelect.vue";
@@ -186,7 +198,13 @@ const isDirty = computed(
     roles.value.length > 0,
 );
 
-const { canDismiss } = useFormDismissGuard({
+const {
+  confirmOpen,
+  message: dismissMessage,
+  requestDismiss,
+  confirmDismiss,
+  cancelDismiss,
+} = useFormDismissGuard({
   isDirty: () => isDirty.value,
   isPending: () => isPending.value,
   message: "Há dados não salvos. Descartar o novo usuário?",
@@ -211,10 +229,10 @@ watch(
 );
 
 const requestClose = (): void => {
-  if (!canDismiss()) return;
-
-  resetForm();
-  emit("update:modelValue", false);
+  requestDismiss(() => {
+    resetForm();
+    emit("update:modelValue", false);
+  });
 };
 
 const handleDialogVisibility = (value: boolean): void => {

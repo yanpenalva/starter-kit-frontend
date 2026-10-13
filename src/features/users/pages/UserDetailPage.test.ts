@@ -137,6 +137,18 @@ const waitDialogClosed = async (): Promise<void> => {
   await vi.waitFor(() => expect(dialogElement()).toBeNull());
 };
 
+const confirmDialogButton = (label: string): HTMLButtonElement => {
+  const dialog = [
+    ...document.body.querySelectorAll<HTMLElement>('[role="dialog"]'),
+  ].at(-1);
+  const button = [
+    ...(dialog?.querySelectorAll<HTMLButtonElement>("button") ?? []),
+  ].find((candidate) => candidate.textContent?.trim() === label);
+  if (button === undefined)
+    throw new Error(`Botão de confirmação não encontrado: ${label}`);
+  return button;
+};
+
 const beforeUnload = (): Event => {
   const event = new Event("beforeunload", { cancelable: true });
   window.dispatchEvent(event);
@@ -241,17 +253,10 @@ describe("UserDetailPage", () => {
   it("bloqueia a saída nativa enquanto o estado está sujo", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
-    const confirmSpy = vi.spyOn(globalThis, "confirm");
+    await openEditModal(wrapper);
+    await setDialogValue('[data-testid="edit-name"]', "Nome alterado");
 
-    try {
-      await openEditModal(wrapper);
-      await setDialogValue('[data-testid="edit-name"]', "Nome alterado");
-
-      expect(beforeUnload().defaultPrevented).toBe(true);
-      expect(confirmSpy).not.toHaveBeenCalled();
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    expect(beforeUnload().defaultPrevented).toBe(true);
   });
 
   it("não bloqueia a saída com estado limpo", async () => {
@@ -271,23 +276,20 @@ describe("UserDetailPage", () => {
   it("descarta as edições ao cancelar com confirmação e reabre limpo", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
-
-    try {
-      await openEditModal(wrapper);
-      await setDialogValue('[data-testid="edit-name"]', "Nome alterado");
-      dialogGet('[data-testid="cancel-edit"]').click();
-      await waitDialogClosed();
-
-      await openEditModal(wrapper);
-      await vi.waitFor(() =>
-        expect(
-          dialogGet<HTMLInputElement>('[data-testid="edit-name"]').value,
-        ).toBe("Maria Silva"),
-      );
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    await openEditModal(wrapper);
+    await setDialogValue('[data-testid="edit-name"]', "Nome alterado");
+    dialogGet('[data-testid="cancel-edit"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Descartar as mudanças?"),
+    );
+    confirmDialogButton("Descartar alterações").click();
+    await waitDialogClosed();
+    await openEditModal(wrapper);
+    await vi.waitFor(() =>
+      expect(
+        dialogGet<HTMLInputElement>('[data-testid="edit-name"]').value,
+      ).toBe("Maria Silva"),
+    );
   });
 
   it("mostra erros por campo quando a edição recebe 422", async () => {

@@ -24,6 +24,7 @@ export interface RoleOptionsController {
   readonly hasMore: Ref<boolean>;
   search: (term: string) => void;
   loadMore: () => Promise<void>;
+  loadAll: () => Promise<void>;
   retry: () => Promise<void>;
 }
 
@@ -111,9 +112,31 @@ export const useRoleOptions = (
     await fetchPage(currentPage.value + 1);
   };
 
+  const loadAll = async (): Promise<void> => {
+    if (debounceTimer !== null) clearTimeout(debounceTimer);
+    debounceTimer = null;
+    pendingTerm = "";
+    activeTerm = "";
+    currentPage.value = 0;
+    lastPage.value = 1;
+    options.value = [];
+    loadedIds.clear();
+    await fetchPage(1);
+    while (hasMore.value && !hasError.value) await loadMore();
+  };
+
   const retry = async (): Promise<void> => {
     await fetchPage(1);
   };
 
-  return { options, isLoading, hasError, hasMore, search, loadMore, retry };
+  return {
+    options,
+    isLoading,
+    hasError,
+    hasMore,
+    search,
+    loadMore,
+    loadAll,
+    retry,
+  };
 };

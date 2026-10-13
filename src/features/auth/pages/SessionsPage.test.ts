@@ -42,6 +42,25 @@ const mountPage = (): VueWrapper =>
     },
   });
 
+const confirmDialogButton = async (
+  label: string,
+): Promise<HTMLButtonElement> => {
+  await vi.waitFor(() =>
+    expect(
+      document.body.querySelectorAll('[role="dialog"]').length,
+    ).toBeGreaterThan(0),
+  );
+  const dialog = [
+    ...document.body.querySelectorAll<HTMLElement>('[role="dialog"]'),
+  ].at(-1);
+  const button = [
+    ...(dialog?.querySelectorAll<HTMLButtonElement>("button") ?? []),
+  ].find((candidate) => candidate.textContent?.trim() === label);
+  if (button === undefined)
+    throw new Error(`Botão de confirmação não encontrado: ${label}`);
+  return button;
+};
+
 describe("SessionsPage", () => {
   beforeEach(() => {
     queryClient.clear();
@@ -132,7 +151,6 @@ describe("SessionsPage", () => {
   it("confirma e revoga uma sessão específica com feedback", async () => {
     const mocks = createSessionMocks([currentSession, otherSession]);
     server.use(...mocks.handlers);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     wrapper = mountPage();
 
     await vi.waitFor(() =>
@@ -145,6 +163,7 @@ describe("SessionsPage", () => {
     await wrapper
       ?.get('button[aria-label="Encerrar sessão other-session"]')
       .trigger("click");
+    (await confirmDialogButton("Encerrar sessão")).click();
 
     await vi.waitFor(() =>
       expect(
@@ -162,13 +181,11 @@ describe("SessionsPage", () => {
     await vi.waitFor(() =>
       expect(wrapper?.text()).not.toContain("Navegador remoto"),
     );
-    expect(window.confirm).toHaveBeenCalledOnce();
   });
 
   it("cancela a revogação quando a confirmação é recusada", async () => {
     const mocks = createSessionMocks([currentSession, otherSession]);
     server.use(...mocks.handlers);
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     wrapper = mountPage();
 
     await vi.waitFor(() =>
@@ -178,6 +195,8 @@ describe("SessionsPage", () => {
       ?.get('button[aria-label="Encerrar sessão other-session"]')
       .trigger("click");
 
+    (await confirmDialogButton("Cancelar")).click();
+
     expect(mocks.calls.some((call) => call.method === "DELETE")).toBe(false);
     expect(wrapper?.text()).toContain("Navegador remoto");
   });
@@ -185,13 +204,13 @@ describe("SessionsPage", () => {
   it("encerra as outras sessões sem remover a atual", async () => {
     const mocks = createSessionMocks([currentSession, otherSession]);
     server.use(...mocks.handlers);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     wrapper = mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper?.text()).toContain("Navegador remoto"),
     );
     await wrapper?.get("button").trigger("click");
+    (await confirmDialogButton("Encerrar sessões")).click();
 
     await vi.waitFor(() =>
       expect(
@@ -219,7 +238,6 @@ describe("SessionsPage", () => {
         ),
       ),
     );
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     wrapper = mountPage();
 
     await vi.waitFor(() =>
@@ -228,6 +246,7 @@ describe("SessionsPage", () => {
     await wrapper
       ?.get('button[aria-label="Encerrar sessão other-session"]')
       .trigger("click");
+    (await confirmDialogButton("Encerrar sessão")).click();
 
     await vi.waitFor(() =>
       expect(wrapper?.find('[role="alert"]').exists()).toBe(true),

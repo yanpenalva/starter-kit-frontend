@@ -44,8 +44,18 @@
         <div class="app-header__account-menu">
           <strong>{{ user?.name ?? "Conta" }}</strong>
           <span>{{ roles.map(roleLabel).join(", ") || "Sem perfil" }}</span>
-          <button type="button" :disabled="isLoggingOut" @click="handleLogout">
-            {{ isLoggingOut ? "Saindo..." : "Sair" }}
+          <a class="app-header__menu-action" href="/profile">
+            <span class="material-icons" aria-hidden="true">person</span>
+            <span>Minha Conta</span>
+          </a>
+          <button
+            type="button"
+            class="app-header__menu-action app-header__logout"
+            :disabled="isLoggingOut"
+            @click="handleLogout"
+          >
+            <span class="material-icons" aria-hidden="true">logout</span>
+            <span>{{ isLoggingOut ? "Saindo..." : "Sair" }}</span>
           </button>
           <p v-if="logoutError" role="alert">{{ logoutError }}</p>
         </div>
@@ -236,8 +246,39 @@ const toggleLabel = computed(() => {
   font-size: 0.8125rem;
 }
 
-.app-header__account-menu button {
-  justify-self: start;
+.app-header__menu-action {
+  display: flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.375rem 0.5rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--color-ink, #252a25);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-quick, 180ms) ease;
+}
+
+.app-header__menu-action:hover:not(:disabled),
+.app-header__menu-action:focus-visible {
+  background: var(--color-mist, #edf0e8);
+}
+
+.app-header__menu-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.app-header__menu-action .material-icons {
+  font-size: 1.125rem;
+}
+
+.app-header__logout {
+  width: 100%;
 }
 
 @media (max-width: 1023.98px) {
