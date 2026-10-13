@@ -11,8 +11,8 @@
       @submit.prevent="submit"
     >
       <p class="user-form__hint">
-        A criação não atribui perfis. Após o cadastro, abra a edição do usuário
-        para atribuir perfis em uma etapa separada.
+        Selecione um ou mais perfis. O usuário e os perfis serão criados em uma
+        única operação.
       </p>
       <div class="user-form__row">
         <label>
@@ -73,6 +73,40 @@
         />
         Ativo
       </label>
+      <section
+        class="user-form__roles"
+        aria-labelledby="user-create-roles-title"
+      >
+        <h3 id="user-create-roles-title">Perfis (obrigatório)</h3>
+        <p
+          v-if="!can('users.manage')"
+          class="user-form__permission"
+          role="alert"
+        >
+          A permissão users.manage é necessária para criar usuários.
+        </p>
+        <p
+          v-if="can('users.manage') && !canAssignRoles"
+          class="user-form__permission"
+          role="alert"
+        >
+          A permissão users.assign-roles é necessária para criar um usuário com
+          perfis.
+        </p>
+        <RoleMultiSelect
+          v-if="can('users.manage') && canAssignRoles"
+          :model-value="roles"
+          aria-label="Perfis do novo usuário"
+          :required="true"
+          :can-view-catalog="props.modelValue && can('roles.view')"
+          :disabled="isPending"
+          @update:model-value="roles = $event"
+        />
+        <FieldErrors
+          :errors="roleErrors"
+          field-label="Perfis do novo usuário"
+        />
+      </section>
     </form>
 
     <FormFeedback :feedback="feedback" />
@@ -101,10 +135,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, useId, watch } from "vue";
+import { computed, reactive, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
+import RoleMultiSelect from "@/shared/components/RoleMultiSelect.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { useFormDismissGuard } from "@/shared/composables/useFormDismissGuard";
@@ -123,6 +158,13 @@ const { can } = useAuthorization();
 const { createMutation } = useUserMutations();
 const feedback = useFormFeedback();
 const formId = `user-form-create-${useId()}`;
+const roles = ref<string[]>([]);
+const canAssignRoles = computed(() => can("users.assign-roles"));
+const roleErrors = computed(() =>
+  Object.entries(feedback.fieldErrors.value)
+    .filter(([field]) => field === "roles" || field.startsWith("roles."))
+    .flatMap(([, errors]) => errors),
+);
 
 const form = reactive({
   name: "",
@@ -140,7 +182,8 @@ const isDirty = computed(
     form.email !== "" ||
     form.cpf !== "" ||
     form.password !== "" ||
-    form.active,
+    form.active ||
+    roles.value.length > 0,
 );
 
 const { canDismiss } = useFormDismissGuard({
@@ -155,6 +198,7 @@ const resetForm = (): void => {
   form.cpf = "";
   form.password = "";
   form.active = false;
+  roles.value = [];
   feedback.clearFeedback();
 };
 
@@ -179,7 +223,7 @@ const handleDialogVisibility = (value: boolean): void => {
 };
 
 const submit = async (): Promise<void> => {
-  if (isPending.value || !can("users.manage")) return;
+  if (isPending.value || !can("users.manage") || !canAssignRoles.value) return;
   if (!/^\d{11}$/.test(form.cpf)) {
     feedback.clearFeedback();
     feedback.fieldErrors.value = {
@@ -194,6 +238,13 @@ const submit = async (): Promise<void> => {
     };
     return;
   }
+  if (roles.value.length === 0) {
+    feedback.clearFeedback();
+    feedback.fieldErrors.value = {
+      roles: ["Selecione ao menos um perfil."],
+    };
+    return;
+  }
   try {
     await createMutation.mutateAsync({
       name: form.name,
@@ -201,6 +252,7 @@ const submit = async (): Promise<void> => {
       cpf: form.cpf,
       password: form.password,
       active: form.active,
+      roles: roles.value,
     });
     resetForm();
     emit("created");
@@ -226,6 +278,22 @@ const submit = async (): Promise<void> => {
   margin: 0;
   color: var(--color-muted, #73766e);
   font-size: 0.875rem;
+}
+
+.user-form__roles {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.user-form__roles h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.user-form__permission {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.8125rem;
 }
 
 .user-form label {

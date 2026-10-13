@@ -13,12 +13,14 @@ const mountSelect = (
   modelValue: string[] = [],
   disabled = false,
   canViewCatalog = true,
+  required = false,
 ) =>
   mount(RoleMultiSelect, {
     props: {
       modelValue,
       disabled,
       canViewCatalog,
+      required,
       ariaLabel: "Perfis do usuário",
     },
   });
@@ -155,6 +157,19 @@ describe("RoleMultiSelect", () => {
         .get('input[aria-label="Buscar perfis para Perfis do usuário"]')
         .attributes("disabled"),
     ).toBeDefined();
+  });
+
+  it("expõe a seleção como obrigatória quando solicitada", async () => {
+    server.use(makeRolesHandler([]));
+    const wrapper = mountSelect([], false, true, true);
+
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain("Nenhum perfil encontrado."),
+    );
+    expect(wrapper.get('[role="listbox"]').attributes("aria-required")).toBe(
+      "true",
+    );
+    wrapper.unmount();
   });
 
   it("preserva os perfis selecionados e não consulta sem roles.view", async () => {

@@ -45,8 +45,9 @@ export const MANUAL_SECTIONS: readonly ManualSection[] = [
     items: [
       "Use a busca para localizar pelo nome ou e-mail. A busca não pesquisa CPF.",
       "Os filtros permitem restringir a lista por situação e perfil. Alterar busca ou filtro volta à primeira página.",
-      "Criar e editar usuários acontece em janelas. Na edição, selecione perfis pelo seletor múltiplo; a seleção pode incluir mais de um perfil.",
-      "A criação da conta e a atribuição de perfis podem ser etapas separadas. Depois, abra a edição do usuário para ajustar os perfis disponíveis para sua autorização.",
+      "Na janela Criar usuário, informe os dados e selecione um ou mais perfis obrigatórios. A conta e os perfis são enviados e gravados em uma única operação.",
+      "Na edição, o seletor múltiplo permite ajustar os perfis disponíveis para sua autorização.",
+      "Erros 422 indicam o campo ou bloco que precisa de correção e mantêm os demais dados preenchidos. Erros 403 informam que sua conta não tem autorização para a ação.",
       "A lista é paginada. “Itens por página” altera quantos registros são exibidos em cada página.",
       "Ações nas linhas usam ícones; cada botão tem um nome acessível que identifica a ação e a conta correspondente.",
       "O serviço impede desativar a própria conta e remover o último administrador ativo. A interface mostra a resposta quando uma regra bloqueia a ação.",
@@ -122,7 +123,7 @@ export const MANUAL_FAQ: readonly ManualFaq[] = [
   {
     question: "Por que uma alteração em usuário ou perfil foi recusada?",
     answer:
-      "A operação pode exigir uma permissão que sua conta não tem ou ser bloqueada por uma proteção, como impedir a desativação da própria conta ou a remoção do último administrador ativo. A mensagem na tela informa o motivo retornado pelo serviço.",
+      "Um erro 403 indica falta de autorização ou uma proteção aplicada pelo serviço. Um erro 422 aponta o campo ou bloco que precisa de correção; os demais dados preenchidos são mantidos para você tentar novamente.",
   },
   {
     question: "O que fazer se muitas tentativas forem limitadas?",

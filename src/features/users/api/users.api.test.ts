@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { server } from "@/test/server";
 import {
   assignUserRoles,
+  createUser,
   listUsers,
   setUserStatus,
   showUser,
@@ -83,6 +84,42 @@ describe("users.api", () => {
 
     expect(response.data.email).toBe("bob@example.test");
     expect(calls[0]?.path).toBe("/api/v1/users/2");
+  });
+
+  it("creates a user with its required profiles in one POST", async () => {
+    const response = await createUser({
+      name: "Carlos",
+      email: "carlos@example.test",
+      cpf: "12345678909",
+      password: "Alterar123!x",
+      active: true,
+      roles: ["admin", "user"],
+    });
+
+    expect(response.data.roles).toEqual(["admin", "user"]);
+    expect(calls[0]?.method).toBe("POST");
+    expect(calls[0]?.path).toBe("/api/v1/users");
+    expect(calls[0]?.body).toMatchObject({
+      name: "Carlos",
+      roles: ["admin", "user"],
+    });
+  });
+
+  it("rejects creation without roles in the API test handler", async () => {
+    const payload = {
+      name: "Carlos",
+      email: "carlos@example.test",
+      cpf: "12345678909",
+      password: "Alterar123!x",
+      active: true,
+      roles: undefined,
+    } as unknown as Parameters<typeof createUser>[0];
+
+    await expect(createUser(payload)).rejects.toMatchObject({
+      kind: "validation",
+      status: 422,
+    });
+    expect(calls[0]?.body).not.toHaveProperty("roles");
   });
 
   it("updates basic attributes via PATCH", async () => {

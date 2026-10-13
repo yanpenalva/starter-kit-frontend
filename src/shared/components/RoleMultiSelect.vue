@@ -9,11 +9,13 @@ const props = withDefaults(
     disabled?: boolean;
     ariaLabel?: string;
     canViewCatalog?: boolean;
+    required?: boolean;
   }>(),
   {
     disabled: false,
     ariaLabel: "Selecionar perfis",
     canViewCatalog: true,
+    required: false,
   },
 );
 
@@ -96,6 +98,7 @@ const onListScroll = (event: Event): void => {
         :aria-label="props.ariaLabel"
         role="listbox"
         aria-multiselectable="true"
+        :aria-required="props.required ? 'true' : undefined"
         @scroll="onListScroll"
       >
         <li v-if="hasError" class="role-option--error" role="alert">
