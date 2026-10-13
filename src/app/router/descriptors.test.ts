@@ -42,6 +42,26 @@ describe("descritores de rota tipados", () => {
     }
   });
 
+  it("protege a página de sessões e a inclui na navegação autenticada", () => {
+    const descriptor = routeDescriptors.find(
+      (item) => item.name === "sessions",
+    );
+    const route = routes.find((item) => item.name === "sessions");
+    const navigationItem = APP_NAV_ITEMS.find(
+      (item) => item.key === "sessions",
+    );
+
+    expect(descriptor?.path).toBe("/sessions");
+    expect(descriptor?.meta).toEqual({ requiresAuth: true });
+    expect(route?.meta?.requiresAuth).toBe(true);
+    expect(navigationItem).toMatchObject({
+      label: "Sessões",
+      to: "/sessions",
+      requiresAuth: true,
+    });
+    expect(navigationItem?.permissions).toBeUndefined();
+  });
+
   it("usa a mesma fonte de permissões para rota, menu e atalho", () => {
     for (const descriptor of routeDescriptors) {
       const metaPermissions = descriptor.meta?.permissions;

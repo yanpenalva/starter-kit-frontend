@@ -69,6 +69,13 @@ export const routeDescriptors: readonly NavigationDescriptor[] = [
     nav: { label: "Painel" },
   },
   {
+    name: "sessions",
+    path: "/sessions",
+    component: () => import("@features/auth/pages/SessionsPage.vue"),
+    meta: { requiresAuth: true },
+    nav: { label: "Sessões" },
+  },
+  {
     name: "users",
     path: "/users",
     component: () => import("@features/users/pages/UsersPage.vue"),

@@ -15,6 +15,7 @@ import {
 import { isHttpError, onSessionExpired } from "@/lib/http";
 import type { BlockedAccountReason } from "@/lib/http";
 import { queryClient } from "@/app/providers/query";
+import { createSessionUser } from "./session-profile";
 import {
   blockedDetailsFromError,
   createSessionBootstrap,
@@ -27,7 +28,7 @@ import {
 export type { SessionStatus } from "./session-model";
 
 export const useSessionStore = defineStore("session", () => {
-  const user = ref<MyProfileResource | null>(null);
+  const user = createSessionUser();
   const status = ref<SessionStatus>("idle");
   const isInitialized = ref(false);
   const errorMessage = ref<string | null>(null);

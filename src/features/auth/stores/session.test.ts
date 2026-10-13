@@ -8,12 +8,17 @@ import {
   TEST_CSRF_TOKEN,
 } from "@/test/http-handlers";
 import { CSRF_COOKIE_NAME } from "@/lib/http/config";
+import { queryClient } from "@/app/providers/query";
+import { getAuthMyProfileQueryKey } from "@/lib/api/generated";
 import {
   buildHttpError,
   isForbiddenHttpError,
   notifySessionExpired,
 } from "@/lib/http";
-import type { MyProfileResource } from "@/lib/api/generated/models";
+import type {
+  AuthMyProfile200,
+  MyProfileResource,
+} from "@/lib/api/generated/models";
 import { useSessionStore } from "./session";
 
 const PROFILE_URL = `${TEST_API_BASE}/api/v1/auth/my-profile`;
@@ -42,6 +47,7 @@ const mockLimitedProfile: MyProfileResource = {
 describe("useSessionStore", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    queryClient.clear();
     server.use(
       http.options(
         "*",
@@ -67,6 +73,26 @@ describe("useSessionStore", () => {
     expect(store.isBlocked).toBe(false);
     expect(store.roles).toEqual([]);
     expect(store.permissions).toEqual([]);
+  });
+
+  it("uses the Query cache as the source of the session profile", () => {
+    const store = useSessionStore();
+    const profileQueryKey = getAuthMyProfileQueryKey();
+    store.user = mockVerifiedProfile;
+    store.status = "authenticated";
+
+    expect(queryClient.getQueryData<AuthMyProfile200>(profileQueryKey)).toEqual(
+      { data: mockVerifiedProfile },
+    );
+
+    queryClient.setQueryData<AuthMyProfile200>(profileQueryKey, {
+      data: { ...mockVerifiedProfile, name: "Maria Atualizada" },
+    });
+    expect(store.user?.name).toBe("Maria Atualizada");
+
+    store.clearSession();
+    expect(queryClient.getQueryData(profileQueryKey)).toBeUndefined();
+    expect(store.user).toBeNull();
   });
 
   it("bootstraps verified session correctly", async () => {
