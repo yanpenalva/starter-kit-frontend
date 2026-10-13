@@ -28,6 +28,22 @@ describe("ActionButton.vue", () => {
     expect(disabled.get("button").attributes("aria-busy")).toBeUndefined();
   });
 
+  it("renderiza ações por ícone com nome acessível e tooltip", () => {
+    const wrapper = mountButton({
+      icon: "visibility",
+      label: "Ver detalhes de Maria",
+    });
+    const button = wrapper.get("button");
+
+    expect(button.attributes("aria-label")).toBe("Ver detalhes de Maria");
+    expect(button.attributes("title")).toBe("Ver detalhes de Maria");
+    expect(button.get(".material-icons").text()).toBe("visibility");
+    expect(button.get(".material-icons").attributes("aria-hidden")).toBe(
+      "true",
+    );
+    expect(button.classes()).toContain("action-button--icon");
+  });
+
   it("emite click com o evento nativo quando está habilitado", async () => {
     const wrapper = mountButton();
 

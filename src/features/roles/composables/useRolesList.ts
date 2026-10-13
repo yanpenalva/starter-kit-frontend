@@ -1,5 +1,10 @@
 import { computed, reactive } from "vue";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/vue-query";
 import {
   createRole,
   deleteRole,
@@ -44,6 +49,7 @@ export const useRolesList = () => {
   const query = useQuery({
     queryKey: computed(() => [ROLES_QUERY_KEY, { ...filters }]),
     queryFn: () => listRoles({ ...filters }),
+    placeholderData: keepPreviousData,
   });
   return { filters, query, ...useRoleMutations() };
 };

@@ -7,6 +7,20 @@
   >
     <p class="ui-pagination__range">{{ rangeText }}</p>
 
+    <label v-if="perPageOptions.length" class="ui-pagination__per-page">
+      <span>Itens por página</span>
+      <select
+        :value="meta.per_page"
+        :disabled="disabled"
+        aria-label="Itens por página"
+        @change="changePerPage"
+      >
+        <option v-for="option in perPageOptions" :key="option" :value="option">
+          {{ option }}
+        </option>
+      </select>
+    </label>
+
     <div class="ui-pagination__controls">
       <span class="ui-pagination__status">
         Página {{ currentPage }} de {{ lastPage }}
@@ -71,12 +85,18 @@ const props = withDefaults(
     meta: PaginationSummary;
     ariaLabel?: string;
     disabled?: boolean;
+    perPageOptions?: readonly number[];
   }>(),
-  { ariaLabel: "Paginação", disabled: false },
+  {
+    ariaLabel: "Paginação",
+    disabled: false,
+    perPageOptions: () => [],
+  },
 );
 
 const emit = defineEmits<{
   change: [page: number];
+  "per-page-change": [perPage: number];
 }>();
 
 const currentPage = computed(() => Math.max(1, props.meta.current_page));
@@ -104,6 +124,13 @@ const goTo = (page: number): void => {
     emit("change", target);
   }
 };
+
+const changePerPage = (event: Event): void => {
+  const perPage = Number((event.target as HTMLSelectElement).value);
+  if (!props.disabled && props.perPageOptions.includes(perPage)) {
+    emit("per-page-change", perPage);
+  }
+};
 </script>
 
 <style scoped>
@@ -121,6 +148,23 @@ const goTo = (page: number): void => {
 .ui-pagination__status {
   margin: 0;
   color: var(--color-muted, #73766e);
+}
+
+.ui-pagination__per-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-muted, #73766e);
+}
+
+.ui-pagination__per-page select {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid rgb(58 77 60 / 20%);
+  border-radius: 0.375rem;
+  background: white;
+  color: var(--color-ink, #252b25);
+  font: inherit;
 }
 
 .ui-pagination__controls {
