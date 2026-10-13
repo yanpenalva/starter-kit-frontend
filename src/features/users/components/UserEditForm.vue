@@ -6,7 +6,7 @@
   >
     <p v-if="user === null" role="status">Carregando usuário...</p>
 
-    <template v-else>
+    <template v-if="user !== null">
       <form
         :id="dadosFormId"
         class="user-edit"
@@ -61,7 +61,7 @@
         <h3 id="user-edit-roles-title" class="user-edit__block-title">
           Perfis
         </h3>
-        <template v-if="can('users.assign-roles')">
+        <template v-if="canAssignRoles">
           <RoleMultiSelect
             :model-value="rolesSelection"
             :aria-label="`Perfis de ${user.name}`"
@@ -88,7 +88,11 @@
             {{ rolesPending ? "Salvando..." : "Salvar perfis" }}
           </button>
         </template>
-        <p v-else class="user-edit__readonly" data-testid="roles-readonly">
+        <p
+          v-if="!canAssignRoles"
+          class="user-edit__readonly"
+          data-testid="roles-readonly"
+        >
           {{
             user.roles.length === 0 ? "Nenhum perfil" : user.roles.join(", ")
           }}
@@ -145,6 +149,7 @@ const emit = defineEmits<{
 }>();
 
 const { can } = useAuthorization();
+const canAssignRoles = computed(() => can("users.assign-roles"));
 const { updateMutation, rolesMutation } = useUserMutations();
 const profileFeedback = useFormFeedback();
 const rolesFeedback = useFormFeedback();

@@ -67,7 +67,7 @@
         </button>
       </template>
 
-      <template v-else>
+      <template v-if="!isAuthenticated">
         <RouterLink to="/login" class="app-navigation__login-link">
           Entrar
         </RouterLink>

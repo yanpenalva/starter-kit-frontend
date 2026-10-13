@@ -71,7 +71,7 @@
       auditoria.
     </p>
 
-    <template v-else>
+    <template v-if="canViewLogs">
       <p v-if="query.isPending.value" role="status">
         Carregando registros de auditoria...
       </p>

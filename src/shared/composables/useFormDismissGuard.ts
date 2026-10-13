@@ -32,9 +32,9 @@ export const useFormDismissGuard = (options: {
     listenerAttached = shouldAttach;
     if (shouldAttach) {
       window.addEventListener("beforeunload", beforeWindowUnload);
-    } else {
-      window.removeEventListener("beforeunload", beforeWindowUnload);
+      return;
     }
+    window.removeEventListener("beforeunload", beforeWindowUnload);
   };
 
   watch(options.isDirty, syncBeforeUnloadListener, { flush: "sync" });

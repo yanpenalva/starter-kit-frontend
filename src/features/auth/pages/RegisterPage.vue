@@ -150,7 +150,7 @@
         :disabled="isLoading"
       >
         <span v-if="isLoading">Criando conta...</span>
-        <span v-else>Criar conta</span>
+        <span v-if="!isLoading">Criar conta</span>
       </button>
 
       <div class="register-form__help">
@@ -190,6 +190,11 @@ const focusFirstInvalidField = async () => {
   formRef.value
     ?.querySelector<HTMLInputElement>('[aria-invalid="true"]')
     ?.focus();
+};
+const resolveRateLimitMessage = (retryAfterSeconds: number | null): string => {
+  if (retryAfterSeconds !== null)
+    return `Muitas tentativas. Tente novamente em ${retryAfterSeconds} segundos.`;
+  return "Muitas tentativas. Aguarde antes de tentar novamente.";
 };
 const handleSubmit = async () => {
   if (isLoading.value) return;
@@ -239,21 +244,22 @@ const handleSubmit = async () => {
         : undefined;
       errorMessage.value = firstError ?? "Verifique os dados informados.";
       await focusFirstInvalidField();
-    } else if (isRateLimitedHttpError(error)) {
-      if (error.retryAfterSeconds !== null) {
-        errorMessage.value = `Muitas tentativas. Tente novamente em ${error.retryAfterSeconds} segundos.`;
-      } else {
-        errorMessage.value =
-          "Muitas tentativas. Aguarde antes de tentar novamente.";
-      }
-    } else if (isCsrfMismatchHttpError(error)) {
-      errorMessage.value = "Sessão expirada. Tente novamente.";
-    } else if (isHttpError(error)) {
-      errorMessage.value = error.message;
-    } else {
-      errorMessage.value =
-        "Não foi possível conectar ao serviço. Verifique sua conexão.";
+      return;
     }
+    if (isRateLimitedHttpError(error)) {
+      errorMessage.value = resolveRateLimitMessage(error.retryAfterSeconds);
+      return;
+    }
+    if (isCsrfMismatchHttpError(error)) {
+      errorMessage.value = "Sessão expirada. Tente novamente.";
+      return;
+    }
+    if (isHttpError(error)) {
+      errorMessage.value = error.message;
+      return;
+    }
+    errorMessage.value =
+      "Não foi possível conectar ao serviço. Verifique sua conexão.";
   } finally {
     isLoading.value = false;
   }

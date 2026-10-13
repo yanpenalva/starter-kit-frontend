@@ -76,6 +76,11 @@ const isResending = ref(false);
 const isLoggingOut = ref(false);
 const resendSuccessMessage = ref<string | null>(null);
 const resendErrorMessage = ref<string | null>(null);
+const resolveRateLimitMessage = (retryAfterSeconds: number | null): string => {
+  if (retryAfterSeconds !== null)
+    return `Muitas tentativas. Tente novamente em ${retryAfterSeconds} segundos.`;
+  return "Muitas tentativas. Aguarde antes de tentar novamente.";
+};
 const checkStatus = async () => {
   if (isChecking.value || isResending.value) return;
   isChecking.value = true;
@@ -99,18 +104,17 @@ const handleResend = async () => {
       response.message || "E-mail de verificação reenviado com sucesso.";
   } catch (error: unknown) {
     if (isRateLimitedHttpError(error)) {
-      if (error.retryAfterSeconds !== null) {
-        resendErrorMessage.value = `Muitas tentativas. Tente novamente em ${error.retryAfterSeconds} segundos.`;
-      } else {
-        resendErrorMessage.value =
-          "Muitas tentativas. Aguarde antes de tentar novamente.";
-      }
-    } else if (isHttpError(error)) {
-      resendErrorMessage.value = error.message;
-    } else {
-      resendErrorMessage.value =
-        "Não foi possível conectar ao serviço. Verifique sua conexão.";
+      resendErrorMessage.value = resolveRateLimitMessage(
+        error.retryAfterSeconds,
+      );
+      return;
     }
+    if (isHttpError(error)) {
+      resendErrorMessage.value = error.message;
+      return;
+    }
+    resendErrorMessage.value =
+      "Não foi possível conectar ao serviço. Verifique sua conexão.";
   } finally {
     isResending.value = false;
   }

@@ -16,7 +16,7 @@
             {{ isLoggingOut ? "Encerrando..." : "Encerrar sessão" }}
           </button>
         </template>
-        <template v-else>
+        <template v-if="!isBlocked">
           <RouterLink
             to="/dashboard"
             class="forbidden-btn forbidden-btn--primary"

@@ -1,7 +1,7 @@
 <template>
   <div class="verify-page">
     <main id="verify-content" class="verify-card" role="main">
-      <div v-if="isProcessing" class="verify-card__loading">
+      <div v-if="view === 'processing'" class="verify-card__loading">
         <span class="verify-card__tag">VERIFICAÇÃO</span>
         <h1 class="verify-card__title">Verificando seu e-mail...</h1>
         <p class="verify-card__message">
@@ -9,7 +9,7 @@
         </p>
       </div>
 
-      <div v-else-if="isSuccess" class="verify-card__success">
+      <div v-if="view === 'success'" class="verify-card__success">
         <span class="verify-card__tag verify-card__tag--success">SUCESSO</span>
         <h1 class="verify-card__title">E-mail verificado!</h1>
         <p class="verify-card__message">
@@ -17,7 +17,7 @@
         </p>
       </div>
 
-      <div v-else-if="isAwaitingApproval" class="verify-card__awaiting">
+      <div v-if="view === 'awaiting'" class="verify-card__awaiting">
         <span class="verify-card__tag verify-card__tag--success">SUCESSO</span>
         <h1 class="verify-card__title">E-mail verificado!</h1>
         <p class="verify-card__message">
@@ -26,7 +26,7 @@
         </p>
       </div>
 
-      <div v-else-if="isAccountUnavailable" class="verify-card__unavailable">
+      <div v-if="view === 'unavailable'" class="verify-card__unavailable">
         <span class="verify-card__tag verify-card__tag--failure"
           >CONTA INDISPONÍVEL</span
         >
@@ -47,7 +47,7 @@
         </div>
       </div>
 
-      <div v-else-if="isLoginHint" class="verify-card__confirmed">
+      <div v-if="view === 'loginHint'" class="verify-card__confirmed">
         <span class="verify-card__tag verify-card__tag--success"
           >CONFIRMADO</span
         >
@@ -67,7 +67,7 @@
         </div>
       </div>
 
-      <div v-else class="verify-card__failure">
+      <div v-if="view === 'failure'" class="verify-card__failure">
         <span class="verify-card__tag verify-card__tag--failure"
           >FALHA NA VERIFICAÇÃO</span
         >
@@ -108,7 +108,11 @@
             }}
           </button>
 
-          <RouterLink v-else to="/login" class="verify-btn verify-btn--primary">
+          <RouterLink
+            v-if="!session.isAuthenticated"
+            to="/login"
+            class="verify-btn verify-btn--primary"
+          >
             Ir para o login
           </RouterLink>
 
@@ -122,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useSessionStore } from "@/features/auth/stores/session";
 import { isHttpError, isRateLimitedHttpError } from "@/lib/http";
@@ -144,6 +148,26 @@ const emailConfirmed = ref(false);
 const serverConfirmed = ref(false);
 const resendSuccessMessage = ref<string | null>(null);
 const resendErrorMessage = ref<string | null>(null);
+const view = computed<
+  | "processing"
+  | "success"
+  | "awaiting"
+  | "unavailable"
+  | "loginHint"
+  | "failure"
+>(() => {
+  if (isProcessing.value) return "processing";
+  if (isSuccess.value) return "success";
+  if (isAwaitingApproval.value) return "awaiting";
+  if (isAccountUnavailable.value) return "unavailable";
+  if (isLoginHint.value) return "loginHint";
+  return "failure";
+});
+const resolveRateLimitMessage = (retryAfterSeconds: number | null): string => {
+  if (retryAfterSeconds !== null)
+    return `Muitas tentativas. Tente novamente em ${retryAfterSeconds} segundos.`;
+  return "Muitas tentativas. Aguarde antes de tentar novamente.";
+};
 const resetVerifyState = (): void => {
   isProcessing.value = false;
   isSuccess.value = false;
@@ -160,9 +184,9 @@ const applyEmptyProfileState = (): void => {
   if (emailConfirmed.value && session.status === "blocked") {
     if (session.isPendingApproval) {
       isAwaitingApproval.value = true;
-    } else {
-      isAccountUnavailable.value = true;
+      return;
     }
+    isAccountUnavailable.value = true;
     return;
   }
   if (
@@ -188,7 +212,9 @@ const confirmViaSession = async (): Promise<void> => {
     const profile = await session.bootstrap(true);
     if (profile === null) {
       applyEmptyProfileState();
-    } else if (profile.email_verified_at !== null) {
+      return;
+    }
+    if (profile.email_verified_at !== null) {
       emailConfirmed.value = true;
       isSuccess.value = true;
       try {
@@ -196,11 +222,11 @@ const confirmViaSession = async (): Promise<void> => {
       } catch {
         isSuccess.value = true;
       }
-    } else {
-      emailConfirmed.value = false;
-      verifyErrorMessage.value =
-        "Não foi possível confirmar a verificação deste e-mail. Peça um novo e-mail de verificação e tente novamente.";
+      return;
     }
+    emailConfirmed.value = false;
+    verifyErrorMessage.value =
+      "Não foi possível confirmar a verificação deste e-mail. Peça um novo e-mail de verificação e tente novamente.";
   } catch {
     applyEmptyProfileState();
   } finally {
@@ -249,18 +275,17 @@ const handleResend = async () => {
       response.message || "Novo e-mail de verificação enviado com sucesso.";
   } catch (error: unknown) {
     if (isRateLimitedHttpError(error)) {
-      if (error.retryAfterSeconds !== null) {
-        resendErrorMessage.value = `Muitas tentativas. Tente novamente em ${error.retryAfterSeconds} segundos.`;
-      } else {
-        resendErrorMessage.value =
-          "Muitas tentativas. Aguarde antes de tentar novamente.";
-      }
-    } else if (isHttpError(error)) {
-      resendErrorMessage.value = error.message;
-    } else {
-      resendErrorMessage.value =
-        "Não foi possível conectar ao serviço. Verifique sua conexão.";
+      resendErrorMessage.value = resolveRateLimitMessage(
+        error.retryAfterSeconds,
+      );
+      return;
     }
+    if (isHttpError(error)) {
+      resendErrorMessage.value = error.message;
+      return;
+    }
+    resendErrorMessage.value =
+      "Não foi possível conectar ao serviço. Verifique sua conexão.";
   } finally {
     isResending.value = false;
   }

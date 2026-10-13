@@ -21,7 +21,8 @@ if (verification.error) {
     logError(
       "[generate-client] python3 não encontrado. Instale o Python 3 para executar scripts/verify_contract.py (ex.: apk add python3 / apt install python3).",
     );
-  } else {
+  }
+  if (verification.error.code !== "ENOENT") {
     logError(
       `[generate-client] Erro ao executar python3: ${verification.error.message}`,
     );
@@ -56,7 +57,8 @@ if (generation.error) {
     logError(
       `[generate-client] Falha ao executar Orval em "${orvalBin}": executável não encontrado. Execute "npm ci" para reinstalar.`,
     );
-  } else {
+  }
+  if (generation.error.code !== "ENOENT") {
     logError(
       `[generate-client] Erro ao executar Orval: ${generation.error.message}`,
     );
