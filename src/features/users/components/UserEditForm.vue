@@ -110,15 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref,
-  useId,
-  watch,
-} from "vue";
+import { computed, reactive, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
@@ -268,20 +260,6 @@ const saveRoles = async (): Promise<void> => {
     rolesFeedback.handleFailure(error);
   }
 };
-
-const beforeWindowUnload = (event: BeforeUnloadEvent): void => {
-  if (!isDirty.value) return;
-  if (!globalThis.confirm("Há alterações não salvas. Sair mesmo assim?")) {
-    event.preventDefault();
-  }
-};
-
-onMounted(() => {
-  window.addEventListener("beforeunload", beforeWindowUnload);
-});
-onUnmounted(() => {
-  window.removeEventListener("beforeunload", beforeWindowUnload);
-});
 </script>
 
 <style scoped>
