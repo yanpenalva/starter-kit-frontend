@@ -56,6 +56,11 @@
           </select>
         </label>
       </div>
+
+      <p class="selection-counter" role="status">
+        {{ selection.selectedCount.value }} de {{ visibleActivityIds.length }}
+        selecionados
+      </p>
     </template>
 
     <p v-if="query.isPending.value" role="status">
@@ -67,6 +72,21 @@
       <table>
         <thead>
           <tr>
+            <th scope="col" class="selection-cell">
+              <input
+                type="checkbox"
+                class="selection-toggle"
+                aria-label="Selecionar todos os registros desta página"
+                :checked="selection.isAllSelected.value"
+                :indeterminate.prop="selection.isIndeterminate.value"
+                :disabled="!selection.isSelectable.value"
+                @change="
+                  selection.toggleAll(
+                    ($event.target as HTMLInputElement).checked,
+                  )
+                "
+              />
+            </th>
             <th scope="col">Evento</th>
             <th scope="col">Descrição</th>
             <th scope="col">Entidade</th>
@@ -78,6 +98,21 @@
         </thead>
         <tbody>
           <tr v-for="activity in query.data.value.data" :key="activity.id">
+            <td class="selection-cell">
+              <input
+                type="checkbox"
+                class="selection-toggle"
+                :aria-label="`Selecionar registro ${activity.id}`"
+                :checked="selection.isSelected(activity.id)"
+                :disabled="!selection.isSelectable.value"
+                @change="
+                  selection.setSelected(
+                    activity.id,
+                    ($event.target as HTMLInputElement).checked,
+                  )
+                "
+              />
+            </td>
             <td>{{ AUDIT_EVENT_LABELS[activity.event] }}</td>
             <td>{{ activity.description }}</td>
             <td>
@@ -102,7 +137,7 @@
             </td>
           </tr>
           <tr v-if="query.data.value.data.length === 0">
-            <td colspan="5">Nenhum registro encontrado.</td>
+            <td colspan="6">Nenhum registro encontrado.</td>
           </tr>
         </tbody>
       </table>
@@ -131,6 +166,7 @@ import FormFeedback from "@/shared/components/FormFeedback.vue";
 import Pagination from "@/shared/components/Pagination.vue";
 import SearchInput from "@/shared/components/SearchInput.vue";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { usePageSelection } from "@/shared/composables/usePageSelection";
 import { listActivities } from "@/features/logs/api/audit.api";
 import LogDetailModal from "@/features/logs/components/LogDetailModal.vue";
 import {
@@ -152,6 +188,25 @@ const selectedActivity = ref<AdminActivity | null>(null);
 const query = useQuery({
   queryKey: computed(() => ["audit", { ...filters }]),
   queryFn: () => listActivities({ ...filters }),
+});
+
+// A seleção cobre apenas os registros carregados na página atual: busca,
+// filtros, página e per_page limpam; refetch mantém só os IDs presentes.
+const visibleActivityIds = computed<readonly number[]>(() =>
+  (query.data.value?.data ?? []).map((activity) => activity.id),
+);
+const selection = usePageSelection({
+  visibleIds: () => visibleActivityIds.value,
+  enabled: () => !query.isFetching.value && !query.isError.value,
+  scopeKey: () =>
+    [
+      filters.page,
+      filters.per_page,
+      filters.search ?? "",
+      filters.event ?? "",
+      filters.log_name ?? "",
+      filters.subject_type ?? "",
+    ].join("|"),
 });
 
 watch(query.error, (error) => {
@@ -227,6 +282,30 @@ td {
   padding: 0.75rem;
   border-bottom: 1px solid rgb(58 77 60 / 10%);
   vertical-align: top;
+}
+
+.selection-cell {
+  width: 2.5rem;
+  padding-right: 0;
+  text-align: center;
+}
+
+.selection-toggle {
+  min-height: 0;
+  padding: 0;
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.selection-toggle:disabled {
+  cursor: not-allowed;
+}
+
+.selection-counter {
+  margin: 0;
+  color: var(--color-muted, #73766e);
+  font-size: 0.875rem;
 }
 
 .sr-only {

@@ -5,45 +5,58 @@
     @update:model-value="emit('update:modelValue', $event)"
   >
     <template v-if="activity">
-      <dl class="log-detail__meta">
-        <div>
-          <dt>Evento</dt>
-          <dd>{{ AUDIT_EVENT_LABELS[activity.event] }}</dd>
-        </div>
-        <div>
-          <dt>Canal</dt>
-          <dd>
-            {{
-              AUDIT_LOG_NAME_LABELS[activity.log_name as AuditLogName] ??
-              activity.log_name
-            }}
-          </dd>
-        </div>
-        <div>
-          <dt>Entidade</dt>
-          <dd>
-            {{
-              AUDIT_SUBJECT_TYPE_LABELS[
-                activity.subject_type as AuditSubjectType
-              ] ?? activity.subject_type
-            }}
-            #{{ activity.subject_id }}
-          </dd>
-        </div>
-        <div>
-          <dt>Data</dt>
-          <dd>
-            {{ activity.created_at ? formatDate(activity.created_at) : "—" }}
-          </dd>
-        </div>
-      </dl>
+      <q-expansion-item
+        dense
+        default-opened
+        label="Metadados"
+        toggle-aria-label="Metadados do registro"
+      >
+        <dl class="log-detail__meta">
+          <div>
+            <dt>Evento</dt>
+            <dd>{{ AUDIT_EVENT_LABELS[activity.event] }}</dd>
+          </div>
+          <div>
+            <dt>Canal</dt>
+            <dd>
+              {{
+                AUDIT_LOG_NAME_LABELS[activity.log_name as AuditLogName] ??
+                activity.log_name
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt>Entidade</dt>
+            <dd>
+              {{
+                AUDIT_SUBJECT_TYPE_LABELS[
+                  activity.subject_type as AuditSubjectType
+                ] ?? activity.subject_type
+              }}
+              #{{ activity.subject_id }}
+            </dd>
+          </div>
+          <div>
+            <dt>Data</dt>
+            <dd>
+              {{ activity.created_at ? formatDate(activity.created_at) : "—" }}
+            </dd>
+          </div>
+        </dl>
+      </q-expansion-item>
 
       <p class="log-detail__description">{{ activity.description }}</p>
 
-      <h3 class="log-detail__payload-title">Payload da auditoria</h3>
-      <pre class="log-detail__payload" data-testid="activity-payload">{{
-        formatPayload(activity.properties)
-      }}</pre>
+      <q-expansion-item
+        dense
+        default-opened
+        label="Payload da auditoria"
+        toggle-aria-label="Payload da auditoria"
+      >
+        <pre class="log-detail__payload" data-testid="activity-payload">{{
+          formatPayload(activity.properties)
+        }}</pre>
+      </q-expansion-item>
     </template>
   </DialogComponent>
 </template>
@@ -91,6 +104,7 @@ const formatDate = (value: string): string =>
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   gap: 0.75rem;
   margin: 0;
+  padding: 0.5rem 0;
 }
 
 .log-detail__meta dt {
@@ -111,13 +125,6 @@ const formatDate = (value: string): string =>
   margin: 0;
   font-size: 0.9375rem;
   color: var(--color-ink, #252a25);
-}
-
-.log-detail__payload-title {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-muted, #73766e);
 }
 
 .log-detail__payload {

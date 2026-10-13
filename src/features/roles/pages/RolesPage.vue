@@ -4,15 +4,22 @@
       Área restrita para usuários com permissão <code>roles.view</code>.
     </template>
 
-    <label class="search-field">
-      Buscar
-      <input
-        v-model="filters.search"
-        aria-label="Buscar papéis"
-        type="search"
-        @input="filters.page = 1"
-      />
-    </label>
+    <template #toolbar>
+      <div class="filters" aria-label="Filtros de papéis">
+        <SearchInput
+          :model-value="filters.search ?? ''"
+          label="Buscar"
+          placeholder="Nome ou permissão"
+          :disabled="query.isFetching.value"
+          @update:model-value="filters.search = $event"
+        />
+      </div>
+
+      <p class="selection-counter" role="status">
+        {{ selection.selectedCount.value }} de {{ visibleRoleIds.length }}
+        selecionados
+      </p>
+    </template>
 
     <p v-if="query.isPending.value" role="status">Carregando papéis...</p>
     <FormFeedback :feedback="feedback" @retry="feedback.retry" />
@@ -36,6 +43,21 @@
       <table>
         <thead>
           <tr>
+            <th scope="col" class="selection-cell">
+              <input
+                type="checkbox"
+                class="selection-toggle"
+                aria-label="Selecionar todos os papéis desta página"
+                :checked="selection.isAllSelected.value"
+                :indeterminate.prop="selection.isIndeterminate.value"
+                :disabled="!selection.isSelectable.value"
+                @change="
+                  selection.toggleAll(
+                    ($event.target as HTMLInputElement).checked,
+                  )
+                "
+              />
+            </th>
             <th scope="col">Papel</th>
             <th scope="col">Permissões</th>
             <th scope="col">Ações</th>
@@ -43,28 +65,58 @@
         </thead>
         <tbody>
           <tr v-for="role in query.data.value.data" :key="role.id">
+            <td class="selection-cell">
+              <input
+                type="checkbox"
+                class="selection-toggle"
+                :aria-label="`Selecionar ${role.name}`"
+                :checked="selection.isSelected(role.id)"
+                :disabled="!selection.isSelectable.value"
+                @change="
+                  selection.setSelected(
+                    role.id,
+                    ($event.target as HTMLInputElement).checked,
+                  )
+                "
+              />
+            </td>
             <th scope="row">{{ role.name }}</th>
             <td>
-              <fieldset>
-                <legend>Permissões de {{ role.name }}</legend>
-                <label
-                  v-for="permission in CATALOGUE_PERMISSIONS"
-                  :key="permission"
-                >
-                  <input
-                    v-model="editedPermissions[role.id]"
-                    type="checkbox"
-                    :value="permission"
-                    :disabled="
-                      isRoleImmutable(role) || !can('roles.update-permissions')
-                    "
-                    :aria-label="`Permissão ${CATALOGUE_PERMISSION_LABELS[permission]} para ${role.name}`"
-                  />
-                  {{ CATALOGUE_PERMISSION_LABELS[permission] }}
-                </label>
-              </fieldset>
+              <q-expansion-item
+                dense
+                :label="`Permissões de ${role.name}`"
+                :caption="`${editedPermissions[role.id]?.length ?? 0} de ${CATALOGUE_PERMISSIONS.length} concedidas`"
+                :toggle-aria-label="`Permissões de ${role.name}`"
+              >
+                <fieldset v-for="group in PERMISSION_GROUPS" :key="group.id">
+                  <legend>{{ group.label }}</legend>
+                  <label
+                    v-for="permission in group.permissions"
+                    :key="permission"
+                  >
+                    <input
+                      v-model="editedPermissions[role.id]"
+                      type="checkbox"
+                      :value="permission"
+                      :disabled="
+                        isRoleImmutable(role) ||
+                        !can('roles.update-permissions')
+                      "
+                      :aria-label="`Permissão ${CATALOGUE_PERMISSION_LABELS[permission]} para ${role.name}`"
+                    />
+                    {{ CATALOGUE_PERMISSION_LABELS[permission] }}
+                  </label>
+                </fieldset>
+              </q-expansion-item>
             </td>
             <td>
+              <button
+                type="button"
+                :aria-label="`Ver detalhes do papel ${role.name}`"
+                @click="openDetail(role)"
+              >
+                Detalhes
+              </button>
               <button
                 v-if="can('roles.update-permissions')"
                 type="button"
@@ -95,55 +147,49 @@
             </td>
           </tr>
           <tr v-if="query.data.value.data.length === 0">
-            <td colspan="3">Nenhum papel encontrado.</td>
+            <td colspan="4">Nenhum papel encontrado.</td>
           </tr>
         </tbody>
       </table>
+
+      <Pagination
+        aria-label="Paginação de papéis"
+        :disabled="query.isFetching.value"
+        :meta="query.data.value.meta"
+        @change="filters.page = $event"
+      />
     </div>
 
-    <nav
-      v-if="query.data.value"
-      class="pagination"
-      aria-label="Paginação de papéis"
-    >
-      <button
-        type="button"
-        aria-label="Página anterior"
-        :disabled="(filters.page ?? 1) <= 1"
-        @click="filters.page = Math.max(1, (filters.page ?? 1) - 1)"
-      >
-        Anterior
-      </button>
-      <span
-        >Página {{ query.data.value.meta.current_page }} de
-        {{ query.data.value.meta.last_page }}</span
-      >
-      <button
-        type="button"
-        aria-label="Próxima página"
-        :disabled="(filters.page ?? 1) >= query.data.value.meta.last_page"
-        @click="filters.page = (filters.page ?? 1) + 1"
-      >
-        Próxima
-      </button>
-    </nav>
+    <RoleDetails
+      :model-value="detailRole !== null"
+      :role="detailRole"
+      @update:model-value="closeDetail"
+    />
   </AdminPageLayout>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
+import Pagination from "@/shared/components/Pagination.vue";
+import SearchInput from "@/shared/components/SearchInput.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { usePageSelection } from "@/shared/composables/usePageSelection";
 import {
   CATALOGUE_PERMISSIONS,
   CATALOGUE_PERMISSION_LABELS,
   type CataloguePermission,
 } from "@/shared/types/contract";
-import { isRoleImmutable } from "@/features/roles/api/roles.types";
+import { PERMISSION_GROUPS } from "@/features/roles/permission-groups";
+import {
+  isRoleImmutable,
+  type AdminRole,
+} from "@/features/roles/api/roles.types";
 import { useRolesList } from "@/features/roles/composables/useRolesList";
+import RoleDetails from "@/features/roles/components/RoleDetails.vue";
 
 const { can } = useAuthorization();
 const feedback = useFormFeedback();
@@ -154,6 +200,33 @@ const newRoleName = ref("");
 const pendingRoleId = ref<number | null>(null);
 const creatingRole = ref(false);
 const deletingRoleId = ref<number | null>(null);
+const detailRole = ref<AdminRole | null>(null);
+
+// A seleção cobre apenas os papéis carregados na página atual: busca, página
+// e per_page limpam; refetch mantém somente os IDs presentes.
+const visibleRoleIds = computed<readonly number[]>(() =>
+  (query.data.value?.data ?? []).map((role) => role.id),
+);
+const selection = usePageSelection({
+  visibleIds: () => visibleRoleIds.value,
+  enabled: () => !query.isFetching.value && !query.isError.value,
+  scopeKey: () =>
+    [filters.page, filters.per_page, filters.search ?? ""].join("|"),
+});
+
+const openDetail = (role: AdminRole): void => {
+  detailRole.value = role;
+};
+const closeDetail = (): void => {
+  detailRole.value = null;
+};
+
+watch(
+  () => filters.search,
+  () => {
+    filters.page = 1;
+  },
+);
 watch(
   query.data,
   (page) => {
@@ -214,6 +287,19 @@ const removeRole = async (roleId: number, roleName: string): Promise<void> => {
 </script>
 
 <style scoped>
+.filters {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.selection-counter {
+  margin: 0;
+  color: var(--color-muted, #73766e);
+  font-size: 0.875rem;
+}
+
 .search-field {
   display: grid;
   width: min(100%, 24rem);
@@ -243,6 +329,7 @@ button:disabled {
 
 .table-wrap {
   overflow-x: auto;
+  margin-top: 1rem;
 }
 
 table {
@@ -258,12 +345,41 @@ td {
   vertical-align: top;
 }
 
+.selection-cell {
+  width: 2.5rem;
+  padding-right: 0;
+  text-align: center;
+}
+
+.selection-toggle {
+  min-height: 0;
+  padding: 0;
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.selection-toggle:disabled {
+  cursor: not-allowed;
+}
+
+tbody tr td:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 fieldset {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   gap: 0.5rem;
   border: 0;
   padding: 0;
+  margin: 0;
+}
+
+fieldset + fieldset {
+  margin-top: 0.75rem;
 }
 
 legend {
@@ -276,13 +392,5 @@ fieldset label {
   align-items: center;
   gap: 0.375rem;
   font-size: 0.8125rem;
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
 }
 </style>
