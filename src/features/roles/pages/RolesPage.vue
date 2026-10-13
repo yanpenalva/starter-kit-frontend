@@ -222,6 +222,12 @@ const closeDetail = (): void => {
 };
 
 watch(
+  () => filters.search,
+  () => {
+    filters.page = 1;
+  },
+);
+watch(
   query.data,
   (page) => {
     page?.data.forEach((role) => {

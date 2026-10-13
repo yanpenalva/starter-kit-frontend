@@ -411,6 +411,21 @@ describe("RolesPage — seleção por página", () => {
       true,
     );
     expect(wrapper.text()).toContain("papel-20");
+
+    // A busca volta para a primeira página mesmo estando na segunda.
+    await wrapper.get("label.ui-search input").setValue("papel-1");
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.query.get("page") === "1" &&
+            call.query.get("search") === "papel-1",
+        ),
+      ).toBe(true),
+    );
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 10 selecionados"),
+    );
   });
 
   it("mantém após refetch somente os IDs ainda presentes", async () => {

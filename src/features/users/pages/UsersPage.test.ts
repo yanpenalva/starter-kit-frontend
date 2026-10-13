@@ -547,6 +547,21 @@ describe("UsersPage — seleção por página", () => {
       true,
     );
     expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
+
+    // A busca volta para a primeira página mesmo estando na segunda.
+    await wrapper.get("label.ui-search input").setValue("Pessoa 2");
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.query.get("page") === "1" &&
+            call.query.get("search") === "Pessoa 2",
+        ),
+      ).toBe(true),
+    );
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 2 selecionados"),
+    );
   });
 
   it("mantém após refetch somente os IDs ainda presentes", async () => {
@@ -691,5 +706,84 @@ describe("UsersPage — seleção por página", () => {
 
     dialogClose()?.click();
     await vi.waitFor(() => expect(dialogElement()).toBeNull());
+  });
+
+  it("limpa a seleção ao ir para a última página e permite selecioná-la inteira", async () => {
+    const localUsers = makeUsers(32);
+    const mocks = makeUsersRouteMocks(localUsers);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+    );
+    await rowCheckbox(wrapper, 1).setValue(true);
+    expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
+
+    await wrapper.get('button[aria-label="Última página"]').trigger("click");
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 2 selecionados"),
+    );
+    expect(mocks.calls.some((call) => call.query.get("page") === "3")).toBe(
+      true,
+    );
+    expect(wrapper.find('[aria-label="Nome de Pessoa 32"]').exists()).toBe(
+      true,
+    );
+
+    await wrapper
+      .get<HTMLInputElement>(
+        '[aria-label="Selecionar todos os usuários desta página"]',
+      )
+      .setValue(true);
+
+    expect(counter(wrapper).text()).toContain("2 de 2 selecionados");
+    expect(rowCheckbox(wrapper, 32).element.checked).toBe(true);
+
+    await wrapper.get('button[aria-label="Primeira página"]').trigger("click");
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+    );
+    await vi.waitFor(() =>
+      expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined(),
+    );
+    expect(rowCheckbox(wrapper, 1).element.checked).toBe(false);
+    expect(rowCheckbox(wrapper, 15).element.checked).toBe(false);
+  });
+
+  it("remove da seleção o usuário excluído após o refetch", async () => {
+    const localUsers = makeUsers(7);
+    const mocks = makeUsersRouteMocks(localUsers);
+    server.use(...mocks.handlers, rolesListHandler);
+    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
+    const wrapper = await mountPage();
+
+    try {
+      await vi.waitFor(() =>
+        expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
+      );
+      await rowCheckbox(wrapper, 2).setValue(true);
+      await rowCheckbox(wrapper, 3).setValue(true);
+      expect(counter(wrapper).text()).toContain("2 de 7 selecionados");
+
+      await wrapper.get('[aria-label="Excluir Pessoa 2"]').trigger("click");
+
+      await vi.waitFor(() =>
+        expect(
+          wrapper.find('[aria-label="Selecionar Pessoa 2"]').exists(),
+        ).toBe(false),
+      );
+      expect(counter(wrapper).text()).toContain("1 de 6 selecionados");
+      expect(rowCheckbox(wrapper, 3).element.checked).toBe(true);
+      expect(
+        mocks.calls.some(
+          (call) => call.method === "DELETE" && call.path === "/api/v1/users/2",
+        ),
+      ).toBe(true);
+    } finally {
+      confirmSpy.mockRestore();
+    }
   });
 });
