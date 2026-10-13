@@ -319,6 +319,8 @@ describe("RolesPage", () => {
         .attributes("aria-expanded"),
     ).toBe("true");
     expect(wrapper.text()).toContain("Editar permissões de papéis");
+    // Expandir e editar não seleciona a linha.
+    expect(counter(wrapper).text()).toContain("0 de 2 selecionados");
 
     await wrapper
       .get('[aria-label="Permissão Ver auditoria para user"]')
@@ -338,6 +340,7 @@ describe("RolesPage", () => {
         ),
       ).toBe(true),
     );
+    expect(counter(wrapper).text()).toContain("0 de 2 selecionados");
   });
 });
 
