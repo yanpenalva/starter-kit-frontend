@@ -15,6 +15,7 @@ import {
   createRole,
   deleteRole,
   listRoles,
+  renameRole,
   updateRolePermissions,
 } from "@/features/roles/api/roles.api";
 import { listActivities } from "@/features/logs/api/audit.api";
@@ -117,6 +118,7 @@ describe("mock role writes", () => {
     expect(created.data.id).toBe(6);
     expect(database.roles).toHaveLength(6);
     expect(await statusOf(createRole({ name: "" }))).toBe(422);
+    expect(await statusOf(createRole({ name: "manager" }))).toBe(422);
   });
 
   it("updates permissions except for the immutable admin role", async () => {
@@ -138,13 +140,32 @@ describe("mock role writes", () => {
     ).toBe(422);
   });
 
-  it("deletes roles and searches by permission", async () => {
+  it("renames assigned roles, protects reserved roles and searches by name only", async () => {
     const database = useScenario("full");
-    await deleteRole(5);
-    expect(database.roles).toHaveLength(4);
+    const before = database.roles.find((role) => role.id === 2);
+    const renamed = await renameRole(2, { name: "operador" });
+    expect(renamed.data).toMatchObject({
+      id: 2,
+      name: "operador",
+      permissions: before?.permissions,
+    });
+    expect(database.users[0]?.roles).toContain("operador");
+    expect(await statusOf(renameRole(3, { name: "operador" }))).toBe(422);
+    expect(await statusOf(renameRole(5, { name: "usuario-customizado" }))).toBe(
+      403,
+    );
+    expect(await statusOf(deleteRole(1))).toBe(403);
+    expect(await statusOf(deleteRole(2))).toBe(422);
+
+    const byName = await listRoles({ search: "operador" });
+    const byPermission = await listRoles({ search: "logs.view" });
+    expect(byName.data.map((role) => role.name)).toEqual(["operador"]);
+    expect(byPermission.data).toHaveLength(0);
+
+    const temporary = await createRole({ name: "temporário" });
+    await deleteRole(temporary.data.id);
+    expect(database.roles).toHaveLength(5);
     expect(await statusOf(deleteRole(999))).toBe(404);
-    const found = await listRoles({ search: "logs" });
-    expect(found.meta.total).toBeGreaterThan(0);
   });
 });
 

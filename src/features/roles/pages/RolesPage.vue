@@ -32,6 +32,9 @@
       Atualizando perfis...
     </p>
     <FormFeedback :feedback="feedback" @retry="feedback.retry" />
+    <p v-if="deleteRefusal" class="role-delete-refusal" role="alert">
+      {{ deleteRefusal }}
+    </p>
 
     <div v-if="query.data.value" class="table-wrap">
       <table>
@@ -136,6 +139,7 @@
       :model-value="detailRole !== null"
       :role="detailRole"
       @update:model-value="closeDetail"
+      @renamed="handleRoleRenamed"
     />
 
     <RoleFormModal
@@ -175,6 +179,7 @@ import {
   type AdminRole,
 } from "@/features/roles/api/roles.types";
 import { useRolesList } from "@/features/roles/composables/useRolesList";
+import { isValidationHttpError } from "@/lib/http";
 import RoleDetails from "@/features/roles/components/RoleDetails.vue";
 import RoleFormModal from "@/features/roles/components/RoleFormModal.vue";
 
@@ -190,6 +195,7 @@ const createOpen = ref(false);
 const editRole = ref<AdminRole | null>(null);
 const deletingRoleId = ref<number | null>(null);
 const detailRole = ref<AdminRole | null>(null);
+const deleteRefusal = ref<string | null>(null);
 
 const visibleRoleIds = computed<readonly number[]>(() =>
   (query.data.value?.data ?? []).map((role) => role.id),
@@ -206,6 +212,10 @@ const openDetail = (role: AdminRole): void => {
 };
 const closeDetail = (): void => {
   detailRole.value = null;
+};
+const handleRoleRenamed = (role: AdminRole): void => {
+  detailRole.value = role;
+  feedback.reportSuccess("Perfil renomeado com sucesso.");
 };
 const changePerPage = (perPage: number): void => {
   selection.clear();
@@ -263,12 +273,17 @@ watch(query.error, (error) => {
 const removeRole = async (roleId: number, roleName: string): Promise<void> => {
   if (deletingRoleId.value !== null || !can("roles.manage")) return;
   if (globalThis.confirm(`Excluir o perfil ${roleName}?`)) {
+    feedback.clearFeedback();
+    deleteRefusal.value = null;
     deletingRoleId.value = roleId;
     try {
       await deleteMutation.mutateAsync(roleId);
       feedback.reportSuccess("Perfil excluído com sucesso.");
     } catch (error: unknown) {
-      feedback.handleFailure(error);
+      if (isValidationHttpError(error)) {
+        deleteRefusal.value = `O perfil ${roleName} está atribuído a usuários e não pode ser excluído.`;
+      }
+      if (!isValidationHttpError(error)) feedback.handleFailure(error);
     } finally {
       deletingRoleId.value = null;
     }
@@ -353,6 +368,11 @@ tbody tr:hover {
   font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
+}
+
+.role-delete-refusal {
+  margin: 0.75rem 0 0;
+  color: #b42318;
 }
 
 .permission-summary {

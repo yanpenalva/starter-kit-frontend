@@ -56,11 +56,12 @@ export const MANUAL_SECTIONS: readonly ManualSection[] = [
     id: "papeis-permissoes",
     title: "Perfis e permissões",
     summary:
-      "A área Perfis exibe os perfis disponíveis e suas permissões em português, organizadas por assunto.",
+      "A área Perfis exibe os perfis disponíveis e as permissões em português, organizadas por assunto.",
     items: [
-      "Use a busca para localizar um perfil pelo nome. A lista permite escolher quantos itens aparecem por página.",
-      "Criar perfil e consultar detalhes abrem janelas. A edição de permissões também abre uma janela com as permissões agrupadas por assunto.",
-      "Alguns perfis protegidos não podem ser alterados. A interface identifica os protegidos e desabilita as ações que não se aplicam.",
+      "Use a busca para localizar pelo nome do perfil; permissões não fazem parte da busca. A lista permite escolher quantos itens aparecem por página.",
+      "Criar perfil e consultar detalhes abrem janelas. Na edição de permissões, selecione tudo de um grupo ou todas as permissões do catálogo.",
+      "Perfis personalizados podem ser renomeados. O nome duplicado é informado no campo; os nomes Administrador e Usuário são reservados.",
+      "O perfil Administrador não pode ser renomeado, excluído nem ter permissões alteradas. Um perfil atribuído a usuários não pode ser excluído; a interface informa esse motivo quando o servidor recusa a ação.",
       "A disponibilidade de cada ação depende da autorização da sua conta. A interface e o servidor aplicam essas restrições.",
       "Os ícones das ações têm nomes acessíveis para que seja possível identificar a operação antes de selecioná-la.",
     ],

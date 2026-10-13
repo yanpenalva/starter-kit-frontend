@@ -76,6 +76,18 @@ describe("ManualPage.vue", () => {
     expect(text).not.toMatch(/Salvar nome/i);
   });
 
+  it("documents the delivered profile management behavior", () => {
+    const text = mountManual().text();
+
+    expect(text).toContain("permissões não fazem parte da busca");
+    expect(text).toContain("todas as permissões do catálogo");
+    expect(text).toContain("Perfis personalizados podem ser renomeados");
+    expect(text).toContain("nomes Administrador e Usuário são reservados");
+    expect(text).toContain(
+      "Um perfil atribuído a usuários não pode ser excluído",
+    );
+  });
+
   it("answers current questions about access, sessions and protections", () => {
     const wrapper = mountManual();
     const text = wrapper.text();

@@ -9,12 +9,17 @@ import {
   createRole,
   deleteRole,
   listRoles,
+  renameRole,
   updateRolePermissions,
 } from "@/features/roles/api/roles.api";
 import type {
   RoleFilters,
   UpdateRolePermissionsPayload,
 } from "@/features/roles/api/roles.types";
+import {
+  USER_QUERY_KEY,
+  USERS_QUERY_KEY,
+} from "@/features/users/composables/useUsersList";
 
 export const ROLES_QUERY_KEY = "roles";
 
@@ -41,7 +46,18 @@ export const useRoleMutations = () => {
     mutationFn: (roleId: number) => deleteRole(roleId),
     onSuccess: () => invalidate(),
   });
-  return { permissionMutation, createMutation, deleteMutation };
+  const renameMutation = useMutation({
+    mutationFn: ({ roleId, name }: { roleId: number; name: string }) =>
+      renameRole(roleId, { name }),
+    onSuccess: async () => {
+      await Promise.all([
+        invalidate(),
+        queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] }),
+        queryClient.invalidateQueries({ queryKey: [USER_QUERY_KEY] }),
+      ]);
+    },
+  });
+  return { permissionMutation, createMutation, deleteMutation, renameMutation };
 };
 
 export const useRolesList = () => {

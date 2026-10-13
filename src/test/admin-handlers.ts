@@ -8,6 +8,10 @@ import {
 } from "./http-handlers";
 import type { AdminUser } from "@/features/users/api/users.types";
 import type { AdminRole } from "@/features/roles/api/roles.types";
+import {
+  isRoleImmutable,
+  isRoleNameReserved,
+} from "@/features/roles/api/roles.types";
 import type { AdminActivity } from "@/features/logs/api/audit.types";
 import {
   auditActorId,
@@ -354,8 +358,12 @@ export interface RolesRouteMocks {
   readonly handlers: readonly RequestHandler[];
   readonly calls: readonly RecordedApiCall[];
 }
+export interface RolesRouteOptions {
+  readonly assignedRoleNames?: readonly string[];
+}
 export const makeRolesRouteMocks = (
   roles: AdminRole[] = [],
+  options: RolesRouteOptions = {},
 ): RolesRouteMocks => {
   const calls: RecordedApiCall[] = [];
   const handlers: readonly RequestHandler[] = [
@@ -368,12 +376,7 @@ export const makeRolesRouteMocks = (
       const page = Number(url.searchParams.get("page") ?? "1");
       const perPage = Number(url.searchParams.get("per_page") ?? "15");
       const filtered = roles.filter(
-        (role) =>
-          search === "" ||
-          role.name.toLowerCase().includes(search) ||
-          role.permissions.some((permission) =>
-            permission.toLowerCase().includes(search),
-          ),
+        (role) => search === "" || role.name.toLowerCase().includes(search),
       );
       const start = (page - 1) * perPage;
       const pageData = filtered.slice(start, start + perPage);
@@ -387,6 +390,54 @@ export const makeRolesRouteMocks = (
         }),
       );
     }),
+    http.patch(
+      `${TEST_API_BASE}/api/v1/roles/:roleId`,
+      async ({ request, params }) => {
+        calls.push(await record(request));
+        const role = roles.find(
+          (candidate) => String(candidate.id) === String(params.roleId),
+        );
+        if (role === undefined) {
+          return json(request, { message: "Não encontrado." }, 404);
+        }
+        if (isRoleNameReserved(role)) {
+          return json(
+            request,
+            { message: "Este perfil não pode ser renomeado." },
+            403,
+          );
+        }
+        const payload = (await request.json()) as { name?: unknown };
+        if (typeof payload.name !== "string" || payload.name === "") {
+          return json(
+            request,
+            {
+              message: "Dados inválidos.",
+              errors: { name: ["Informe um nome de perfil válido."] },
+            },
+            422,
+          );
+        }
+        if (
+          roles.some(
+            (candidate) =>
+              candidate.id !== role.id && candidate.name === payload.name,
+          )
+        ) {
+          return json(
+            request,
+            {
+              message: "Dados inválidos.",
+              errors: { name: ["Já existe um perfil com este nome."] },
+            },
+            422,
+          );
+        }
+        const updated = { ...role, name: payload.name };
+        roles.splice(roles.indexOf(role), 1, updated);
+        return json(request, { data: updated });
+      },
+    ),
     http.put(
       `${TEST_API_BASE}/api/v1/roles/:roleId/permissions`,
       async ({ request, params }) => {
@@ -419,7 +470,24 @@ export const makeRolesRouteMocks = (
       calls.push(await record(request));
       const payload = (await request.json()) as { name?: unknown };
       if (typeof payload.name !== "string" || payload.name === "") {
-        return json(request, { message: "Dados inválidos." }, 422);
+        return json(
+          request,
+          {
+            message: "Dados inválidos.",
+            errors: { name: ["Informe um nome de perfil válido."] },
+          },
+          422,
+        );
+      }
+      if (roles.some((role) => role.name === payload.name)) {
+        return json(
+          request,
+          {
+            message: "Dados inválidos.",
+            errors: { name: ["Já existe um perfil com este nome."] },
+          },
+          422,
+        );
       }
       const created = makeAdminRole({
         id: Math.max(0, ...roles.map((role) => role.id)) + 1,
@@ -437,6 +505,31 @@ export const makeRolesRouteMocks = (
         );
         if (index === -1) {
           return json(request, { message: "Não encontrado." }, 404);
+        }
+        const role = roles[index];
+        if (role !== undefined && isRoleImmutable(role)) {
+          return json(
+            request,
+            { message: "Este perfil protegido não pode ser excluído." },
+            403,
+          );
+        }
+        if (
+          role !== undefined &&
+          options.assignedRoleNames?.includes(role.name) === true
+        ) {
+          return json(
+            request,
+            {
+              message: "Dados inválidos.",
+              errors: {
+                role: [
+                  "Este perfil está atribuído a usuários e não pode ser excluído.",
+                ],
+              },
+            },
+            422,
+          );
         }
         roles.splice(index, 1);
         return new HttpResponse(null, {

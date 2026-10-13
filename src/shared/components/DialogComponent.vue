@@ -6,12 +6,12 @@
     @update:model-value="handleVisibilityChange"
     @hide="emit('close')"
   >
-    <q-card class="ui-dialog">
+    <q-card class="ui-dialog" style="max-height: min(90vh, 48rem)">
       <header class="ui-dialog__header">
         <h2 :id="titleId" class="ui-dialog__title">{{ title }}</h2>
       </header>
 
-      <div class="ui-dialog__body">
+      <div class="ui-dialog__body" style="overflow-y: auto">
         <slot />
       </div>
 
@@ -59,7 +59,6 @@ const requestClose = (): void => {
   display: flex;
   width: min(100%, 44rem);
   max-width: 100%;
-  max-height: min(90vh, 48rem);
   flex-direction: column;
   gap: 1rem;
   padding: 1.5rem;
@@ -88,7 +87,6 @@ const requestClose = (): void => {
   min-height: 0;
   flex: 1 1 auto;
   gap: 1rem;
-  overflow-y: auto;
 }
 
 .ui-dialog__actions {
