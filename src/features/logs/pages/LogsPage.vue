@@ -284,6 +284,18 @@ td {
   vertical-align: top;
 }
 
+thead th {
+  color: var(--color-muted, #73766e);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+tbody tr:hover {
+  background: rgb(58 77 60 / 3%);
+}
+
 .selection-cell {
   width: 2.5rem;
   padding-right: 0;

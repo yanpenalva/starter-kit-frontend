@@ -130,11 +130,14 @@ const formatDate = (value: string): string =>
 .log-detail__payload {
   margin: 0;
   padding: 0.75rem;
-  overflow-x: auto;
+  max-height: 18rem;
+  overflow: auto;
   border: 1px solid rgb(58 77 60 / 15%);
   border-radius: 0.375rem;
   background: rgb(58 77 60 / 5%);
   font-size: 0.8125rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 </style>

@@ -59,6 +59,7 @@ const requestClose = (): void => {
   display: flex;
   width: min(100%, 44rem);
   max-width: 100%;
+  max-height: min(90vh, 48rem);
   flex-direction: column;
   gap: 1rem;
   padding: 1.5rem;
