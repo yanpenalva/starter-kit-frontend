@@ -1,7 +1,8 @@
 import { VueQueryPlugin } from "@tanstack/vue-query";
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { VueWrapper } from "@vue/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { delay, http, HttpResponse } from "msw";
 import { makeAdminRole, makeRolesRouteMocks } from "@/test/admin-handlers";
 import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
@@ -16,6 +17,24 @@ const roles = [
   makeAdminRole({ id: 2, name: "user", permissions: ["users.view"] }),
 ];
 
+const makeRoles = (count: number) =>
+  Array.from({ length: count }, (_, index) =>
+    makeAdminRole({
+      id: index + 1,
+      name: index === 0 ? "admin" : `papel-${index + 1}`,
+      permissions: index === 1 ? ["users.view"] : [],
+    }),
+  );
+
+// Fixture própria dos casos novos: os handlers de criação/exclusão mutam o
+// array recebido, então cada caso parte de uma lista nova.
+const makeMinimalRoles = () => [
+  makeAdminRole({ id: 1, name: "admin" }),
+  makeAdminRole({ id: 2, name: "user", permissions: ["users.view"] }),
+];
+
+const mountedWrappers: VueWrapper[] = [];
+
 const mountPage = () => {
   useSessionStore().user = {
     id: 1,
@@ -25,13 +44,41 @@ const mountPage = () => {
     roles: ["admin"],
     permissions: [...CATALOGUE_PERMISSIONS],
   };
-  return mount(RolesPage, {
+  // Cache limpo por caso: o queryClient é compartilhado pelo arquivo.
+  queryClient.clear();
+  const wrapper = mount(RolesPage, {
     global: {
       plugins: [[VueQueryPlugin, { queryClient }]],
       stubs: { AppLayout: { template: "<div><slot /></div>" } },
     },
   });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 };
+
+const counter = (wrapper: VueWrapper) => wrapper.get(".selection-counter");
+const headerCheckbox = (wrapper: VueWrapper) =>
+  wrapper.get<HTMLInputElement>(
+    '[aria-label="Selecionar todos os papéis desta página"]',
+  );
+const rowCheckbox = (wrapper: VueWrapper, name: string) =>
+  wrapper.get<HTMLInputElement>(`[aria-label="Selecionar ${name}"]`);
+
+// O diálogo é renderizado em Teleport no document.body pelo Quasar.
+const dialogElement = (): HTMLElement | null =>
+  document.body.querySelector<HTMLElement>('[role="dialog"]');
+
+const dialogClose = (): HTMLButtonElement | undefined =>
+  [...(dialogElement()?.querySelectorAll("button") ?? [])].find(
+    (button) => button.textContent?.trim() === "Fechar",
+  );
+
+afterEach(() => {
+  while (mountedWrappers.length > 0) {
+    mountedWrappers.pop()?.unmount();
+  }
+  document.body.innerHTML = "";
+});
 
 describe("RolesPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
@@ -78,7 +125,7 @@ describe("RolesPage", () => {
     const wrapper = mountPage();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("admin"));
-    await wrapper.get('input[aria-label="Buscar papéis"]').setValue("user");
+    await wrapper.get("label.ui-search input").setValue("user");
     await vi.waitFor(() =>
       expect(
         mocks.calls.some((call) => call.query.get("search") === "user"),
@@ -251,5 +298,178 @@ describe("RolesPage", () => {
         "Aguarde 30 segundos",
       ),
     );
+  });
+
+  it("mantém as permissões densas recolhidas e editáveis na expansão", async () => {
+    const mocks = makeRolesRouteMocks(makeMinimalRoles());
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain("user"));
+
+    const expansion = wrapper.get('[aria-label="Permissões de user"]');
+    expect(expansion.attributes("role")).toBe("button");
+    expect(expansion.attributes("aria-expanded")).toBe("false");
+    expect(wrapper.text()).toContain("1 de 10 concedidas");
+
+    await expansion.trigger("click");
+    expect(
+      wrapper
+        .get('[aria-label="Permissões de user"]')
+        .attributes("aria-expanded"),
+    ).toBe("true");
+    expect(wrapper.text()).toContain("Editar permissões de papéis");
+
+    await wrapper
+      .get('[aria-label="Permissão Ver auditoria para user"]')
+      .setValue(true);
+    await wrapper
+      .get('[aria-label="Editar permissões de user"]')
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.path === "/api/v1/roles/2/permissions" &&
+            (call.body as { permissions: string[] }).permissions.includes(
+              "logs.view",
+            ),
+        ),
+      ).toBe(true),
+    );
+  });
+});
+
+describe("RolesPage — seleção por página", () => {
+  beforeEach(() => setActivePinia(createPinia()));
+
+  it("seleciona todos os IDs da página e limpa com um novo clique no header", async () => {
+    const localRoles = makeRoles(5);
+    const mocks = makeRolesRouteMocks(localRoles);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 5 selecionados"),
+    );
+    expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
+
+    await rowCheckbox(wrapper, "papel-2").setValue(true);
+
+    expect(headerCheckbox(wrapper).element.indeterminate).toBe(true);
+    expect(counter(wrapper).text()).toContain("1 de 5 selecionados");
+
+    await headerCheckbox(wrapper).setValue(true);
+
+    expect(counter(wrapper).text()).toContain("5 de 5 selecionados");
+    expect(rowCheckbox(wrapper, "admin").element.checked).toBe(true);
+    expect(headerCheckbox(wrapper).element.indeterminate).toBe(false);
+
+    await headerCheckbox(wrapper).setValue(false);
+
+    expect(counter(wrapper).text()).toContain("0 de 5 selecionados");
+    expect(rowCheckbox(wrapper, "papel-2").element.checked).toBe(false);
+
+    // Selecionar papéis não dispara escrita nenhuma.
+    expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
+  });
+
+  it("limpa a seleção ao buscar e ao paginar uma fixture multipágina", async () => {
+    const localRoles = makeRoles(20);
+    const mocks = makeRolesRouteMocks(localRoles);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+    );
+    await rowCheckbox(wrapper, "admin").setValue(true);
+    expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
+
+    await wrapper.get("label.ui-search input").setValue("papel-2");
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 2 selecionados"),
+    );
+
+    await wrapper.get("label.ui-search input").setValue("");
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+    );
+    await vi.waitFor(() =>
+      expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined(),
+    );
+    await rowCheckbox(wrapper, "papel-2").setValue(true);
+    expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
+
+    await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 5 selecionados"),
+    );
+    expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
+      true,
+    );
+    expect(wrapper.text()).toContain("papel-20");
+  });
+
+  it("mantém após refetch somente os IDs ainda presentes", async () => {
+    const localRoles = makeRoles(5);
+    const mocks = makeRolesRouteMocks(localRoles);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 5 selecionados"),
+    );
+    await rowCheckbox(wrapper, "papel-3").setValue(true);
+    await rowCheckbox(wrapper, "papel-4").setValue(true);
+    expect(counter(wrapper).text()).toContain("2 de 5 selecionados");
+
+    localRoles.splice(
+      localRoles.findIndex((role) => role.name === "papel-4"),
+      1,
+    );
+    await queryClient.invalidateQueries({ queryKey: ["roles"] });
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Selecionar papel-4"]').exists()).toBe(
+        false,
+      ),
+    );
+    expect(counter(wrapper).text()).toContain("1 de 4 selecionados");
+    expect(rowCheckbox(wrapper, "papel-3").element.checked).toBe(true);
+  });
+
+  it("abre a consulta do papel em modal somente leitura sem selecionar a linha", async () => {
+    const mocks = makeRolesRouteMocks(makeMinimalRoles());
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain("user"));
+    await wrapper
+      .get('[aria-label="Ver detalhes do papel user"]')
+      .trigger("click");
+
+    await vi.waitFor(() => expect(dialogElement()).not.toBeNull());
+    const dialog = dialogElement() as HTMLElement;
+    expect(dialog.textContent).toContain("Detalhes do papel user");
+    expect(dialog.textContent).toContain("Usuários");
+    expect(dialog.textContent).toContain("Papéis");
+    expect(dialog.textContent).toContain("Auditoria");
+    expect(dialog.textContent).toContain("Ver usuários");
+    expect(dialog.textContent).toContain("Não concedida");
+    // Somente leitura: nenhum controle de escrita é oferecido na consulta.
+    expect(dialog.querySelectorAll("input")).toHaveLength(0);
+    expect(
+      [...dialog.querySelectorAll("button")].map((button) =>
+        button.textContent?.trim(),
+      ),
+    ).toEqual(["Fechar"]);
+
+    expect(counter(wrapper).text()).toContain("0 de 2 selecionados");
+
+    dialogClose()?.click();
+    await vi.waitFor(() => expect(dialogElement()).toBeNull());
   });
 });
