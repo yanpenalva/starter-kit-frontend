@@ -23,6 +23,7 @@ import { useSessionStore } from "./session";
 
 const PROFILE_URL = `${TEST_API_BASE}/api/v1/auth/my-profile`;
 const LOGIN_URL = `${TEST_API_BASE}/api/v1/login`;
+const MFA_CHALLENGE_URL = `${TEST_API_BASE}/api/v1/auth/mfa/challenge`;
 const LOGOUT_URL = `${TEST_API_BASE}/api/v1/logout`;
 const CSRF_COOKIE_URL = `${TEST_API_BASE}/sanctum/csrf-cookie`;
 
@@ -369,6 +370,148 @@ describe("useSessionStore", () => {
     expect(store.isAuthenticated).toBe(true);
     expect(store.status).toBe("authenticated");
     expect(JSON.stringify(store.$state)).not.toContain("secret-password");
+  });
+
+  it("holds an MFA-required session without requesting the profile", async () => {
+    let profileRequests = 0;
+    server.use(
+      http.get(
+        CSRF_COOKIE_URL,
+        ({ request }) =>
+          new HttpResponse(null, {
+            status: 204,
+            headers: makeCorsHeaders(request, {
+              "Set-Cookie": `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`,
+            }),
+          }),
+      ),
+      http.post(LOGIN_URL, ({ request }) =>
+        HttpResponse.json(
+          { requires_mfa: true },
+          { headers: makeCorsHeaders(request) },
+        ),
+      ),
+      http.get(PROFILE_URL, ({ request }) => {
+        profileRequests += 1;
+        return HttpResponse.json(
+          { data: mockVerifiedProfile },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+
+    const store = useSessionStore();
+    const result = await store.login({
+      email: "admin@example.com",
+      password: "secret-password",
+    });
+
+    expect(result).toBeNull();
+    expect(profileRequests).toBe(0);
+    expect(store.status).toBe("mfa_required");
+    expect(store.isInitialized).toBe(true);
+    expect(store.user).toBeNull();
+    expect(store.isAuthenticated).toBe(false);
+    expect(JSON.stringify(store.$state)).not.toContain("secret-password");
+  });
+
+  it("authenticates only after a successful MFA challenge and profile request", async () => {
+    const calls: string[] = [];
+    server.use(
+      http.get(
+        CSRF_COOKIE_URL,
+        ({ request }) =>
+          new HttpResponse(null, {
+            status: 204,
+            headers: makeCorsHeaders(request, {
+              "Set-Cookie": `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`,
+            }),
+          }),
+      ),
+      http.post(LOGIN_URL, ({ request }) =>
+        HttpResponse.json(
+          { requires_mfa: true },
+          { headers: makeCorsHeaders(request) },
+        ),
+      ),
+      http.post(MFA_CHALLENGE_URL, async ({ request }) => {
+        calls.push("challenge");
+        expect(await request.json()).toEqual({
+          recovery_code: "recovery-code",
+        });
+        return new HttpResponse(null, {
+          status: 204,
+          headers: makeCorsHeaders(request),
+        });
+      }),
+      http.get(PROFILE_URL, ({ request }) => {
+        calls.push("profile");
+        return HttpResponse.json(
+          { data: mockVerifiedProfile },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+
+    const store = useSessionStore();
+    await store.login({ email: "admin@example.com", password: "secret" });
+    expect(store.status).toBe("mfa_required");
+
+    const profile = await store.completeChallenge({
+      recovery_code: "recovery-code",
+    });
+
+    expect(calls).toEqual(["challenge", "profile"]);
+    expect(profile).toEqual(mockVerifiedProfile);
+    expect(store.status).toBe("authenticated");
+    expect(store.isAuthenticated).toBe(true);
+  });
+
+  it("keeps the MFA challenge active and exposes field errors after a 422", async () => {
+    server.use(
+      http.get(
+        CSRF_COOKIE_URL,
+        ({ request }) =>
+          new HttpResponse(null, {
+            status: 204,
+            headers: makeCorsHeaders(request, {
+              "Set-Cookie": `${CSRF_COOKIE_NAME}=${TEST_CSRF_TOKEN}; Path=/`,
+            }),
+          }),
+      ),
+      http.post(LOGIN_URL, ({ request }) =>
+        HttpResponse.json(
+          { requires_mfa: true },
+          { headers: makeCorsHeaders(request) },
+        ),
+      ),
+      http.post(MFA_CHALLENGE_URL, ({ request }) =>
+        HttpResponse.json(
+          {
+            message: "O código informado é inválido.",
+            errors: { code: ["Confira o código e tente novamente."] },
+          },
+          { status: 422, headers: makeCorsHeaders(request) },
+        ),
+      ),
+    );
+
+    const store = useSessionStore();
+    await store.login({ email: "admin@example.com", password: "secret" });
+
+    await expect(
+      store.completeChallenge({ code: "000000" }),
+    ).rejects.toMatchObject({
+      kind: "validation",
+      fieldErrors: { code: ["Confira o código e tente novamente."] },
+    });
+
+    expect(store.status).toBe("mfa_required");
+    expect(store.user).toBeNull();
+    expect(store.isAuthenticated).toBe(false);
+    expect(store.errorMessage).toBe(
+      "Alguns campos precisam de correção. Revise os itens indicados e envie novamente.",
+    );
   });
 
   it("clears state on failed login with 401", async () => {

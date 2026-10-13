@@ -78,6 +78,7 @@ describe("router routes and navigation guards", () => {
     const paths = routes.map((r) => r.path);
     expect(paths).toContain("/");
     expect(paths).toContain("/login");
+    expect(paths).toContain("/mfa-challenge");
     expect(paths).toContain("/register");
     expect(paths).toContain("/forgot-password");
     expect(paths).toContain("/reset-password");
@@ -128,6 +129,57 @@ describe("router routes and navigation guards", () => {
       name: "login",
       query: { redirect: "/dashboard" },
     });
+  });
+
+  it("redirects pending MFA away from protected routes to the challenge", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "mfa_required";
+    session.user = null;
+    const to = createMockRoute({
+      fullPath: "/profile",
+      path: "/profile",
+      matched: [createMockRecord({ requiresAuth: true })],
+    });
+    const next = vi.fn();
+
+    await navigationGuard(to, createMockRoute({ path: "/" }), next);
+
+    expect(next).toHaveBeenCalledWith({ name: "mfa-challenge" });
+  });
+
+  it("allows a pending-MFA session into the challenge route", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "mfa_required";
+    session.user = null;
+    const to = createMockRoute({
+      path: "/mfa-challenge",
+      name: "mfa-challenge",
+      matched: [createMockRecord({ guestOnly: true, requiresMfa: true })],
+    });
+    const next = vi.fn();
+
+    await navigationGuard(to, createMockRoute({ path: "/login" }), next);
+
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  it("redirects a guest without pending MFA away from the challenge", async () => {
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.status = "unauthenticated";
+    session.user = null;
+    const to = createMockRoute({
+      path: "/mfa-challenge",
+      name: "mfa-challenge",
+      matched: [createMockRecord({ guestOnly: true, requiresMfa: true })],
+    });
+    const next = vi.fn();
+
+    await navigationGuard(to, createMockRoute({ path: "/" }), next);
+
+    expect(next).toHaveBeenCalledWith({ name: "login" });
   });
   it("protects Minha Conta and keeps limited sessions on the limited route", async () => {
     const profileRoute = routes.find((route) => route.name === "profile");

@@ -18,7 +18,45 @@ import type {
   UpdateMyProfileResponse,
   VerificationNotificationResponse,
 } from "./auth.types";
+import type { LoginRequest } from "@/lib/api/generated/models";
 import { transportApi } from "@/lib/http/orval-mutator";
+
+export interface LoginUserResponse {
+  requires_mfa?: boolean;
+}
+
+export type MfaChallengeRequest =
+  | { code: string; recovery_code?: never }
+  | { code?: never; recovery_code: string };
+
+export const loginUser = async (
+  payload: LoginRequest,
+): Promise<LoginUserResponse> => {
+  const response = await transportApi<unknown>({
+    url: "/api/v1/login",
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: payload,
+  });
+  if (typeof response === "object" && response !== null) {
+    const requiresMfa = (response as { requires_mfa?: unknown }).requires_mfa;
+    if (typeof requiresMfa === "boolean") {
+      return { requires_mfa: requiresMfa };
+    }
+  }
+  return {};
+};
+
+export const completeMfaChallenge = async (
+  payload: MfaChallengeRequest,
+): Promise<void> => {
+  await transportApi<void>({
+    url: "/api/v1/auth/mfa/challenge",
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: payload,
+  });
+};
 
 export const updateMyProfile = (
   payload: UpdateMyProfileRequest,

@@ -6,6 +6,7 @@ export type SessionStatus =
   | "loading"
   | "authenticated"
   | "unauthenticated"
+  | "mfa_required"
   | "limited"
   | "blocked";
 

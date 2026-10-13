@@ -76,6 +76,25 @@ describe("LoginPage.vue", () => {
     expect(mockRouterPush).toHaveBeenCalledWith("/users");
   });
 
+  it("sends an MFA-required login to the challenge and preserves its redirect", async () => {
+    mockQuery = { redirect: "/roles" };
+    const session = useSessionStore();
+    vi.spyOn(session, "login").mockImplementation(async () => {
+      session.status = "mfa_required";
+      return null;
+    });
+
+    const wrapper = mount(LoginPage);
+    await wrapper.find("input[type='email']").setValue("admin@example.com");
+    await wrapper.find("input[type='password']").setValue("secret-password");
+    await wrapper.find("form").trigger("submit.prevent");
+
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      name: "mfa-challenge",
+      query: { redirect: "/roles" },
+    });
+  });
+
   it("displays error message on 401 unauthorized", async () => {
     const session = useSessionStore();
     vi.spyOn(session, "login").mockRejectedValue(

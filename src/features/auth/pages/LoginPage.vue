@@ -106,6 +106,12 @@ const isValidRedirect = (redirect: unknown): redirect is string => {
     !redirect.startsWith("/\\")
   );
 };
+const mfaChallengeLocation = (redirect: unknown) => {
+  if (isValidRedirect(redirect)) {
+    return { name: "mfa-challenge", query: { redirect } };
+  }
+  return { name: "mfa-challenge" };
+};
 const handleSubmit = async () => {
   if (isLoading.value) return;
   if (!email.value || !password.value) return;
@@ -116,6 +122,10 @@ const handleSubmit = async () => {
       email: email.value,
       password: password.value,
     });
+    if (session.status === "mfa_required") {
+      await router.push(mfaChallengeLocation(route.query.redirect));
+      return;
+    }
     const redirectTarget = route.query.redirect;
     if (isValidRedirect(redirectTarget)) {
       await router.push(redirectTarget);
