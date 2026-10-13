@@ -25,7 +25,11 @@
           <div>
             <dt>Permissões ativas</dt>
             <dd>
-              {{ permissions.length > 0 ? permissions.join(", ") : "Nenhuma" }}
+              {{
+                permissions.length > 0
+                  ? permissions.map(cataloguePermissionLabel).join(", ")
+                  : "Nenhuma"
+              }}
             </dd>
           </div>
         </dl>
@@ -182,6 +186,7 @@ import AppLayout from "@/shared/layouts/AppLayout.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
+import { cataloguePermissionLabel } from "@/shared/types/contract";
 import { useSessionStore } from "@/features/auth/stores/session";
 import {
   changeMyPassword,

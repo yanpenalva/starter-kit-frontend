@@ -610,6 +610,39 @@ describe("RolesPage — forms em modal", () => {
 describe("RolesPage — seleção por página", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
+  it("altera itens por página, volta à primeira e limpa a seleção", async () => {
+    const mocks = makeRolesRouteMocks(makeRoles(20));
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some((call) => call.query.get("per_page") === "15"),
+      ).toBe(true),
+    );
+    await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 5 selecionados"),
+    );
+    await rowCheckbox(wrapper, "perfil-16").setValue(true);
+    expect(counter(wrapper).text()).toContain("1 de 5 selecionados");
+
+    await wrapper
+      .get<HTMLSelectElement>('select[aria-label="Itens por página"]')
+      .setValue("5");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.query.get("page") === "1" &&
+            call.query.get("per_page") === "5",
+        ),
+      ).toBe(true),
+    );
+    expect(counter(wrapper).text()).toContain("0 de 5 selecionados");
+  });
+
   it("seleciona todos os IDs da página e limpa com um novo clique no header", async () => {
     const localRoles = makeRoles(5);
     const mocks = makeRolesRouteMocks(localRoles);

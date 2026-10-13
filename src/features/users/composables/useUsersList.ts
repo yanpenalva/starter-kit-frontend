@@ -80,7 +80,7 @@ export const useUserMutations = () => {
 export const useUsersList = () => {
   const filters = reactive<UserFilters>({
     page: 1,
-    per_page: 15,
+    per_page: 10,
     search: "",
     status: undefined,
     role: undefined,

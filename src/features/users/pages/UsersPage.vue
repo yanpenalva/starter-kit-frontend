@@ -123,7 +123,9 @@
         aria-label="Paginação de usuários"
         :disabled="query.isFetching.value"
         :meta="query.data.value.meta"
+        :per-page-options="[5, 10, 15, 25, 50]"
         @change="filters.page = $event"
+        @per-page-change="changePerPage"
       />
     </div>
 
@@ -247,6 +249,11 @@ const openDetail = (userId: number): void => {
 };
 const closeDetail = (): void => {
   detailUserId.value = null;
+};
+const changePerPage = (perPage: number): void => {
+  selection.clear();
+  filters.page = 1;
+  filters.per_page = perPage;
 };
 
 const openCreate = (): void => {

@@ -192,15 +192,22 @@ describe("UsersPage", () => {
       ).toBe(true),
     );
     expect(detailLink(wrapper, 1).text()).toBe("Pessoa 1");
-    expect(detailLink(wrapper, 15).text()).toBe("Pessoa 15");
+    expect(detailLink(wrapper, 10).text()).toBe("Pessoa 10");
     expect(
-      wrapper.find('[aria-label="Ver detalhe de Pessoa 16"]').exists(),
+      wrapper.find('[aria-label="Ver detalhe de Pessoa 11"]').exists(),
     ).toBe(false);
 
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .get('button[aria-label="Próxima página"]')
+          .attributes("disabled"),
+      ).toBeUndefined(),
+    );
     await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
     await vi.waitFor(() =>
       expect(
-        wrapper.find('[aria-label="Ver detalhe de Pessoa 16"]').exists(),
+        wrapper.find('[aria-label="Ver detalhe de Pessoa 11"]').exists(),
       ).toBe(true),
     );
     expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
@@ -792,6 +799,49 @@ describe("UsersPage — forms em modal", () => {
 describe("UsersPage — seleção por página", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
+  it("altera itens por página, volta à primeira e limpa a seleção", async () => {
+    const mocks = makeUsersRouteMocks(makeUsers(20));
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some((call) => call.query.get("per_page") === "10"),
+      ).toBe(true),
+    );
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .get('button[aria-label="Próxima página"]')
+          .attributes("disabled"),
+      ).toBeUndefined(),
+    );
+    await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
+    await vi.waitFor(() =>
+      expect(rowCheckbox(wrapper, 11).attributes("disabled")).toBeUndefined(),
+    );
+    await rowCheckbox(wrapper, 11).setValue(true);
+    expect(counter(wrapper).text()).toContain("1 de 10 selecionados");
+
+    await wrapper
+      .get<HTMLSelectElement>('select[aria-label="Itens por página"]')
+      .setValue("5");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.query.get("page") === "1" &&
+            call.query.get("per_page") === "5",
+        ),
+      ).toBe(true),
+    );
+    await vi.waitFor(() =>
+      expect(counter(wrapper).text()).toContain("0 de 5 selecionados"),
+    );
+    expect(counter(wrapper).text()).toContain("0 de 5 selecionados");
+  });
+
   it("seleciona usuários individualmente sem seletor de todos", async () => {
     const localUsers = makeUsers(7);
     const mocks = makeUsersRouteMocks(localUsers);
@@ -829,10 +879,10 @@ describe("UsersPage — seleção por página", () => {
     const wrapper = await mountPage();
 
     await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+      expect(counter(wrapper).text()).toContain("0 de 10 selecionados"),
     );
     await rowCheckbox(wrapper, 1).setValue(true);
-    expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
+    expect(counter(wrapper).text()).toContain("1 de 10 selecionados");
 
     await wrapper.get("label.ui-search input").setValue("Pessoa 2");
     await vi.waitFor(() =>
@@ -841,23 +891,23 @@ describe("UsersPage — seleção por página", () => {
 
     await wrapper.get("label.ui-search input").setValue("");
     await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+      expect(counter(wrapper).text()).toContain("0 de 10 selecionados"),
     );
     await vi.waitFor(() =>
       expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined(),
     );
     await rowCheckbox(wrapper, 3).setValue(true);
-    expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
+    expect(counter(wrapper).text()).toContain("1 de 10 selecionados");
 
     await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
 
     await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 5 selecionados"),
+      expect(rowCheckbox(wrapper, 11).attributes("disabled")).toBeUndefined(),
     );
     expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
       true,
     );
-    expect(rowCheckbox(wrapper, 16).attributes("disabled")).toBeUndefined();
+    expect(rowCheckbox(wrapper, 11).attributes("disabled")).toBeUndefined();
 
     await wrapper.get("label.ui-search input").setValue("Pessoa 2");
     await vi.waitFor(() =>
@@ -1016,17 +1066,24 @@ describe("UsersPage — seleção por página", () => {
     const wrapper = await mountPage();
 
     await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+      expect(counter(wrapper).text()).toContain("0 de 10 selecionados"),
     );
     await rowCheckbox(wrapper, 1).setValue(true);
-    expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
+    expect(counter(wrapper).text()).toContain("1 de 10 selecionados");
 
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .get('button[aria-label="Última página"]')
+          .attributes("disabled"),
+      ).toBeUndefined(),
+    );
     await wrapper.get('button[aria-label="Última página"]').trigger("click");
 
     await vi.waitFor(() =>
       expect(counter(wrapper).text()).toContain("0 de 2 selecionados"),
     );
-    expect(mocks.calls.some((call) => call.query.get("page") === "3")).toBe(
+    expect(mocks.calls.some((call) => call.query.get("page") === "4")).toBe(
       true,
     );
     expect(
@@ -1039,13 +1096,13 @@ describe("UsersPage — seleção por página", () => {
     await wrapper.get('button[aria-label="Primeira página"]').trigger("click");
 
     await vi.waitFor(() =>
-      expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
+      expect(counter(wrapper).text()).toContain("0 de 10 selecionados"),
     );
     await vi.waitFor(() =>
       expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined(),
     );
     expect(rowCheckbox(wrapper, 1).element.checked).toBe(false);
-    expect(rowCheckbox(wrapper, 15).element.checked).toBe(false);
+    expect(rowCheckbox(wrapper, 10).element.checked).toBe(false);
   });
 
   it("remove da seleção o usuário excluído após o refetch", async () => {
