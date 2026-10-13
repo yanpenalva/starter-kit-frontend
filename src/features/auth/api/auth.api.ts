@@ -6,14 +6,42 @@ import {
   verificationVerify,
 } from "@/lib/api/generated";
 import type {
+  ChangeMyPasswordRequest,
+  ChangeMyPasswordResponse,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   RegisterRequest,
   RegisterResponse,
   ResetPasswordRequest,
   ResetPasswordResponse,
+  UpdateMyProfileRequest,
+  UpdateMyProfileResponse,
   VerificationNotificationResponse,
 } from "./auth.types";
+import { transportApi } from "@/lib/http/orval-mutator";
+
+export const updateMyProfile = (
+  payload: UpdateMyProfileRequest,
+): Promise<UpdateMyProfileResponse> => {
+  return transportApi<UpdateMyProfileResponse>({
+    url: "/api/v1/auth/my-profile",
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    data: payload,
+  });
+};
+
+export const changeMyPassword = (
+  payload: ChangeMyPasswordRequest,
+): Promise<ChangeMyPasswordResponse> => {
+  return transportApi<ChangeMyPasswordResponse>({
+    url: "/api/v1/auth/password",
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: payload,
+  });
+};
+
 export const registerUser = (
   payload: RegisterRequest,
 ): Promise<RegisterResponse> => {

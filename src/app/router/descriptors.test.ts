@@ -20,6 +20,16 @@ describe("descritores de rota tipados", () => {
     );
   });
 
+  it("protege a rota Minha Conta", () => {
+    const profile = routeDescriptors.find(
+      (descriptor) => descriptor.name === "profile",
+    );
+
+    expect(profile?.path).toBe("/profile");
+    expect(profile?.meta?.requiresAuth).toBe(true);
+    expect(profile?.nav?.label).toBe("Minha Conta");
+  });
+
   it("deriva os itens de menu dos descritores de navegação", () => {
     const navDescriptors = routeDescriptors.filter((d) => d.nav);
     expect(APP_NAV_ITEMS.map((item) => item.key)).toEqual(
@@ -40,6 +50,26 @@ describe("descritores de rota tipados", () => {
       expect(item.permissions).toEqual(descriptor.meta?.permissions);
       expect(item.roles).toEqual(descriptor.meta?.roles);
     }
+  });
+
+  it("protege a página de sessões e a inclui na navegação autenticada", () => {
+    const descriptor = routeDescriptors.find(
+      (item) => item.name === "sessions",
+    );
+    const route = routes.find((item) => item.name === "sessions");
+    const navigationItem = APP_NAV_ITEMS.find(
+      (item) => item.key === "sessions",
+    );
+
+    expect(descriptor?.path).toBe("/sessions");
+    expect(descriptor?.meta).toEqual({ requiresAuth: true });
+    expect(route?.meta?.requiresAuth).toBe(true);
+    expect(navigationItem).toMatchObject({
+      label: "Sessões",
+      to: "/sessions",
+      requiresAuth: true,
+    });
+    expect(navigationItem?.permissions).toBeUndefined();
   });
 
   it("usa a mesma fonte de permissões para rota, menu e atalho", () => {
