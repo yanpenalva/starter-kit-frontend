@@ -23,6 +23,7 @@ describe("audit.api", () => {
       page: 1,
       per_page: 25,
       event: "privileged.change",
+      action: "user.assign_roles",
       subject_type: "user",
     });
 
@@ -40,6 +41,7 @@ describe("audit.api", () => {
     expect(call?.query.get("page")).toBe("1");
     expect(call?.query.get("per_page")).toBe("25");
     expect(call?.query.get("event")).toBe("privileged.change");
+    expect(call?.query.get("action")).toBe("user.assign_roles");
     expect(call?.query.get("subject_type")).toBe("user");
   });
 
@@ -48,17 +50,17 @@ describe("audit.api", () => {
 
     const call = calls[0];
     expect(call?.query.get("search")).toBeNull();
-    expect(call?.query.get("log_name")).toBeNull();
     expect(call?.query.get("event")).toBeNull();
+    expect(call?.query.get("action")).toBeNull();
     expect(call?.query.get("subject_type")).toBeNull();
   });
 
-  it("envia busca textual e canal log_name quando informados", async () => {
-    await listActivities({ search: "papel", log_name: "cli" });
+  it("envia busca textual e filtro de ação quando informados", async () => {
+    await listActivities({ search: "maria", action: "user.assign_roles" });
 
     const call = calls[0];
-    expect(call?.query.get("search")).toBe("papel");
-    expect(call?.query.get("log_name")).toBe("cli");
+    expect(call?.query.get("search")).toBe("maria");
+    expect(call?.query.get("action")).toBe("user.assign_roles");
   });
 
   it("propagates API errors as HttpError", async () => {

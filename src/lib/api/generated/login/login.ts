@@ -14,6 +14,7 @@ import { toValue } from "vue";
 import type { MaybeRefOrGetter } from "vue";
 
 import type {
+  AuthLogin200,
   AuthLogin401,
   AuthLogin403,
   AuthLogin419,
@@ -34,7 +35,7 @@ export const authLogin = (
 ) => {
   loginRequest = toValue(loginRequest);
 
-  return transportApi<void>(
+  return transportApi<AuthLogin200 | void>(
     {
       url: `/api/v1/login`,
       method: "POST",

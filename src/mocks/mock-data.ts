@@ -1,5 +1,8 @@
 import type { MyProfileResource } from "@/lib/api/generated/models";
-import type { AdminActivity } from "@/features/logs/api/audit.types";
+import {
+  AUDIT_ACTIONS,
+  type AdminActivity,
+} from "@/features/logs/api/audit.types";
 import type { AdminRole } from "@/features/roles/api/roles.types";
 import type { AdminUser } from "@/features/users/api/users.types";
 import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
@@ -74,7 +77,10 @@ const makeMockUser = (id: number): AdminUser => {
         ? null
         : `2026-09-${String((id % 27) + 1).padStart(2, "0")}T10:00:00Z`,
     deactivated_at: deactivated ? "2026-10-01T12:00:00Z" : null,
-    roles: [LIST_ROLES[id % LIST_ROLES.length] ?? "user"],
+    roles:
+      id === 1
+        ? ["manager", "auditor"]
+        : [LIST_ROLES[id % LIST_ROLES.length] ?? "user"],
     cpf: padCpf(id),
   };
 };
@@ -119,30 +125,29 @@ const makeMockRoles = (): AdminRole[] => [
   },
 ];
 
-const ACTIVITY_DESCRIPTIONS = [
-  "Atribuição de perfis alterada para o usuário com justificativa registrada no processo administrativo de revisão periódica de acessos privilegiados do trimestre.",
-  "Conta desativada após três tentativas consecutivas de autenticação com credenciais inválidas em janela de quinze minutos a partir de origem desconhecida.",
-  "Permissões do perfil atualizadas pela matriz de acessos com remoção de privilégios de escrita e manutenção exclusiva dos privilégios de leitura e auditoria.",
-  "Sessão administrativa iniciada pela interface de linha de comando durante a rotina automatizada de verificação de integridade dos registros de auditoria.",
-] as const;
-
 const makeMockActivities = (): AdminActivity[] => {
   return Array.from({ length: 48 }, (_, index) => {
     const id = index + 1;
     const event = id % 5 === 0 ? "cli.bootstrap" : "privileged.change";
     const subjectType = id % 3 === 0 ? "role" : "user";
+    const actorType = event === "cli.bootstrap" ? "cli" : "user";
+    const action =
+      AUDIT_ACTIONS[(id - 1) % AUDIT_ACTIONS.length] ?? "user.store";
+    const properties: Record<string, string> = {
+      correlation_id: `mock-corr-${String(id).padStart(4, "0")}`,
+      actor_type: actorType,
+      action,
+    };
+    if (actorType === "user") {
+      properties.actor_id = String(((id - 1) % 32) + 1);
+    }
     return {
       id,
       event,
-      log_name: id % 7 === 0 ? "cli" : "web",
       subject_type: subjectType,
       subject_id: (id % 32) + 1,
-      description: `${ACTIVITY_DESCRIPTIONS[index % ACTIVITY_DESCRIPTIONS.length]} (registro ${id} de 48).`,
-      properties: {
-        correlation_id: `mock-corr-${String(id).padStart(4, "0")}`,
-        actor_type: "user",
-        actor_id: 1,
-      },
+      description: event,
+      properties,
       created_at: `2026-10-${String((id % 9) + 1).padStart(2, "0")}T${String(id % 24).padStart(2, "0")}:30:00Z`,
     };
   });

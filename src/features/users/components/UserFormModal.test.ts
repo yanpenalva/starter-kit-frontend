@@ -99,6 +99,9 @@ describe("UserFormModal", () => {
     const confirmSpy = vi.spyOn(globalThis, "confirm");
 
     try {
+      expect(document.body.textContent).toContain(
+        "A criação não atribui perfis. Após o cadastro, abra a edição do usuário para atribuir perfis em uma etapa separada.",
+      );
       const cancel = dialogGet('[data-testid="cancel-create"]');
       cancel.click();
       expect(confirmSpy).not.toHaveBeenCalled();
@@ -109,17 +112,17 @@ describe("UserFormModal", () => {
       dialogGet('[data-testid="submit-create-user"]').click();
 
       await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
-      expect(
-        mocks.calls.find(
-          (call) => call.method === "POST" && call.path === "/api/v1/users",
-        )?.body,
-      ).toMatchObject({
+      const createCall = mocks.calls.find(
+        (call) => call.method === "POST" && call.path === "/api/v1/users",
+      );
+      expect(createCall?.body).toMatchObject({
         name: "Novo Usuário",
         email: "novo@example.test",
         cpf: "12345678909",
         password: "Alterar123!x",
         active: false,
       });
+      expect(createCall?.body).not.toHaveProperty("roles");
     } finally {
       confirmSpy.mockRestore();
     }

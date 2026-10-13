@@ -72,10 +72,10 @@ class ExpectedPin(TypedDict):
 
 EXPECTED_PIN: ExpectedPin = {
     "schema_version": 1,
-    "policy_source": "Parent authorization in FEAT-7 retake prompt, 2026-10-05",
+    "policy_source": "User authorization in FE W2 integration request, 2026-10-13",
     "source": {
         "repository": "yanpenalva/starter-kit-api",
-        "commit_sha": "7ab7876d841230d354b1feccbfd984f44f4defe8",
+        "commit_sha": "ec14bab9a24fe2641bb41b927f40365cf8a12af2",
         "branch": "main",
     },
     "workflow": {
@@ -85,27 +85,27 @@ EXPECTED_PIN: ExpectedPin = {
         "event": "workflow_dispatch",
     },
     "run": {
-        "id": 38081692862,
+        "id": 38409872620,
         "attempt": 1,
         "status": "completed",
         "conclusion": "success",
     },
     "artifact": {
-        "id": 11680960373,
-        "name": "openapi-7ab7876d841230d354b1feccbfd984f44f4defe8",
+        "id": 11821515121,
+        "name": "openapi-ec14bab9a24fe2641bb41b927f40365cf8a12af2",
         "archive_file": "artifact.zip",
-        "archive_bytes": 5260,
-        "archive_sha256": "32f39c7f24a46d9893be00f98892c4fff37f2a63d4c77b3aa55fcfa6faccbe95",
+        "archive_bytes": 7941,
+        "archive_sha256": "bf345edba35d3e6bd82404786b8649cb822e883d6703ae4069bff43554a080c0",
         "contract_file": "openapi.json",
-        "contract_bytes": 87938,
-        "contract_sha256": "158b320556ca40106de0e250ff59c1a13f14ab42e82b17fd0f21b89ca05d4b5c",
+        "contract_bytes": 159585,
+        "contract_sha256": "9f3c72cb17878c79d112cfbdf07e982eeddb7d9774df776d610f4f3aefaf91a9",
     },
     "verification": {
         "mode": "verify-committed",
         "max_age_days_for_download": 90,
         "clock_skew_seconds_for_download": 300,
         "max_archive_bytes": 10485760,
-        "max_contract_bytes": 131072,
+        "max_contract_bytes": 262144,
         "duplicate_json_keys": "reject",
         "external_refs": "reject",
         "committed_snapshot_expiration": "not-applied",
@@ -221,6 +221,7 @@ def verify_files(
     core = verifier_module("contract_core")
     extractor = verifier_module("contract_extract")
     max_artifact_bytes = core.MAX_ARTIFACT_BYTES
+    max_contract_bytes = EXPECTED_PIN["verification"]["max_contract_bytes"]
 
     pin_bytes = core.read_bounded_bytes(pin_path, 65536, "Pin manifest")
     pin = strict_json(pin_bytes, "manifesto de pin")
@@ -235,7 +236,9 @@ def verify_files(
     receipt = strict_json(receipt_bytes, "receipt")
     validate_receipt_pin(receipt)
 
-    contract_bytes = core.read_bounded_bytes(contract_path, 131072, "Contract")
+    contract_bytes = core.read_bounded_bytes(
+        contract_path, max_contract_bytes, "Contract"
+    )
     document = strict_json(contract_bytes, "OpenAPI")
     validate_local_refs(document)
     extractor.reject_remote_refs(contract_bytes, "openapi.json")
@@ -259,7 +262,7 @@ def verify_files(
         extracted = extractor.safe_extract_archive(
             archive_bytes,
             extractor.ExtractionPolicy(
-                max_file_bytes=131072,
+                max_file_bytes=max_contract_bytes,
                 max_total_bytes=max_artifact_bytes,
             ),
         )

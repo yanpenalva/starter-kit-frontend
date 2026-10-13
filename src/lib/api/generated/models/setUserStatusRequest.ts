@@ -4,11 +4,6 @@
  */
 import type { SetUserStatusRequestStatus } from "./setUserStatusRequestStatus.ts";
 
-/**
- * Wave B contract: activate or deactivate an account. The wave owning the
- * route enforces UserPolicy::setStatus (self and last-admin protections)
- * for the resolved target inside a PrivilegeTransaction.
- */
 export interface SetUserStatusRequest {
   status: SetUserStatusRequestStatus;
 }

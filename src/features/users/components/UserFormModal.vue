@@ -10,6 +10,10 @@
       aria-label="Formulário de novo usuário"
       @submit.prevent="submit"
     >
+      <p class="user-form__hint">
+        A criação não atribui perfis. Após o cadastro, abra a edição do usuário
+        para atribuir perfis em uma etapa separada.
+      </p>
       <div class="user-form__row">
         <label>
           Nome
@@ -216,6 +220,12 @@ const submit = async (): Promise<void> => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
   gap: 0.75rem;
+}
+
+.user-form__hint {
+  margin: 0;
+  color: var(--color-muted, #73766e);
+  font-size: 0.875rem;
 }
 
 .user-form label {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { ref } from "vue";
 import { useRoleOptions } from "./useRoleOptions";
 
 const makeRole = (id: number, name: string) => ({
@@ -152,5 +153,49 @@ describe("useRoleOptions", () => {
     await loadMore();
 
     expect(options.value).toHaveLength(1);
+  });
+
+  it("não consulta catálogo enquanto roles.view está ausente", async () => {
+    const enabled = ref(false);
+    const listRoles = setupListRoles([
+      {
+        data: [makeRole(1, "user")],
+        meta: { current_page: 1, last_page: 1, total: 1 },
+      },
+    ]);
+    const { options } = useRoleOptions(listRoles, () => enabled.value);
+
+    await Promise.resolve();
+    expect(listRoles).not.toHaveBeenCalled();
+    expect(options.value).toEqual([]);
+
+    enabled.value = true;
+    await vi.waitFor(() =>
+      expect(options.value).toEqual([makeRole(1, "user")]),
+    );
+    expect(listRoles).toHaveBeenCalledTimes(1);
+  });
+
+  it("mantém opções após erro e permite tentar novamente", async () => {
+    let shouldFail = false;
+    const listRoles = vi.fn(async (filters: { search?: string }) => {
+      if (shouldFail) throw new Error("catalog unavailable");
+      return {
+        data: [makeRole(1, filters.search ? "editor" : "user")],
+        meta: { current_page: 1, last_page: 1, total: 1 },
+      };
+    });
+    const { options, hasError, retry, search } = useRoleOptions(listRoles);
+
+    await vi.waitFor(() => expect(options.value[0]?.name).toBe("user"));
+    shouldFail = true;
+    search("edi");
+    await vi.waitFor(() => expect(hasError.value).toBe(true));
+    expect(options.value.map((option) => option.name)).toEqual(["user"]);
+
+    shouldFail = false;
+    await retry();
+    expect(hasError.value).toBe(false);
+    expect(options.value.map((option) => option.name)).toEqual(["editor"]);
   });
 });

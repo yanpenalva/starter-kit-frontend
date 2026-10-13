@@ -8,10 +8,12 @@ const props = withDefaults(
     modelValue: string[];
     disabled?: boolean;
     ariaLabel?: string;
+    canViewCatalog?: boolean;
   }>(),
   {
     disabled: false,
     ariaLabel: "Selecionar perfis",
+    canViewCatalog: true,
   },
 );
 
@@ -20,8 +22,8 @@ const emit = defineEmits<{
 }>();
 
 const term = ref("");
-const { options, isLoading, hasMore, search, loadMore } =
-  useRoleOptions(listRoles);
+const { options, isLoading, hasError, hasMore, search, loadMore, retry } =
+  useRoleOptions(listRoles, () => props.canViewCatalog);
 watch(term, (value) => search(value));
 
 const selectedNames = computed(() => new Set(props.modelValue));
@@ -70,51 +72,72 @@ const onListScroll = (event: Event): void => {
       </li>
     </ul>
 
-    <input
-      v-model="term"
-      type="search"
-      class="role-multi-select__search"
-      :aria-label="`Buscar perfis para ${props.ariaLabel}`"
-      placeholder="Buscar perfis..."
-      :disabled="props.disabled"
-    />
-
-    <ul
-      class="role-multi-select__list"
-      :aria-label="props.ariaLabel"
-      role="listbox"
-      aria-multiselectable="true"
-      @scroll="onListScroll"
+    <p
+      v-if="!props.canViewCatalog"
+      class="role-multi-select__restriction"
+      role="status"
     >
-      <li v-if="isLoading && options.length === 0" role="status">
-        Carregando perfis...
-      </li>
-      <li
-        v-for="option in options"
-        :key="option.id"
-        class="role-option"
-        :class="{ 'role-option--selected': selectedNames.has(option.name) }"
+      A permissão roles.view é necessária para consultar o catálogo. Os perfis
+      já selecionados foram mantidos.
+    </p>
+
+    <div v-if="props.canViewCatalog">
+      <input
+        v-model="term"
+        type="search"
+        class="role-multi-select__search"
+        :aria-label="`Buscar perfis para ${props.ariaLabel}`"
+        placeholder="Buscar perfis..."
+        :disabled="props.disabled"
+      />
+
+      <ul
+        class="role-multi-select__list"
+        :aria-label="props.ariaLabel"
+        role="listbox"
+        aria-multiselectable="true"
+        @scroll="onListScroll"
       >
-        <label>
-          <input
-            type="checkbox"
-            :checked="selectedNames.has(option.name)"
-            :disabled="props.disabled"
-            :aria-label="`Perfil ${option.name}`"
-            role="option"
-            :aria-selected="selectedNames.has(option.name)"
-            @change="toggle(option.name)"
-          />
-          {{ option.name }}
-        </label>
-      </li>
-      <li v-if="!isLoading && options.length === 0">
-        Nenhum perfil encontrado.
-      </li>
-      <li v-if="hasMore && options.length > 0" class="role-option--more">
-        Role para carregar mais...
-      </li>
-    </ul>
+        <li v-if="hasError" class="role-option--error" role="alert">
+          Não foi possível carregar o catálogo de perfis.
+          <button type="button" :disabled="isLoading" @click="retry">
+            Tentar novamente
+          </button>
+        </li>
+        <li v-if="!hasError && isLoading && options.length === 0" role="status">
+          Carregando perfis...
+        </li>
+        <template v-for="option in options" :key="option.id">
+          <li
+            v-if="!hasError"
+            class="role-option"
+            :class="{ 'role-option--selected': selectedNames.has(option.name) }"
+          >
+            <label>
+              <input
+                type="checkbox"
+                :checked="selectedNames.has(option.name)"
+                :disabled="props.disabled"
+                :aria-label="`Perfil ${option.name}`"
+                role="option"
+                :aria-selected="selectedNames.has(option.name)"
+                @change="toggle(option.name)"
+              />
+              {{ option.name }}
+            </label>
+          </li>
+        </template>
+        <li v-if="!hasError && !isLoading && options.length === 0">
+          Nenhum perfil encontrado.
+        </li>
+        <li
+          v-if="!hasError && hasMore && options.length > 0"
+          class="role-option--more"
+        >
+          Role para carregar mais...
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -181,6 +204,20 @@ const onListScroll = (event: Event): void => {
   border-radius: 0.375rem;
   list-style: none;
   font-size: 0.875rem;
+}
+
+.role-multi-select__restriction {
+  margin: 0;
+  color: var(--color-muted, #73766e);
+  font-size: 0.875rem;
+}
+
+.role-option--error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  color: #b42318;
 }
 
 .role-option--selected {

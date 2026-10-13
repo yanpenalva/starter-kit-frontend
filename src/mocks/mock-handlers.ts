@@ -2,6 +2,10 @@ import { delay, http, HttpResponse } from "msw";
 import type { RequestHandler } from "msw";
 import { CSRF_COOKIE_NAME } from "@/lib/http/config";
 import type { AdminActivity } from "@/features/logs/api/audit.types";
+import {
+  auditActorId,
+  matchesAuditSearch,
+} from "@/features/logs/api/audit-search";
 import type { AdminRole } from "@/features/roles/api/roles.types";
 import { isRoleImmutable } from "@/features/roles/api/roles.types";
 import type { AdminUser } from "@/features/users/api/users.types";
@@ -338,7 +342,7 @@ const usersHandlers = (
         email: payload.email,
         email_verified_at: null,
         deactivated_at: payload.active === true ? null : "2026-10-10T12:00:00Z",
-        roles: ["user"],
+        roles: [],
         cpf: payload.cpf,
       };
       database.users.push(created);
@@ -471,22 +475,28 @@ const activityHandlers = (
       const source: readonly AdminActivity[] =
         scenario === "empty" ? [] : database.activities;
       const url = new URL(request.url);
-      const search = (url.searchParams.get("search") ?? "").toLowerCase();
+      const search = url.searchParams.get("search") ?? "";
       const event = url.searchParams.get("event");
-      const logName = url.searchParams.get("log_name");
+      const action = url.searchParams.get("action");
       const subjectType = url.searchParams.get("subject_type");
-      const filtered = source.filter(
-        (activity) =>
-          (search === "" ||
-            activity.description.toLowerCase().includes(search)) &&
+      const actorNames = new Map(
+        database.users.map((user) => [user.id, user.name]),
+      );
+      const filtered = source.filter((activity) => {
+        const actorId = auditActorId(activity);
+        const actorName =
+          actorId === null ? undefined : actorNames.get(actorId);
+        return (
+          matchesAuditSearch(activity, search, actorName) &&
           (event === null || event === "" || activity.event === event) &&
-          (logName === null ||
-            logName === "" ||
-            activity.log_name === logName) &&
+          (action === null ||
+            action === "" ||
+            activity.properties.action === action) &&
           (subjectType === null ||
             subjectType === "" ||
-            activity.subject_type === subjectType),
-      );
+            activity.subject_type === subjectType)
+        );
+      });
       return json(request, paginateQuery(resource, url, filtered));
     }),
   ];

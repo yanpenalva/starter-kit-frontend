@@ -10,13 +10,26 @@ import {
 } from "@/test/admin-handlers";
 import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
+import { useSessionStore } from "@/features/auth/stores/session";
+import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
+import { matchesAuditSearch } from "@/features/logs/api/audit-search";
 import { queryClient } from "@/app/providers/query";
 import LogsPage from "./LogsPage.vue";
 
 let wrapper: VueWrapper | null = null;
 
-const mountPage = (): VueWrapper => {
+const mountPage = (
+  permissions: readonly string[] = [...CATALOGUE_PERMISSIONS],
+): VueWrapper => {
   queryClient.clear();
+  useSessionStore().user = {
+    id: 1,
+    name: "Admin",
+    email: "admin@example.test",
+    email_verified_at: "2026-01-01T00:00:00Z",
+    roles: ["admin"],
+    permissions: [...permissions],
+  };
   wrapper = mount(LogsPage, {
     attachTo: document.body,
     global: {
@@ -83,6 +96,21 @@ afterEach(() => {
 describe("LogsPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
+  it("não consulta a auditoria sem logs.view", async () => {
+    const mocks = makeAuditRouteMocks([makeAdminActivity()]);
+    server.use(...mocks.handlers);
+    const page = mountPage(
+      CATALOGUE_PERMISSIONS.filter((p) => p !== "logs.view"),
+    );
+
+    await vi.waitFor(() =>
+      expect(page.get('[data-testid="logs-restricted"]').text()).toContain(
+        "logs.view",
+      ),
+    );
+    expect(mocks.calls).toHaveLength(0);
+  });
+
   it("loads audit events and filters by event and subject", async () => {
     const mocks = makeAuditRouteMocks([
       makeAdminActivity({ id: 1, description: "Mudança registrada" }),
@@ -139,10 +167,23 @@ describe("LogsPage", () => {
     );
   });
 
-  it("envia o termo de busca e o filtro de canal na consulta", async () => {
-    const mocks = makeAuditRouteMocks([
-      makeAdminActivity({ id: 1, description: "Perfil atualizado" }),
-    ]);
+  it("busca por nome do ator a cada letra e combina com os filtros", async () => {
+    const mocks = makeAuditRouteMocks(
+      [
+        makeAdminActivity({
+          id: 7,
+          event: "user.updated",
+          description: "Perfil atualizado",
+          properties: {
+            correlation_id: "corr-7",
+            actor_type: "user",
+            actor_id: "7",
+            action: "user.assign_roles",
+          },
+        }),
+      ],
+      { actorNames: { 7: "Maria Silva" } },
+    );
     server.use(...mocks.handlers);
     const page = mountPage();
 
@@ -150,21 +191,29 @@ describe("LogsPage", () => {
 
     const search = page.get('input[type="search"]');
     expect(search.attributes("aria-label")).toBeUndefined();
-    expect(page.get("label.ui-search").text()).toContain("Buscar na auditoria");
-
-    await search.setValue("perfil");
-    await vi.waitFor(() =>
-      expect(
-        mocks.calls.some((call) => call.query.get("search") === "perfil"),
-      ).toBe(true),
+    expect(page.get("label.ui-search").text()).toContain(
+      "Buscar por ator, evento ou ação",
     );
 
-    await page.get('select[aria-label="Filtrar por canal"]').setValue("cli");
-    await vi.waitFor(() =>
-      expect(
-        mocks.calls.some((call) => call.query.get("log_name") === "cli"),
-      ).toBe(true),
-    );
+    await page
+      .get('select[aria-label="Filtrar por ação"]')
+      .setValue("user.assign_roles");
+    for (const term of ["M", "Ma", "Mar"]) {
+      await search.setValue(term);
+      await vi.waitFor(
+        () =>
+          expect(
+            mocks.calls.some(
+              (call) =>
+                call.query.get("search") === term &&
+                call.query.get("action") === "user.assign_roles",
+            ),
+          ).toBe(true),
+        { timeout: 2000 },
+      );
+    }
+
+    expect(mocks.calls.some((call) => call.query.has("log_name"))).toBe(false);
   });
 
   it("keeps audit search editable and the newest term active after a late response", async () => {
@@ -190,7 +239,7 @@ describe("LogsPage", () => {
         await delay(search === "lento" ? 600 : 10);
         completed.push(search);
         const filtered = activities.filter((activity) =>
-          activity.description.includes(search),
+          matchesAuditSearch(activity, search),
         );
         const start = (currentPage - 1) * perPage;
         return HttpResponse.json(
@@ -280,8 +329,8 @@ describe("LogsPage", () => {
         properties: {
           correlation_id: "corr-42",
           actor_type: "user",
-          actor_id: 3,
-          attributes: { roles: ["admin", "user"] },
+          actor_id: "3",
+          action: "user.assign_roles",
         },
       }),
     ]);
@@ -348,7 +397,12 @@ describe("LogsPage", () => {
       makeAdminActivity({
         id: 11,
         description: "Registro expansível",
-        properties: { correlation_id: "corr-11", attributes: { roles: ["a"] } },
+        properties: {
+          correlation_id: "corr-11",
+          actor_type: "user",
+          actor_id: "11",
+          action: "user.assign_roles",
+        },
       }),
     ]);
     server.use(...mocks.handlers);
@@ -381,7 +435,9 @@ describe("LogsPage", () => {
     );
     expect(JSON.parse(payload())).toEqual({
       correlation_id: "corr-11",
-      attributes: { roles: ["a"] },
+      actor_type: "user",
+      actor_id: "11",
+      action: "user.assign_roles",
     });
 
     await activateExpansionByKeyboard("Payload da auditoria", 13);
@@ -390,7 +446,9 @@ describe("LogsPage", () => {
     ).toBe("true");
     expect(JSON.parse(payload())).toEqual({
       correlation_id: "corr-11",
-      attributes: { roles: ["a"] },
+      actor_type: "user",
+      actor_id: "11",
+      action: "user.assign_roles",
     });
 
     await activateExpansionByKeyboard("Metadados do registro", 32);

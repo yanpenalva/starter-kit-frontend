@@ -73,6 +73,8 @@ describe("mock user writes", () => {
       active: true,
     });
     expect(created.data.id).toBe(33);
+    expect(created.data.roles).toEqual([]);
+    expect(database.users[32]?.roles).toEqual([]);
     expect(database.users).toHaveLength(33);
     expect(
       await statusOf(
@@ -161,6 +163,36 @@ describe("mock activity log", () => {
     expect(roles.meta.total).toBeGreaterThan(0);
     expect(
       roles.data.every((activity) => activity.subject_type === "role"),
+    ).toBe(true);
+  });
+
+  it("searches actor names, descriptions and actions with combined filters", async () => {
+    const database = useScenario("full");
+    const firstActivity = database.activities[0];
+    const firstActor = database.users[0];
+    expect(firstActivity).toBeDefined();
+    expect(firstActor).toBeDefined();
+
+    const byActor = await listActivities({
+      search: firstActor?.name.slice(0, 8),
+      event: "privileged.change",
+      action: "user.store",
+      subject_type: "user",
+      per_page: 50,
+    });
+    expect(byActor.meta.total).toBe(1);
+    expect(byActor.data[0]?.id).toBe(firstActivity?.id);
+
+    const byAction = await listActivities({
+      search: "user.assign_roles",
+      action: "user.assign_roles",
+      per_page: 50,
+    });
+    expect(byAction.meta.total).toBeGreaterThan(0);
+    expect(
+      byAction.data.every(
+        (activity) => activity.properties.action === "user.assign_roles",
+      ),
     ).toBe(true);
   });
 });
