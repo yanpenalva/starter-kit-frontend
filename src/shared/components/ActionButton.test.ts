@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import ActionButton from "./ActionButton.vue";
 
@@ -8,6 +8,10 @@ const mountButton = (props: Record<string, unknown> = {}) =>
   });
 
 describe("ActionButton.vue", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
   it("renderiza o rótulo como botão comum por padrão", () => {
     const wrapper = mountButton();
 
@@ -54,8 +58,6 @@ describe("ActionButton.vue", () => {
     });
     const button = wrapper.get("button");
     const shell = wrapper.get(".action-button-shell");
-    const tooltipId = shell.attributes("aria-describedby");
-
     expect(button.classes()).toContain("action-button--warning");
     expect(button.attributes("disabled")).toBeDefined();
     expect(button.attributes("title")).toBeUndefined();
@@ -63,25 +65,28 @@ describe("ActionButton.vue", () => {
       "Ação indisponível para o perfil Administrador.",
     );
     expect(shell.attributes("tabindex")).toBe("0");
-    expect(tooltipId).toBeTruthy();
-    expect(wrapper.get(`[id="${tooltipId}"]`).attributes("role")).toBe(
-      "tooltip",
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull();
+
+    (shell.element as HTMLElement).focus();
+    shell.element.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await vi.waitFor(() => {
+      const tooltip = document.body.querySelector('[role="tooltip"]');
+      expect(tooltip?.getAttribute("role")).toBe("tooltip");
+      expect(tooltip?.textContent).toBe(
+        "Ação indisponível para o perfil Administrador.",
+      );
+      expect(shell.attributes("aria-describedby")).toContain(tooltip?.id);
+    });
+
+    shell.element.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(document.body.querySelector('[role="tooltip"]')).toBeNull(),
     );
-    expect(wrapper.get(`[id="${tooltipId}"]`).text()).toBe(
-      "Ação indisponível para o perfil Administrador.",
+
+    shell.element.dispatchEvent(new MouseEvent("mouseenter"));
+    await vi.waitFor(() =>
+      expect(document.body.querySelector('[role="tooltip"]')).not.toBeNull(),
     );
-
-    const tooltip = wrapper.get(`[id="${tooltipId}"]`);
-    expect(tooltip.classes()).not.toContain("action-button-tooltip--visible");
-
-    await shell.trigger("focusin");
-    expect(tooltip.classes()).toContain("action-button-tooltip--visible");
-
-    await shell.trigger("focusout");
-    expect(tooltip.classes()).not.toContain("action-button-tooltip--visible");
-
-    await shell.trigger("mouseenter");
-    expect(tooltip.classes()).toContain("action-button-tooltip--visible");
   });
 
   it("emite click com o evento nativo quando está habilitado", async () => {

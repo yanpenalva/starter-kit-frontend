@@ -135,7 +135,7 @@ afterEach(() => {
 describe("RolesPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("keeps the disabled admin tooltip outside row clipping on hover and keyboard focus", async () => {
+  it("teleports the disabled admin tooltip outside overflowing ancestors on hover and keyboard focus", async () => {
     server.use(...makeRolesRouteMocks(roles).handlers);
     const wrapper = mountPage();
 
@@ -144,8 +144,7 @@ describe("RolesPage", () => {
     const scrollContainer = wrapper.get(".table-wrap");
     const shell = wrapper
       .get('[aria-label="Editar permissões do perfil admin"]')
-      .element.closest(".action-button-shell");
-    const tooltip = shell?.querySelector('[role="tooltip"]');
+      .element.closest<HTMLElement>(".action-button-shell");
     const stylesheet = readFileSync(
       "src/features/roles/pages/RolesPage.vue",
       "utf8",
@@ -159,27 +158,37 @@ describe("RolesPage", () => {
     expect(tableWrapStyles).toMatch(/overflow-x:\s*auto/);
     expect(actionsCellStyles).toBeDefined();
     expect(actionsCellStyles).not.toMatch(/overflow(?:-[xy])?\s*:/);
-    expect(actionsCellStyles).not.toMatch(/padding-bottom\s*:/);
 
-    const assertNoClippingBetweenTooltipAndScrollContainer = () => {
-      let ancestor = tooltip?.parentElement ?? null;
-      while (ancestor !== null && ancestor !== scrollContainer.element) {
+    const assertTooltipIsOutsideOverflowingAncestors = () => {
+      const describedBy = shell?.getAttribute("aria-describedby");
+      const tooltip = describedBy ? document.getElementById(describedBy) : null;
+      expect(tooltip).not.toBeNull();
+      const portal = tooltip?.closest('[id^="q-portal--tooltip"]') ?? null;
+      expect(portal?.parentElement).toBe(document.body);
+      expect(scrollContainer.element.contains(portal)).toBe(false);
+      let ancestor = portal?.parentElement ?? null;
+      while (ancestor !== null) {
+        expect(getComputedStyle(ancestor).overflow).toMatch(/^(visible|)$/);
         ancestor = ancestor.parentElement;
       }
-      expect(ancestor).toBe(scrollContainer.element);
+      return tooltip;
     };
 
-    shell?.dispatchEvent(new Event("mouseenter"));
+    shell?.dispatchEvent(new MouseEvent("mouseenter"));
+    await vi.waitFor(() => {
+      const tooltip = assertTooltipIsOutsideOverflowingAncestors();
+      expect(tooltip?.textContent).toContain("Administrador");
+    });
+    shell?.dispatchEvent(new MouseEvent("mouseleave"));
     await vi.waitFor(() =>
-      expect(tooltip?.classList).toContain("action-button-tooltip--visible"),
+      expect(document.querySelector('[role="tooltip"]')).toBeNull(),
     );
-    assertNoClippingBetweenTooltipAndScrollContainer();
-    shell?.dispatchEvent(new Event("mouseleave"));
-    shell?.dispatchEvent(new Event("focusin"));
-    await vi.waitFor(() =>
-      expect(tooltip?.classList).toContain("action-button-tooltip--visible"),
-    );
-    assertNoClippingBetweenTooltipAndScrollContainer();
+    shell?.focus();
+    shell?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await vi.waitFor(() => {
+      const tooltip = assertTooltipIsOutsideOverflowingAncestors();
+      expect(tooltip?.textContent).toContain("Administrador");
+    });
   });
 
   it("lists roles and saves editable permissions while protecting admin", async () => {
@@ -199,13 +208,21 @@ describe("RolesPage", () => {
       '[aria-label="Editar permissões do perfil admin"]',
     );
     expect(blockedAdminEdit.attributes("disabled")).toBeDefined();
-    const blockedAdminShell = blockedAdminEdit.element.parentElement;
+    const blockedAdminShell = blockedAdminEdit.element
+      .parentElement as HTMLElement;
     expect(blockedAdminShell?.getAttribute("tabindex")).toBe("0");
-    expect(blockedAdminShell?.getAttribute("aria-describedby")).toBeTruthy();
+    blockedAdminShell.focus();
+    blockedAdminShell.dispatchEvent(
+      new FocusEvent("focusin", { bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(blockedAdminShell.getAttribute("aria-describedby")).toBeTruthy(),
+    );
     expect(blockedAdminEdit.attributes("title")).toBeUndefined();
-    expect(
-      blockedAdminShell?.querySelector('[role="tooltip"]')?.textContent,
-    ).toBe("Ação indisponível para o perfil Administrador.");
+    const tooltipId = blockedAdminShell.getAttribute("aria-describedby");
+    expect(document.getElementById(tooltipId ?? "")?.textContent).toBe(
+      "Ação indisponível para o perfil Administrador.",
+    );
     expect(blockedAdminEdit.attributes("aria-description")).toBe(
       "Ação indisponível para o perfil Administrador.",
     );

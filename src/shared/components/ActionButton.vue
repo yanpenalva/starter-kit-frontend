@@ -2,7 +2,6 @@
   <span
     class="action-button-shell"
     :tabindex="isUnavailable && tooltip ? 0 : undefined"
-    :aria-describedby="isUnavailable && tooltip ? tooltipId : undefined"
     @focusin="isTooltipVisible = true"
     @focusout="isTooltipVisible = false"
     @mouseenter="isTooltipVisible = true"
@@ -34,20 +33,23 @@
         {{ label }}
       </span>
     </button>
-    <span
+    <QTooltip
       v-if="isUnavailable && tooltip"
-      :id="tooltipId"
+      v-model="isTooltipVisible"
+      no-parent-event
       class="action-button-tooltip"
-      :class="{ 'action-button-tooltip--visible': isTooltipVisible }"
-      role="tooltip"
+      anchor="bottom middle"
+      self="top middle"
+      :offset="[0, 6]"
     >
       {{ tooltip }}
-    </span>
+    </QTooltip>
   </span>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId } from "vue";
+import { computed, ref } from "vue";
+import { QTooltip } from "quasar";
 
 const props = withDefaults(
   defineProps<{
@@ -75,7 +77,6 @@ const emit = defineEmits<{
   click: [event: MouseEvent];
 }>();
 
-const tooltipId = `action-button-tooltip-${useId()}`;
 const isUnavailable = computed(() => props.disabled || props.loading);
 const isTooltipVisible = ref(false);
 
@@ -90,35 +91,16 @@ const handleClick = (event: MouseEvent): void => {
 
 <style scoped>
 .action-button-shell {
-  position: relative;
   display: inline-flex;
 }
 
-.action-button-tooltip {
-  position: absolute;
-  z-index: 1;
-  top: calc(100% + 0.375rem);
-  left: 50%;
-  width: max-content;
+:global(.q-tooltip.action-button-tooltip) {
   max-width: 18rem;
   padding: 0.375rem 0.5rem;
   border-radius: 0.25rem;
   background: var(--color-ink, #252a25);
   color: white;
   font-size: 0.75rem;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-50%);
-  transition: opacity 120ms ease;
-}
-
-.action-button-shell:hover .action-button-tooltip,
-.action-button-shell:focus .action-button-tooltip {
-  opacity: 1;
-}
-
-.action-button-tooltip--visible {
-  opacity: 1;
 }
 
 .action-button--icon {
