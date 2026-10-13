@@ -49,6 +49,7 @@ const mountPage = async (
   userId = "7",
   permissions: readonly string[] = [...CATALOGUE_PERMISSIONS],
 ) => {
+  queryClient.clear();
   useSessionStore().user = {
     id: 1,
     name: "Admin",
@@ -57,7 +58,6 @@ const mountPage = async (
     roles: ["admin"],
     permissions: [...permissions],
   };
-  queryClient.clear();
   return mount(UserDetailPage, {
     global: {
       plugins: [[VueQueryPlugin, { queryClient }], await makeRouter(userId)],

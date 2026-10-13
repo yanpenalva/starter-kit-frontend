@@ -83,6 +83,7 @@ describe("router routes and navigation guards", () => {
     expect(paths).toContain("/reset-password");
     expect(paths).toContain("/verify-email");
     expect(paths).toContain("/dashboard");
+    expect(paths).toContain("/profile");
     expect(paths).toContain("/users");
     expect(paths).toContain("/users/:userId");
     expect(paths).toContain("/roles");
@@ -127,6 +128,26 @@ describe("router routes and navigation guards", () => {
       name: "login",
       query: { redirect: "/dashboard" },
     });
+  });
+  it("protects Minha Conta and keeps limited sessions on the limited route", async () => {
+    const profileRoute = routes.find((route) => route.name === "profile");
+    expect(profileRoute?.meta?.requiresAuth).toBe(true);
+
+    const session = useSessionStore();
+    session.isInitialized = true;
+    session.user = limitedUser;
+    session.status = "limited";
+    const to = createMockRoute({
+      fullPath: "/profile",
+      path: "/profile",
+      name: "profile",
+      matched: [createMockRecord(profileRoute?.meta ?? {})],
+    });
+    const next = vi.fn();
+
+    await navigationGuard(to, createMockRoute({ path: "/" }), next);
+
+    expect(next).toHaveBeenCalledWith({ name: "limited" });
   });
   it("redirects authenticated user away from guest-only route to dashboard", async () => {
     const session = useSessionStore();
