@@ -9,10 +9,41 @@ Validar a interface no modo mock **não** valida a integração real. Erros de
 contrato, CORS, CSRF, cookies e comportamento do backend só aparecem contra
 a API de verdade (`npm run dev` + API local).
 
-## Início rápido
+## Pré-requisitos
 
-Pré-requisito: `.env` criado a partir de `.env.development.example`
-(o mock lê `VITE_API_URL` do mesmo arquivo; nenhuma API precisa responder).
+- Node.js `24.15.0`, o valor do `.nvmrc` (`engines` exige `>= 24.15.0 < 25`).
+  Com `nvm`, `nvm use` é suficiente; sem `nvm`, use o Node pinado direto:
+  `PATH=/opt/data/node24/bin:$PATH`.
+- Dependências instaladas com `npm ci` na raiz do projeto. O mock resolve
+  `axios`, `msw` e `vue` do `node_modules` local; `npm install` não serve
+  para instalação limpa, porque ignora o que o `package-lock.json` trava.
+- `.env` criado a partir de `.env.development.example` (o mock lê
+  `VITE_API_URL` do mesmo arquivo; nenhuma API precisa responder).
+
+O `npm run dev:mock` roda antes do Vite o script `predev:mock`
+(`node scripts/check-dev-deps.mjs`), que confirma a resolução de `axios`,
+`msw` e `vue` em `node_modules`. Com instalação ausente ou parcial o passo
+falha em pt-BR, sem subir servidor nenhum, listando o pacote, o arquivo que
+o importa e o comando de correção (`nvm use` + `npm ci`, ou o Node pinado).
+O script também roda sozinho, sem o Vite, para diagnosticar:
+
+```sh
+node scripts/check-dev-deps.mjs
+```
+
+Sem essa checagem o sintoma apareceria mais tarde e menos claro, no Vite:
+
+```
+Failed to resolve import "axios" from "src/lib/http/client.ts"
+```
+
+Esse erro é de instalação, não de código: `axios` é dependência normal,
+pinada em `package.json`, e não pode simplesmente faltar. Ele aparece com
+`node_modules` ausente (nunca instalado, ou apagado) ou parcial (instalação
+interrompida, `npm ci` feito com outro Node). A correção é sempre `npm ci`
+na raiz do projeto, com o Node 24.15.0 do `.nvmrc`.
+
+## Início rápido
 
 ```sh
 npm run dev:mock

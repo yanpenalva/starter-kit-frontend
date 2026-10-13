@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "predev:mock": "node scripts/check-dev-deps.mjs",
     "dev:mock": "VITE_MOCK_API=1 vite",
     "build": "npm run client:check && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
