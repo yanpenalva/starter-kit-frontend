@@ -23,3 +23,64 @@
     outline-offset: 2px;
   }
 }
+
+/*
+ * Shared composition primitives (W2). These rules stay out of the Tailwind
+ * layers on purpose: they are the base motion/hover/focus contract consumed by
+ * the shared components, so they must not be outranked by resets or utilities.
+ * Everything is scoped to own classes — the public layouts (AuthLayout,
+ * PublicLayout) and the shell keep their existing styling untouched.
+ */
+
+/* Control surface shared by ActionButton, SearchInput, Pagination and the
+   dialog dismiss button. Variants remain in the consuming domains. */
+.ui-control {
+  min-height: 2.25rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid rgb(58 77 60 / 20%);
+  border-radius: 0.375rem;
+  background: var(--color-panel, #fffefb);
+  color: var(--color-ink, #252a25);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-quick, 180ms) ease,
+    border-color var(--motion-quick, 180ms) ease;
+}
+
+.ui-control:hover:not(:disabled) {
+  border-color: rgb(58 77 60 / 32%);
+  background: var(--color-mist, #edf0e8);
+}
+
+.ui-control:focus-visible {
+  outline: 2px solid var(--color-focus, #71987a);
+  outline-offset: 2px;
+}
+
+.ui-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Router entry/exit: opacity only, on a stable page root. A transform here
+   would turn the wrapper into the containing block of the fixed drawer/header
+   and of the modal overlays, so displacement is reserved for non-fixed
+   content. */
+.route-fade-enter-active,
+.route-fade-leave-active {
+  transition: opacity var(--motion-quick, 180ms) ease;
+}
+
+.route-fade-enter-from,
+.route-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-fade-enter-active,
+  .route-fade-leave-active,
+  .ui-control {
+    transition: none;
+  }
+}
