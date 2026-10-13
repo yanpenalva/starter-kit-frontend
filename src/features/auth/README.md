@@ -5,6 +5,8 @@ Wave A implementation of session and authentication:
 - In-memory Pinia session store (`stores/session.ts`) without credential persistence.
 - Automatic session cleanup on 401 (unauthorized) and 419 (CSRF mismatch) responses without replaying mutations.
 - Authentication operations: login (`POST /api/v1/login`), session reload/bootstrap (`GET /api/v1/auth/my-profile`), logout (`POST /api/v1/logout`).
+- The profile lives in the TanStack Query cache; Pinia exposes a computed session view and keeps only journey/UI state.
+- Authenticated users can review active sessions at `/sessions`; the current session is highlighted and cannot be ended from this page.
 - Authenticated account operations: update the current account name (`PATCH /api/v1/auth/my-profile`) and change its password (`PUT /api/v1/auth/password`).
 - Navigation guards and role/permission authorization (`composables/useAuthorization.ts`).
 - Pages: `LoginPage.vue`, `DashboardPage.vue`, `ProfilePage.vue` (`/profile`, authenticated), `LimitedPage.vue`, `ForbiddenPage.vue`, `NotFoundPage.vue`.
