@@ -36,6 +36,10 @@ const makeMinimalRoles = () => [
 const mountedWrappers: VueWrapper[] = [];
 
 const mountPage = () => {
+  // Cache limpo por caso: o queryClient é compartilhado pelo arquivo. O perfil
+  // de sessão vive no cache de query (ADR 0002), então a sessão só pode ser
+  // gravada depois da limpeza.
+  queryClient.clear();
   useSessionStore().user = {
     id: 1,
     name: "Admin",
@@ -44,8 +48,6 @@ const mountPage = () => {
     roles: ["admin"],
     permissions: [...CATALOGUE_PERMISSIONS],
   };
-  // Cache limpo por caso: o queryClient é compartilhado pelo arquivo.
-  queryClient.clear();
   const wrapper = mount(RolesPage, {
     global: {
       plugins: [[VueQueryPlugin, { queryClient }]],

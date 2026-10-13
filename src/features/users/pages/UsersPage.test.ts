@@ -82,6 +82,11 @@ const rolesListHandler = http.get(
 const mountedWrappers: VueWrapper[] = [];
 
 const mountPage = async () => {
+  // Cada caso parte de um cache limpo: o queryClient é compartilhado pelo
+  // arquivo e dados de fixtures anteriores mudariam as contagens de seleção.
+  // O perfil de sessão vive no cache de query (ADR 0002), então a sessão só
+  // pode ser gravada depois da limpeza.
+  queryClient.clear();
   useSessionStore().user = {
     id: 1,
     name: "Admin",
@@ -90,9 +95,6 @@ const mountPage = async () => {
     roles: ["admin"],
     permissions: [...CATALOGUE_PERMISSIONS],
   };
-  // Cada caso parte de um cache limpo: o queryClient é compartilhado pelo
-  // arquivo e dados de fixtures anteriores mudariam as contagens de seleção.
-  queryClient.clear();
   const wrapper = mount(UsersPage, {
     global: {
       plugins: [[VueQueryPlugin, { queryClient }], await makeRouter()],
