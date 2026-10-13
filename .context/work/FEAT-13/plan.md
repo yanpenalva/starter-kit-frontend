@@ -22,7 +22,7 @@ Merge the fetched origin/main commit into the current integration branch. Inspec
 | C | quality-engineer + security-privacy-reviewer — verify and review | B | Frontend gates, CSD checks, independent quality review, and required security/privacy review recorded | 3 | security, testing |
 | D | senior-software-engineer — Git delivery | C | Conventional Commit pushed to recorded origin feature ref; no PR action | 4 | core, project |
 
-Progress: A, B, and C are complete; D is pending the final fetch, merge commit, and push.
+Progress: A, B, C, and D are complete. The merge commit was pushed to the recorded feature ref; work-item closure remains with the owner.
 
 ## Validation
 

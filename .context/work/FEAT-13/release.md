@@ -4,4 +4,4 @@ No production release or deployment is part of this task. The requested delivery
 
 - Production authorization: not applicable.
 - Deployment and rollback: not applicable; no production change is made.
-- Branch delivery evidence: pending in verification.md.
+- Branch delivery evidence: merge commit `b04eb3e5010f4b421b373f33cd2acd24ba950bfa` is pushed to `origin/feat/fe-layout-w4-forms`; post-push fetch confirmed the remote ref matches. No PR was opened.
