@@ -1,7 +1,7 @@
 <template>
   <div class="verify-page">
     <main id="verify-content" class="verify-card" role="main">
-      <div v-if="showProcessing" class="verify-card__loading">
+      <div v-if="view === 'processing'" class="verify-card__loading">
         <span class="verify-card__tag">VERIFICAÇÃO</span>
         <h1 class="verify-card__title">Verificando seu e-mail...</h1>
         <p class="verify-card__message">
@@ -9,7 +9,7 @@
         </p>
       </div>
 
-      <div v-if="showSuccess" class="verify-card__success">
+      <div v-if="view === 'success'" class="verify-card__success">
         <span class="verify-card__tag verify-card__tag--success">SUCESSO</span>
         <h1 class="verify-card__title">E-mail verificado!</h1>
         <p class="verify-card__message">
@@ -17,7 +17,7 @@
         </p>
       </div>
 
-      <div v-if="showAwaitingApproval" class="verify-card__awaiting">
+      <div v-if="view === 'awaiting'" class="verify-card__awaiting">
         <span class="verify-card__tag verify-card__tag--success">SUCESSO</span>
         <h1 class="verify-card__title">E-mail verificado!</h1>
         <p class="verify-card__message">
@@ -26,7 +26,7 @@
         </p>
       </div>
 
-      <div v-if="showAccountUnavailable" class="verify-card__unavailable">
+      <div v-if="view === 'unavailable'" class="verify-card__unavailable">
         <span class="verify-card__tag verify-card__tag--failure"
           >CONTA INDISPONÍVEL</span
         >
@@ -47,7 +47,7 @@
         </div>
       </div>
 
-      <div v-if="showLoginHint" class="verify-card__confirmed">
+      <div v-if="view === 'loginHint'" class="verify-card__confirmed">
         <span class="verify-card__tag verify-card__tag--success"
           >CONFIRMADO</span
         >
@@ -67,7 +67,7 @@
         </div>
       </div>
 
-      <div v-if="showFailure" class="verify-card__failure">
+      <div v-if="view === 'failure'" class="verify-card__failure">
         <span class="verify-card__tag verify-card__tag--failure"
           >FALHA NA VERIFICAÇÃO</span
         >
@@ -148,34 +148,21 @@ const emailConfirmed = ref(false);
 const serverConfirmed = ref(false);
 const resendSuccessMessage = ref<string | null>(null);
 const resendErrorMessage = ref<string | null>(null);
-const showProcessing = computed(() => isProcessing.value);
-const showSuccess = computed(() => !isProcessing.value && isSuccess.value);
-const showAwaitingApproval = computed(
-  () => !isProcessing.value && !isSuccess.value && isAwaitingApproval.value,
-);
-const showAccountUnavailable = computed(
-  () =>
-    !isProcessing.value &&
-    !isSuccess.value &&
-    !isAwaitingApproval.value &&
-    isAccountUnavailable.value,
-);
-const showLoginHint = computed(
-  () =>
-    !isProcessing.value &&
-    !isSuccess.value &&
-    !isAwaitingApproval.value &&
-    !isAccountUnavailable.value &&
-    isLoginHint.value,
-);
-const showFailure = computed(
-  () =>
-    !isProcessing.value &&
-    !isSuccess.value &&
-    !isAwaitingApproval.value &&
-    !isAccountUnavailable.value &&
-    !isLoginHint.value,
-);
+const view = computed<
+  | "processing"
+  | "success"
+  | "awaiting"
+  | "unavailable"
+  | "loginHint"
+  | "failure"
+>(() => {
+  if (isProcessing.value) return "processing";
+  if (isSuccess.value) return "success";
+  if (isAwaitingApproval.value) return "awaiting";
+  if (isAccountUnavailable.value) return "unavailable";
+  if (isLoginHint.value) return "loginHint";
+  return "failure";
+});
 const resolveRateLimitMessage = (retryAfterSeconds: number | null): string => {
   if (retryAfterSeconds !== null)
     return `Muitas tentativas. Tente novamente em ${retryAfterSeconds} segundos.`;

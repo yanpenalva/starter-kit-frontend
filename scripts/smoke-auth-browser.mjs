@@ -53,7 +53,8 @@ class Cdp {
         this.pending.delete(msg.id);
         if (msg.error) {
           reject(new Error(JSON.stringify(msg.error)));
-        } else {
+        }
+        if (!msg.error) {
           resolve(msg.result);
         }
       }

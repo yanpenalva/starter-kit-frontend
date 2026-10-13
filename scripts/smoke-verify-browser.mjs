@@ -105,7 +105,8 @@ class Cdp {
         this.pending.delete(msg.id);
         if (msg.error) {
           reject(new Error(JSON.stringify(msg.error)));
-        } else {
+        }
+        if (!msg.error) {
           resolve(msg.result);
         }
       }
@@ -412,7 +413,8 @@ async function main() {
         false,
         `registro redirecionou para /login (erro visivel: ${errText || "nenhum"})`,
       );
-    } else {
+    }
+    if (registered === "login") {
       assert(true, "registro redirecionou para /login");
     }
 
