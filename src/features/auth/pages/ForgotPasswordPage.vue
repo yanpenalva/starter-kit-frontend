@@ -19,7 +19,11 @@
       </RouterLink>
     </div>
 
-    <form v-else class="forgot-form" @submit.prevent="handleSubmit">
+    <form
+      v-if="!submittedMessage"
+      class="forgot-form"
+      @submit.prevent="handleSubmit"
+    >
       <div v-if="errorMessage" role="alert" class="forgot-form__alert">
         {{ errorMessage }}
       </div>
@@ -46,7 +50,7 @@
         :disabled="isLoading"
       >
         <span v-if="isLoading">Enviando...</span>
-        <span v-else>Enviar instruções</span>
+        <span v-if="!isLoading">Enviar instruções</span>
       </button>
 
       <div class="forgot-form__help">
@@ -74,6 +78,11 @@ const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const submittedMessage = ref<string | null>(null);
 const session = useSessionStore();
+const resolveRateLimitMessage = (retryAfterSeconds: number | null): string => {
+  if (retryAfterSeconds !== null)
+    return `Muitas tentativas. Tente novamente em ${retryAfterSeconds} segundos.`;
+  return "Muitas tentativas. Aguarde antes de tentar novamente.";
+};
 const handleSubmit = async () => {
   if (isLoading.value) return;
   if (!email.value) return;
@@ -85,22 +94,23 @@ const handleSubmit = async () => {
       response.message || "Se o email existir, enviamos o link.";
   } catch (error: unknown) {
     if (isRateLimitedHttpError(error)) {
-      if (error.retryAfterSeconds !== null) {
-        errorMessage.value = `Muitas tentativas. Tente novamente em ${error.retryAfterSeconds} segundos.`;
-      } else {
-        errorMessage.value =
-          "Muitas tentativas. Aguarde antes de tentar novamente.";
-      }
-    } else if (isValidationHttpError(error)) {
-      errorMessage.value = "Informe um endereço de e-mail válido.";
-    } else if (isCsrfMismatchHttpError(error)) {
-      errorMessage.value = "Sessão expirada. Tente novamente.";
-    } else if (isHttpError(error)) {
-      errorMessage.value = error.message;
-    } else {
-      errorMessage.value =
-        "Não foi possível conectar ao serviço. Verifique sua conexão.";
+      errorMessage.value = resolveRateLimitMessage(error.retryAfterSeconds);
+      return;
     }
+    if (isValidationHttpError(error)) {
+      errorMessage.value = "Informe um endereço de e-mail válido.";
+      return;
+    }
+    if (isCsrfMismatchHttpError(error)) {
+      errorMessage.value = "Sessão expirada. Tente novamente.";
+      return;
+    }
+    if (isHttpError(error)) {
+      errorMessage.value = error.message;
+      return;
+    }
+    errorMessage.value =
+      "Não foi possível conectar ao serviço. Verifique sua conexão.";
   } finally {
     isLoading.value = false;
   }

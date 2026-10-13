@@ -14,7 +14,11 @@
       </div>
     </div>
 
-    <form v-else class="reset-form" @submit.prevent="handleSubmit">
+    <form
+      v-if="!missingParameters"
+      class="reset-form"
+      @submit.prevent="handleSubmit"
+    >
       <div v-if="errorMessage" role="alert" class="reset-form__alert">
         {{ errorMessage }}
       </div>
@@ -67,7 +71,7 @@
         :disabled="isLoading"
       >
         <span v-if="isLoading">Redefinindo senha...</span>
-        <span v-else>Redefinir senha</span>
+        <span v-if="!isLoading">Redefinir senha</span>
       </button>
 
       <div class="reset-form__help">
@@ -105,6 +109,11 @@ const password = ref("");
 const passwordConfirmation = ref("");
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
+const resolveRateLimitMessage = (retryAfterSeconds: number | null): string => {
+  if (retryAfterSeconds !== null)
+    return `Muitas tentativas. Tente novamente em ${retryAfterSeconds} segundos.`;
+  return "Muitas tentativas. Aguarde antes de tentar novamente.";
+};
 const handleSubmit = async () => {
   if (isLoading.value) return;
   if (!password.value || !passwordConfirmation.value) {
@@ -140,21 +149,22 @@ const handleSubmit = async () => {
         : undefined;
       errorMessage.value =
         firstError ?? "Dados de redefinição inválidos ou expirados.";
-    } else if (isRateLimitedHttpError(error)) {
-      if (error.retryAfterSeconds !== null) {
-        errorMessage.value = `Muitas tentativas. Tente novamente em ${error.retryAfterSeconds} segundos.`;
-      } else {
-        errorMessage.value =
-          "Muitas tentativas. Aguarde antes de tentar novamente.";
-      }
-    } else if (isCsrfMismatchHttpError(error)) {
-      errorMessage.value = "Sessão expirada. Tente novamente.";
-    } else if (isHttpError(error)) {
-      errorMessage.value = error.message;
-    } else {
-      errorMessage.value =
-        "Não foi possível conectar ao serviço. Verifique sua conexão.";
+      return;
     }
+    if (isRateLimitedHttpError(error)) {
+      errorMessage.value = resolveRateLimitMessage(error.retryAfterSeconds);
+      return;
+    }
+    if (isCsrfMismatchHttpError(error)) {
+      errorMessage.value = "Sessão expirada. Tente novamente.";
+      return;
+    }
+    if (isHttpError(error)) {
+      errorMessage.value = error.message;
+      return;
+    }
+    errorMessage.value =
+      "Não foi possível conectar ao serviço. Verifique sua conexão.";
   } finally {
     isLoading.value = false;
   }

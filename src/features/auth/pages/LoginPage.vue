@@ -54,7 +54,7 @@
         :disabled="isLoading"
       >
         <span v-if="isLoading">Entrando...</span>
-        <span v-else>Entrar</span>
+        <span v-if="!isLoading">Entrar</span>
       </button>
 
       <div class="login-form__secondary-links">
@@ -112,6 +112,18 @@ const mfaChallengeLocation = (redirect: unknown) => {
   }
   return { name: "mfa-challenge" };
 };
+const LOGIN_ERROR_BY_KIND: Readonly<Record<string, string>> = {
+  unauthorized: "Credenciais inválidas.",
+  forbidden: "Esta conta foi desativada.",
+  csrf_mismatch: "Sessão expirada. Tente novamente.",
+  validation: "Verifique os dados informados.",
+  rate_limited: "Muitas tentativas. Aguarde antes de tentar novamente.",
+};
+const resolveLoginErrorMessage = (error: unknown): string => {
+  if (!isHttpError(error))
+    return "Não foi possível conectar ao serviço. Verifique sua conexão.";
+  return LOGIN_ERROR_BY_KIND[error.kind] ?? error.message;
+};
 const handleSubmit = async () => {
   if (isLoading.value) return;
   if (!email.value || !password.value) return;
@@ -129,29 +141,11 @@ const handleSubmit = async () => {
     const redirectTarget = route.query.redirect;
     if (isValidRedirect(redirectTarget)) {
       await router.push(redirectTarget);
-    } else {
-      await router.push({ name: "dashboard" });
+      return;
     }
+    await router.push({ name: "dashboard" });
   } catch (error: unknown) {
-    if (isHttpError(error)) {
-      if (error.kind === "unauthorized") {
-        errorMessage.value = "Credenciais inválidas.";
-      } else if (error.kind === "forbidden") {
-        errorMessage.value = "Esta conta foi desativada.";
-      } else if (error.kind === "csrf_mismatch") {
-        errorMessage.value = "Sessão expirada. Tente novamente.";
-      } else if (error.kind === "validation") {
-        errorMessage.value = "Verifique os dados informados.";
-      } else if (error.kind === "rate_limited") {
-        errorMessage.value =
-          "Muitas tentativas. Aguarde antes de tentar novamente.";
-      } else {
-        errorMessage.value = error.message;
-      }
-    } else {
-      errorMessage.value =
-        "Não foi possível conectar ao serviço. Verifique sua conexão.";
-    }
+    errorMessage.value = resolveLoginErrorMessage(error);
   } finally {
     isLoading.value = false;
   }
