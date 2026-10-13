@@ -233,19 +233,17 @@ describe("UserDetailPage", () => {
     expect(wrapper.text()).toContain("Usuário atualizado com sucesso.");
   });
 
-  it("bloqueia a saída com estado sujo e confirmação", async () => {
+  it("bloqueia a saída nativa enquanto o estado está sujo", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
+    const confirmSpy = vi.spyOn(globalThis, "confirm");
 
     try {
       await openEditModal(wrapper);
       await setDialogValue('[data-testid="edit-name"]', "Nome alterado");
 
       expect(beforeUnload().defaultPrevented).toBe(true);
-
-      confirmSpy.mockReturnValue(true);
-      expect(beforeUnload().defaultPrevented).toBe(false);
+      expect(confirmSpy).not.toHaveBeenCalled();
     } finally {
       confirmSpy.mockRestore();
     }

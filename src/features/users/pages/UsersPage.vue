@@ -5,41 +5,18 @@
     </template>
 
     <template #toolbar>
-      <div class="filters" aria-label="Filtros de usuários">
-        <SearchInput
-          :model-value="filters.search ?? ''"
-          label="Buscar"
-          placeholder="Nome ou email"
-          :disabled="query.isFetching.value"
-          @update:model-value="filters.search = $event"
-        />
-        <label>
-          Status
-          <select v-model="filters.status" aria-label="Filtrar por status">
-            <option value="">Todos</option>
-            <option value="active">Ativos</option>
-            <option value="deactivated">Desativados</option>
-          </select>
-        </label>
-        <label>
-          Papel
-          <select v-model="filters.role" aria-label="Filtrar por papel">
-            <option value="">Todos</option>
-            <option
-              v-for="role in filterRoleOptions"
-              :key="role.id"
-              :value="role.name"
-            >
-              {{ role.name }}
-            </option>
-          </select>
-        </label>
-      </div>
-
-      <p class="selection-counter" role="status">
-        {{ selection.selectedCount.value }} de {{ visibleUserIds.length }}
-        selecionados
-      </p>
+      <UsersListToolbar
+        :search="filters.search ?? ''"
+        :status="filters.status ?? ''"
+        :role="filters.role ?? ''"
+        :roles="filterRoleOptions"
+        :disabled="query.isFetching.value"
+        :selected-count="selection.selectedCount.value"
+        :visible-count="visibleUserIds.length"
+        @update:search="filters.search = $event"
+        @update:status="filters.status = $event || undefined"
+        @update:role="filters.role = $event || undefined"
+      />
 
       <ActionButton
         v-if="can('users.manage')"
@@ -204,7 +181,7 @@ import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import ActionButton from "@/shared/components/ActionButton.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import Pagination from "@/shared/components/Pagination.vue";
-import SearchInput from "@/shared/components/SearchInput.vue";
+import UsersListToolbar from "@/features/users/components/UsersListToolbar.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { usePageSelection } from "@/shared/composables/usePageSelection";
@@ -339,34 +316,6 @@ const removeUser = async (userId: number, userName: string): Promise<void> => {
 </script>
 
 <style scoped>
-.filters {
-  display: flex;
-  align-items: end;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.selection-counter {
-  margin: 0;
-  color: var(--color-muted, #73766e);
-  font-size: 0.875rem;
-}
-
-label {
-  display: grid;
-  gap: 0.375rem;
-  font-size: 0.875rem;
-}
-
-select {
-  min-height: 2.25rem;
-  padding: 0.375rem 0.625rem;
-  border: 1px solid rgb(58 77 60 / 20%);
-  border-radius: 0.375rem;
-  background: white;
-  color: var(--color-ink, #252a25);
-}
-
 .table-wrap {
   overflow-x: auto;
   margin-top: 1rem;

@@ -35,6 +35,11 @@ const makeRouter = async () => {
     history: createMemoryHistory(),
     routes: [
       {
+        path: "/users",
+        name: "users",
+        component: { template: "<div />" },
+      },
+      {
         path: "/users/:userId",
         name: "user-detail",
         component: { template: "<div />" },
@@ -89,7 +94,8 @@ const mountPage = async (
   // O perfil de sessão vive no cache de query (ADR 0002), então a sessão só
   // pode ser gravada depois da limpeza.
   queryClient.clear();
-  useSessionStore().user = {
+  const session = useSessionStore();
+  session.user = {
     id: 1,
     name: "Admin",
     email: "admin@example.test",
@@ -97,6 +103,7 @@ const mountPage = async (
     roles: ["admin"],
     permissions: [...permissions],
   };
+  session.status = "authenticated";
   const wrapper = mount(UsersPage, {
     global: {
       plugins: [[VueQueryPlugin, { queryClient }], await makeRouter()],
@@ -348,6 +355,15 @@ describe("UsersPage", () => {
       '[aria-label="Senha do novo usuário"]',
       "Alterar123!x",
     );
+    expect(
+      dialogGet<HTMLInputElement>(
+        '[aria-label="Ativar novo usuário imediatamente"]',
+      ).checked,
+    ).toBe(false);
+    await setDialogValue(
+      '[aria-label="Ativar novo usuário imediatamente"]',
+      true,
+    );
     dialogGet('[data-testid="submit-create-user"]').click();
 
     await vi.waitFor(() =>
@@ -365,7 +381,7 @@ describe("UsersPage", () => {
       name: "Novo Usuário",
       email: "novo@example.test",
       cpf: "12345678909",
-      active: false,
+      active: true,
     });
     // O sucesso fecha o modal e aparece no feedback da lista.
     await waitDialogClosed();

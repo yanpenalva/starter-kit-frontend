@@ -11,7 +11,7 @@
  * nativo de beforeunload fica armado. O navegador ignora confirm() e texto
  * próprio nesse evento — o contrato é preventDefault() + returnValue.
  */
-import { onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, watch } from "vue";
 
 export interface FormDismissGuard {
   canDismiss: () => boolean;
@@ -34,11 +34,34 @@ export const useFormDismissGuard = (options: {
     event.returnValue = "";
   };
 
+  let listenerAttached = false;
+  let isMounted = false;
+
+  const syncBeforeUnloadListener = (): void => {
+    if (!isMounted) return;
+    const shouldAttach = options.isDirty();
+    if (shouldAttach === listenerAttached) return;
+
+    listenerAttached = shouldAttach;
+    if (shouldAttach) {
+      window.addEventListener("beforeunload", beforeWindowUnload);
+    } else {
+      window.removeEventListener("beforeunload", beforeWindowUnload);
+    }
+  };
+
+  watch(options.isDirty, syncBeforeUnloadListener, { flush: "sync" });
+
   onMounted(() => {
-    window.addEventListener("beforeunload", beforeWindowUnload);
+    isMounted = true;
+    syncBeforeUnloadListener();
   });
   onUnmounted(() => {
-    window.removeEventListener("beforeunload", beforeWindowUnload);
+    isMounted = false;
+    if (listenerAttached) {
+      listenerAttached = false;
+      window.removeEventListener("beforeunload", beforeWindowUnload);
+    }
   });
 
   return { canDismiss };

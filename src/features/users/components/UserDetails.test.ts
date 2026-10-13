@@ -17,12 +17,12 @@ const permissionsWithout = (...excluded: string[]): string[] =>
 
 const user: AdminUser = makeAdminUser({
   id: 9,
-  name: "Maria Silva",
-  email: "maria@example.test",
+  name: "Pessoa de Teste",
+  email: "pessoa.teste@example.test",
   email_verified_at: "2026-10-01T12:00:00Z",
   deactivated_at: null,
   roles: ["admin", "user"],
-  cpf: "12345678909",
+  cpf: "00000000000",
 });
 
 const mountDetails = (
@@ -105,9 +105,9 @@ describe("UserDetails", () => {
     mountDetails(user);
 
     await vi.waitFor(() =>
-      expect(dialogText()).toContain("Detalhes de Maria Silva"),
+      expect(dialogText()).toContain("Detalhes de Pessoa de Teste"),
     );
-    expect(dialogText()).toContain("maria@example.test");
+    expect(dialogText()).toContain("pessoa.teste@example.test");
     expect(dialogText()).toContain("Verificado");
     expect(dialogText()).toContain("Ativo");
 
@@ -124,7 +124,7 @@ describe("UserDetails", () => {
   it("recolhe o conteúdo denso sem perder dados e reabre por mouse e teclado", async () => {
     mountDetails(user);
 
-    await vi.waitFor(() => expect(dialogText()).toContain("Maria Silva"));
+    await vi.waitFor(() => expect(dialogText()).toContain("Pessoa de Teste"));
 
     await clickExpansion("Papéis do usuário");
     expect(
@@ -155,8 +155,8 @@ describe("UserDetails", () => {
       permissions: permissionsWithout("users.read-cpf"),
     });
 
-    await vi.waitFor(() => expect(dialogText()).toContain("Maria Silva"));
-    expect(dialogText()).not.toContain("123.456.789-09");
+    await vi.waitFor(() => expect(dialogText()).toContain("Pessoa de Teste"));
+    expect(dialogText()).not.toContain("000.000.000-00");
     expect(
       document.body.querySelector('[data-testid="user-detail-cpf"]'),
     ).toBeNull();
@@ -165,7 +165,7 @@ describe("UserDetails", () => {
     await clickExpansion("Informações da conta");
     await clickExpansion("Papéis do usuário");
 
-    expect(dialogText()).not.toContain("123.456.789-09");
+    expect(dialogText()).not.toContain("000.000.000-00");
     expect(dialogText()).not.toContain("***");
     expect(
       document.body.querySelector('[data-testid="user-detail-cpf"]'),
@@ -179,7 +179,7 @@ describe("UserDetails", () => {
       expect(
         document.body.querySelector('[data-testid="user-detail-cpf"]')
           ?.textContent,
-      ).toContain("123.456.789-09"),
+      ).toContain("000.000.000-00"),
     );
   });
 

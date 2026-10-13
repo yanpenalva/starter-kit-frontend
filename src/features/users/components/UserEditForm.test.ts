@@ -183,25 +183,19 @@ describe("UserEditForm", () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountModal();
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
 
-    try {
-      expect(beforeUnload().defaultPrevented).toBe(false);
+    expect(beforeUnload().defaultPrevented).toBe(false);
 
-      await setValue('[data-testid="edit-name"]', "Maria Editada");
-      expect(beforeUnload().defaultPrevented).toBe(true);
+    await setValue('[data-testid="edit-name"]', "Maria Editada");
+    expect(beforeUnload().defaultPrevented).toBe(true);
 
-      confirmSpy.mockReturnValue(true);
-      dialogGet('[data-testid="save-user"]').click();
-      await vi.waitFor(() =>
-        expect(wrapper.emitted("profile-saved")).toBeTruthy(),
-      );
+    dialogGet('[data-testid="save-user"]').click();
+    await vi.waitFor(() =>
+      expect(wrapper.emitted("profile-saved")).toBeTruthy(),
+    );
 
-      // Salvo: o estado deixou de ser sujo.
-      expect(beforeUnload().defaultPrevented).toBe(false);
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    // Salvo: o estado deixou de ser sujo.
+    expect(beforeUnload().defaultPrevented).toBe(false);
   });
 
   it("remove o listener de beforeunload ao desmontar", async () => {

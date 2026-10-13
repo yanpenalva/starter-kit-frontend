@@ -42,7 +42,8 @@ const mountPage = (
   // de sessão vive no cache de query (ADR 0002), então a sessão só pode ser
   // gravada depois da limpeza.
   queryClient.clear();
-  useSessionStore().user = {
+  const session = useSessionStore();
+  session.user = {
     id: 1,
     name: "Admin",
     email: "admin@example.test",
@@ -50,6 +51,7 @@ const mountPage = (
     roles: ["admin"],
     permissions: [...permissions],
   };
+  session.status = "authenticated";
   const wrapper = mount(RolesPage, {
     global: {
       plugins: [[VueQueryPlugin, { queryClient }]],
