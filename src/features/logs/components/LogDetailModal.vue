@@ -22,6 +22,16 @@
             </dd>
           </div>
           <div>
+            <dt>Ação</dt>
+            <dd>
+              {{
+                AUDIT_ACTION_LABELS[
+                  activity.properties.action as AuditAction
+                ] ?? activity.properties.action
+              }}
+            </dd>
+          </div>
+          <div>
             <dt>Entidade</dt>
             <dd>
               {{
@@ -61,9 +71,11 @@
 import { computed } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
 import {
+  AUDIT_ACTION_LABELS,
   AUDIT_EVENT_LABELS,
   AUDIT_SUBJECT_TYPE_LABELS,
   type AdminActivity,
+  type AuditAction,
   type AuditEvent,
   type AuditSubjectType,
 } from "@/features/logs/api/audit.types";
