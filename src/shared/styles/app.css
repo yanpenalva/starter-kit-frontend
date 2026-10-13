@@ -22,6 +22,14 @@
     outline: 2px solid var(--color-focus, #71987a);
     outline-offset: 2px;
   }
+
+  /* Âncoras do manual e dos atalhos: rolagem suave apenas quando o usuário
+     não pediu movimento reduzido. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
 }
 
 /*
@@ -61,6 +69,20 @@
 .ui-control:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+/* Ação principal dos modais (submit). Reusa o token evergreen já existente no
+   tema — nenhum valor de paleta novo entra aqui. */
+.ui-control--primary {
+  border-color: var(--color-evergreen, #456b56);
+  background: var(--color-evergreen, #456b56);
+  color: #fff;
+  font-weight: 600;
+}
+
+.ui-control--primary:hover:not(:disabled) {
+  border-color: var(--color-evergreen-deep, #365744);
+  background: var(--color-evergreen-deep, #365744);
 }
 
 /* Router entry/exit: opacity only, on a stable page root. A transform here
