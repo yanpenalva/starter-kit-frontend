@@ -102,7 +102,6 @@ const useUserHandlers = (user = makeUser()): UsersRouteMocks => {
   return mocks;
 };
 
-// O modal é teleportado para o documento pelo Quasar.
 const dialogElement = (): HTMLElement | null =>
   document.body.querySelector<HTMLElement>('[role="dialog"]');
 
@@ -308,7 +307,7 @@ describe("UserDetailPage", () => {
     await vi.waitFor(() =>
       expect(dialogElement()?.textContent).toContain("O email já está em uso."),
     );
-    // Erro no modal: a página não troca o detalhe por um alerta.
+
     expect(dialogElement()).not.toBeNull();
     expect(wrapper.find(".page-card [role=alert]").exists()).toBe(false);
   });

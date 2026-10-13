@@ -15,7 +15,6 @@ const mountDetails = (role: AdminRole | null): VueWrapper => {
   return wrapper;
 };
 
-// O diálogo é renderizado em Teleport no document.body pelo Quasar.
 const dialogElement = (): HTMLElement | null =>
   document.body.querySelector<HTMLElement>('[role="dialog"]');
 

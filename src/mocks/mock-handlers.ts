@@ -167,7 +167,6 @@ const sessionHandlers = (
     return json(request, { data: database.profile });
   }),
   http.put(`${base}/api/v1/auth/password`, async ({ request }) => {
-    // shortcut: mock data has no password state; add credential checks if mock login gains one.
     const payload = await readJsonBody(request);
     const currentPassword =
       typeof payload.current_password === "string"

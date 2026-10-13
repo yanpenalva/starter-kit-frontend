@@ -19,11 +19,6 @@ import type {
 export const USERS_QUERY_KEY = "users";
 export const USER_QUERY_KEY = "user";
 
-/*
- * Mutações de usuário isoladas da listagem: os modais de criação/edição
- * precisam gravar sem montar uma segunda query de lista com os filtros
- * default. A invalidação continua compartilhada pelo queryClient.
- */
 export const useUserMutations = () => {
   const queryClient = useQueryClient();
   const invalidate = async (): Promise<void> => {

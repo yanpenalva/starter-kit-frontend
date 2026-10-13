@@ -51,7 +51,7 @@ function isTcpPortFree(port, host = "127.0.0.1", timeoutMs = 1000) {
       try {
         socket.destroy();
       } catch {
-        /* noop */
+        void 0;
       }
       resolve(free);
     };
@@ -87,7 +87,7 @@ async function shutdownChrome(chrome, timeoutMs = 5000) {
     try {
       chrome.kill("SIGKILL");
     } catch {
-      /* noop */
+      void 0;
     }
     await Promise.race([exited, sleep(3000)]);
   }
@@ -519,12 +519,12 @@ async function main() {
     try {
       await cleanupTestUser(verifyLink);
     } catch {
-      /* noop */
+      void 0;
     }
     try {
       if (cdp) cdp.close();
     } catch {
-      /* noop */
+      void 0;
     }
     try {
       if (targetId)
@@ -532,17 +532,17 @@ async function main() {
           method: "PUT",
         });
     } catch {
-      /* noop */
+      void 0;
     }
     try {
       await shutdownChrome(chrome);
     } catch {
-      /* noop */
+      void 0;
     }
     try {
       if (profileDir) rmSync(profileDir, { recursive: true, force: true });
     } catch {
-      /* noop */
+      void 0;
     }
   }
 }

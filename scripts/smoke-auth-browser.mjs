@@ -288,7 +288,7 @@ async function main() {
       try {
         await globalThis.fetch(`${endpoint}/json/close/${targetId}`);
       } catch {
-        // fechamento best-effort do alvo CDP
+        void 0;
       }
     }
     if (chrome) {

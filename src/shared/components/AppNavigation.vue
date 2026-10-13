@@ -316,8 +316,6 @@ const handleLogout = async () => {
   }
 }
 
-/* Mini-state hides the text visually, keeping it available to assistive
-   technology and to the focus order. */
 .app-navigation__link--mini .app-navigation__label,
 .app-navigation__user--mini .app-navigation__user-name,
 .app-navigation__user--mini .app-navigation__badge,

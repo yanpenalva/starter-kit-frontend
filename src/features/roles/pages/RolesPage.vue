@@ -183,8 +183,6 @@ const editRole = ref<AdminRole | null>(null);
 const deletingRoleId = ref<number | null>(null);
 const detailRole = ref<AdminRole | null>(null);
 
-// A seleção cobre apenas os papéis carregados na página atual: busca, página
-// e per_page limpam; refetch mantém somente os IDs presentes.
 const visibleRoleIds = computed<readonly number[]>(() =>
   (query.data.value?.data ?? []).map((role) => role.id),
 );
@@ -202,7 +200,6 @@ const closeDetail = (): void => {
   detailRole.value = null;
 };
 const openEdit = (role: AdminRole): void => {
-  // Acionador do modal: o papel protegido não abre edição de permissões.
   if (isRoleImmutable(role)) return;
   editRole.value = role;
 };
@@ -210,8 +207,6 @@ const handleEditVisibility = (value: boolean): void => {
   if (!value) editRole.value = null;
 };
 
-// O sucesso de cada modal entra no feedback da lista (isolado dos erros de
-// listagem), que continua dono dos erros de busca/exclusão.
 const handleCreated = (): void => {
   createOpen.value = false;
   feedback.reportSuccess("Papel criado com sucesso.");

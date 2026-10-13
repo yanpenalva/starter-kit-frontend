@@ -27,7 +27,7 @@ const limitedUser: MyProfileResource = {
   name: "Limited User",
   email: "unverified@example.com",
   email_verified_at: null,
-  roles: ["admin"], // Even if roles were hypothetically present, limited state must deny business actions
+  roles: ["admin"],
   permissions: ["users.view"],
 };
 

@@ -75,8 +75,6 @@
       </div>
     </div>
 
-    <!-- Mesmo modal de edição da listagem: nenhuma lógica de form duplicada
-         aqui; a rota continua acessível por URL, refresh e histórico. -->
     <UserEditForm
       :model-value="editOpen"
       :user="user"
@@ -120,8 +118,6 @@ const closeEdit = (value: boolean): void => {
   if (!value) editOpen.value = false;
 };
 
-// O estado de rascunho, a confirmação de descarte e o beforeunload vivem no
-// modal extraído; a página só reflete o resultado.
 const handleProfileSaved = (): void => {
   editOpen.value = false;
   feedback.reportSuccess("Usuário atualizado com sucesso.");

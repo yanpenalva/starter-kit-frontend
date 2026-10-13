@@ -37,7 +37,6 @@ const createHarness = (): Harness => {
 
 const mountApp = async (router: Router): Promise<VueWrapper> => {
   const wrapper = mount(App, {
-    // mantém a Transition real: o gate cobre entrada/saída, não um stub
     global: { plugins: [router], stubs: { transition: false } },
   });
   await router.isReady();

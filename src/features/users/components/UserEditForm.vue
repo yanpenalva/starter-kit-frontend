@@ -122,12 +122,6 @@ import { useUserMutations } from "@/features/users/composables/useUsersList";
 import { formatCpf } from "@/features/users/utils/cpf-mask";
 import type { AdminUser } from "@/features/users/api/users.types";
 
-/*
- * Edição em modal, usada pela listagem e pela rota standalone de detalhe: o
- * estado, o isDirty/reset e o submit que viviam na página foram extraídos para
- * cá, sem duplicar lógica. Dados e papéis salvam em endpoints diferentes e
- * mantêm feedback próprio — não existe transação atômica entre eles.
- */
 const props = defineProps<{
   modelValue: boolean;
   user: AdminUser | null;
@@ -169,7 +163,6 @@ const seed = (): void => {
   rolesFeedback.clearFeedback();
 };
 
-// Reabrir (ou trocar de registro) não herda draft nem erro anterior.
 watch(
   [() => props.modelValue, () => props.user?.id],
   ([open]) => {
@@ -210,8 +203,7 @@ const { canDismiss } = useFormDismissGuard({
 
 const requestClose = (): void => {
   if (!canDismiss()) return;
-  // Descartar confirma o abandono do rascunho: nada de estado sujo pendurado
-  // enquanto o modal está fechado.
+
   seed();
   emit("update:modelValue", false);
 };

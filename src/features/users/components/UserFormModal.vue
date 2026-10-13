@@ -106,12 +106,6 @@ import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { useFormDismissGuard } from "@/shared/composables/useFormDismissGuard";
 import { useUserMutations } from "@/features/users/composables/useUsersList";
 
-/*
- * Criação em modal: o estado, a validação local do CPF/senha e o reset que
- * viviam na listagem foram extraídos para cá. O contrato da API continua o
- * mesmo (nome/email/CPF/senha mínima de 12/active); papéis não entram na
- * criação — a atribuição é um salvamento separado, com permissão própria.
- */
 const props = defineProps<{
   modelValue: boolean;
 }>();
@@ -160,7 +154,6 @@ const resetForm = (): void => {
   feedback.clearFeedback();
 };
 
-// Reabrir não herda senha, draft nem erros de uma tentativa anterior.
 watch(
   () => props.modelValue,
   (open) => {
@@ -171,13 +164,11 @@ watch(
 
 const requestClose = (): void => {
   if (!canDismiss()) return;
-  // Descartar confirma o abandono do rascunho (inclusive a senha digitada).
+
   resetForm();
   emit("update:modelValue", false);
 };
 
-// Escape, backdrop e o botão Fechar do diálogo passam pela mesma regra do
-// formulário: fechar só com descarte confirmado.
 const handleDialogVisibility = (value: boolean): void => {
   if (value) return;
   requestClose();

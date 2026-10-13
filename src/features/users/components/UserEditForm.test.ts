@@ -160,7 +160,6 @@ describe("UserEditForm", () => {
       expect(document.body.textContent).toContain("O email já está em uso."),
     );
 
-    // A falha dos dados não impede o salvamento separado dos papéis.
     await setValue(
       '[aria-label="Papéis de Maria Silva"] input[aria-label="Papel editor"][role="option"]',
       true,
@@ -174,7 +173,7 @@ describe("UserEditForm", () => {
           call.method === "PUT" && call.path === "/api/v1/users/7/roles",
       )?.body,
     ).toEqual({ roles: ["user", "editor"] });
-    // Erro do bloco de dados continua visível e não vira erro de papéis.
+
     expect(document.body.textContent).toContain("O email já está em uso.");
     expect(wrapper.emitted("profile-saved")).toBeUndefined();
   });
@@ -194,7 +193,6 @@ describe("UserEditForm", () => {
       expect(wrapper.emitted("profile-saved")).toBeTruthy(),
     );
 
-    // Salvo: o estado deixou de ser sujo.
     expect(beforeUnload().defaultPrevented).toBe(false);
   });
 

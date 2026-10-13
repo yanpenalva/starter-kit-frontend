@@ -190,8 +190,6 @@ const query = useQuery({
   queryFn: () => listActivities({ ...filters }),
 });
 
-// A seleção cobre apenas os registros carregados na página atual: busca,
-// filtros, página e per_page limpam; refetch mantém só os IDs presentes.
 const visibleActivityIds = computed<readonly number[]>(() =>
   (query.data.value?.data ?? []).map((activity) => activity.id),
 );

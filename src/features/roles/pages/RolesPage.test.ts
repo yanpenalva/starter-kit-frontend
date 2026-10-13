@@ -26,8 +26,6 @@ const makeRoles = (count: number) =>
     }),
   );
 
-// Fixture própria dos casos novos: os handlers de criação/exclusão mutam o
-// array recebido, então cada caso parte de uma lista nova.
 const makeMinimalRoles = () => [
   makeAdminRole({ id: 1, name: "admin" }),
   makeAdminRole({ id: 2, name: "user", permissions: ["users.view"] }),
@@ -38,9 +36,6 @@ const mountedWrappers: VueWrapper[] = [];
 const mountPage = (
   permissions: readonly string[] = [...CATALOGUE_PERMISSIONS],
 ) => {
-  // Cache limpo por caso: o queryClient é compartilhado pelo arquivo. O perfil
-  // de sessão vive no cache de query (ADR 0002), então a sessão só pode ser
-  // gravada depois da limpeza.
   queryClient.clear();
   const session = useSessionStore();
   session.user = {
@@ -70,7 +65,6 @@ const headerCheckbox = (wrapper: VueWrapper) =>
 const rowCheckbox = (wrapper: VueWrapper, name: string) =>
   wrapper.get<HTMLInputElement>(`[aria-label="Selecionar ${name}"]`);
 
-// O diálogo é renderizado em Teleport no document.body pelo Quasar.
 const dialogElement = (): HTMLElement | null =>
   document.body.querySelector<HTMLElement>('[role="dialog"]');
 
@@ -403,7 +397,7 @@ describe("RolesPage", () => {
         ),
       ).toBe(true),
     );
-    // Editar permissões não seleciona a linha.
+
     expect(counter(wrapper).text()).toContain("0 de 2 selecionados");
   });
 });
@@ -523,7 +517,6 @@ describe("RolesPage — seleção por página", () => {
     expect(counter(wrapper).text()).toContain("0 de 5 selecionados");
     expect(rowCheckbox(wrapper, "papel-2").element.checked).toBe(false);
 
-    // Selecionar papéis não dispara escrita nenhuma.
     expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
   });
 
@@ -564,7 +557,6 @@ describe("RolesPage — seleção por página", () => {
     );
     expect(wrapper.text()).toContain("papel-20");
 
-    // A busca volta para a primeira página mesmo estando na segunda.
     await wrapper.get("label.ui-search input").setValue("papel-1");
     await vi.waitFor(() =>
       expect(
@@ -626,7 +618,7 @@ describe("RolesPage — seleção por página", () => {
     expect(dialog.textContent).toContain("Auditoria");
     expect(dialog.textContent).toContain("Ver usuários");
     expect(dialog.textContent).toContain("Não concedida");
-    // Somente leitura: nenhum controle de escrita é oferecido na consulta.
+
     expect(dialog.querySelectorAll("input")).toHaveLength(0);
     expect(
       [...dialog.querySelectorAll("button")].map((button) =>

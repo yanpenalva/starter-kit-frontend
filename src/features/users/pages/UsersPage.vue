@@ -217,8 +217,6 @@ const isMutating = computed(() => pendingAction.value !== null);
 const isActionPending = (kind: PendingActionKind, userId: number): boolean =>
   pendingAction.value?.kind === kind && pendingAction.value?.userId === userId;
 
-// A seleção cobre apenas os registros carregados na página atual: busca,
-// filtros, página e per_page limpam; refetch mantém só os IDs presentes.
 const visibleUserIds = computed<readonly number[]>(() =>
   (query.data.value?.data ?? []).map((user) => user.id),
 );
@@ -254,8 +252,6 @@ const handleEditVisibility = (value: boolean): void => {
   if (!value) editingUser.value = null;
 };
 
-// O modal tem feedback isolado: o sucesso do modal entra no feedback da lista,
-// que também segue dono dos erros de status/exclusão.
 const handleCreated = (): void => {
   createOpen.value = false;
   feedback.reportSuccess("Usuário criado com sucesso.");

@@ -123,7 +123,6 @@ import {
 }
 
 .manual__section {
-  /* O header fixo do shell não pode cobrir o título da âncora navegada. */
   scroll-margin-top: 4.5rem;
 }
 

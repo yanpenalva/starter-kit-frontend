@@ -76,12 +76,6 @@ import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { formatCpf } from "@/features/users/utils/cpf-mask";
 import type { AdminUser } from "@/features/users/api/users.types";
 
-/*
- * Consulta somente leitura: recebe os dados permitidos de `useUserDetail`.
- * Sem edição aqui — a alteração continua nos fluxos existentes. O CPF segue
- * `users.read-cpf`: sem a permissão, o campo não existe nem com os grupos
- * expandidos.
- */
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;

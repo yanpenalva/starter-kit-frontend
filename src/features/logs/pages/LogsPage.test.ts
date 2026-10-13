@@ -12,7 +12,6 @@ import LogsPage from "./LogsPage.vue";
 let wrapper: VueWrapper | null = null;
 
 const mountPage = (): VueWrapper => {
-  // Cache limpo por caso: o queryClient é compartilhado pelo arquivo.
   queryClient.clear();
   wrapper = mount(LogsPage, {
     attachTo: document.body,
@@ -24,8 +23,6 @@ const mountPage = (): VueWrapper => {
   return wrapper;
 };
 
-// O diálogo é renderizado em Teleport no document.body pelo Quasar, então as
-// asserções usam o documento e não o wrapper (sem stub que apague o modal).
 const dialogElement = (): HTMLElement | null =>
   document.body.querySelector<HTMLElement>('[role="dialog"]');
 
@@ -377,7 +374,6 @@ describe("LogsPage — seleção por página", () => {
     expect(counter(page).text()).toContain("0 de 3 selecionados");
     expect(rowCheckbox(page, 1).element.checked).toBe(false);
 
-    // Auditoria é somente leitura: selecionar não dispara escrita nenhuma.
     expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
   });
 

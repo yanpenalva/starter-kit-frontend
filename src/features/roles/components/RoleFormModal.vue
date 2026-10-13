@@ -125,12 +125,6 @@ import {
 } from "@/features/roles/api/roles.types";
 import { useRoleMutations } from "@/features/roles/composables/useRolesList";
 
-/*
- * Criação (só nome) e edição de permissões em modal. Não existe rename nem
- * description: editar significa atualizar as permissões do catálogo vigente,
- * agrupadas por domínio. `admin` fica protegido no acionador (página) e aqui
- * na submissão — nenhuma permissão do papel protegido é gravada.
- */
 const props = defineProps<{
   modelValue: boolean;
   mode: "create" | "edit";
@@ -193,7 +187,6 @@ const reset = (): void => {
   feedback.clearFeedback();
 };
 
-// Reabrir não herda draft nem erros de uma tentativa anterior.
 watch(
   [() => props.modelValue, () => props.mode, () => props.role?.id],
   ([open]) => {

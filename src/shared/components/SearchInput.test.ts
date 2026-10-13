@@ -22,8 +22,6 @@ describe("SearchInput.vue", () => {
 
     await input.setValue("papel");
 
-    // O primitivo só devolve o valor digitado: quem decide debounce, filtro e
-    // busca é o caller do v-model.
     expect(wrapper.emitted("update:modelValue")).toEqual([["papel"]]);
     expect(wrapper.emitted("search")).toBeUndefined();
   });

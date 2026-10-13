@@ -13,10 +13,6 @@ import type {
 
 export const ROLES_QUERY_KEY = "roles";
 
-/*
- * Mutações de papel isoladas da listagem, com a mesma razão dos usuários: o
- * modal de criação/edição grava sem montar uma segunda query de lista.
- */
 export const useRoleMutations = () => {
   const queryClient = useQueryClient();
   const invalidate = async (): Promise<void> => {

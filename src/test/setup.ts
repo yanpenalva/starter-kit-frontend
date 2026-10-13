@@ -5,8 +5,6 @@ import { server } from "./server";
 
 import.meta.env.VITE_API_URL = "http://localhost:8000";
 
-// The authenticated shell renders Quasar layout components (q-layout/q-header/
-// q-drawer/q-page-container), so every test mounting a page needs the plugin.
 config.global.plugins.push(Quasar);
 
 function installBrowserShims(): void {
@@ -16,12 +14,8 @@ function installBrowserShims(): void {
       value: {
         type: "landscape-primary",
         angle: 0,
-        addEventListener: (): void => {
-          /* jsdom has no orientation events */
-        },
-        removeEventListener: (): void => {
-          /* jsdom has no orientation events */
-        },
+        addEventListener: (): void => {},
+        removeEventListener: (): void => {},
       },
     });
   }
@@ -29,15 +23,9 @@ function installBrowserShims(): void {
     Object.defineProperty(window, "ResizeObserver", {
       configurable: true,
       value: class {
-        observe(): void {
-          /* Quasar only needs the observer to exist under jsdom */
-        }
-        unobserve(): void {
-          /* noop */
-        }
-        disconnect(): void {
-          /* noop */
-        }
+        observe(): void {}
+        unobserve(): void {}
+        disconnect(): void {}
       },
     });
   }

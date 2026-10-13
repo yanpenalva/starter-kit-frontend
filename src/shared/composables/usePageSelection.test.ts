@@ -40,7 +40,6 @@ describe("usePageSelection", () => {
     expect(selection.selectedCount.value).toBe(1);
     expect(selection.selectedIds.value).toEqual([1]);
 
-    // Um ID que não está na página não entra na seleção.
     selection.setSelected(99, true);
 
     expect(selection.selectedCount.value).toBe(1);
@@ -84,13 +83,11 @@ describe("usePageSelection", () => {
     expect(selection.selectedIds.value).toEqual([1, 2, 3]);
     expect(selection.isAllSelected.value).toBe(true);
 
-    // Header com todos marcados: um novo clique limpa.
     selection.toggleAll(false);
 
     expect(selection.selectedCount.value).toBe(0);
     expect(selection.isAllSelected.value).toBe(false);
 
-    // Sem argumento, o toggleAll alterna a partir do estado atual.
     selection.toggleAll();
     expect(selection.selectedIds.value).toEqual([1, 2, 3]);
 
@@ -119,7 +116,6 @@ describe("usePageSelection", () => {
     selection.setSelected(2, true);
     selection.setSelected(3, true);
 
-    // Refetch da mesma página: o registro 2 saiu, o 4 entrou.
     visible.value = [1, 3, 4];
     await nextTick();
 
@@ -155,7 +151,6 @@ describe("usePageSelection", () => {
     enabled.value = false;
     await nextTick();
 
-    // Desmarcar continua possível: só selecionar depende da disponibilidade.
     selection.setSelected(1, false);
     expect(selection.selectedCount.value).toBe(0);
 

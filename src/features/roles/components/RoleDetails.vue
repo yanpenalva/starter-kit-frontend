@@ -54,10 +54,6 @@ import {
 import { isRoleImmutable } from "@/features/roles/api/roles.types";
 import type { AdminRole } from "@/features/roles/api/roles.types";
 
-/*
- * Consulta somente leitura: nome e grupos de permissões do catálogo vigente.
- * Nenhum controle de edição — alterar permissões continua no fluxo existente.
- */
 const props = defineProps<{
   modelValue: boolean;
   role: AdminRole | null;

@@ -92,7 +92,6 @@ const contextLabel = computed(() => {
   background: var(--color-canvas, #f4f2ec);
   color: var(--color-ink, #252a25);
   font-family: var(--type-body, inherit);
-  /* Nenhuma tabela/form pode criar rolagem horizontal global no shell. */
   overflow-x: clip;
 }
 

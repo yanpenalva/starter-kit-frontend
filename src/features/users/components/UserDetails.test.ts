@@ -53,7 +53,6 @@ const mountDetails = (
   return wrapper;
 };
 
-// O diálogo é renderizado em Teleport no document.body pelo Quasar.
 const dialogElement = (): HTMLElement | null =>
   document.body.querySelector<HTMLElement>('[role="dialog"]');
 
@@ -130,7 +129,7 @@ describe("UserDetails", () => {
     expect(
       expansionHeader("Papéis do usuário").getAttribute("aria-expanded"),
     ).toBe("false");
-    // O conteúdo recolhido continua disponível no diálogo.
+
     expect(dialogText()).toContain("admin");
 
     await activateExpansionByKeyboard("Papéis do usuário", 13);
@@ -161,7 +160,6 @@ describe("UserDetails", () => {
       document.body.querySelector('[data-testid="user-detail-cpf"]'),
     ).toBeNull();
 
-    // Nem com os dois grupos expandidos o dado escondido aparece.
     await clickExpansion("Informações da conta");
     await clickExpansion("Papéis do usuário");
 

@@ -78,7 +78,7 @@ const resizeTo = async (width: number): Promise<void> => {
 
 const toggle = (wrapper: VueWrapper) => wrapper.get(".app-header__toggle");
 const drawer = (wrapper: VueWrapper) => wrapper.get(".q-drawer");
-// Quasar only mounts the overlay backdrop below the breakpoint.
+
 const overlayBackdrop = (wrapper: VueWrapper): string[] => {
   const backdrop = wrapper.find(".q-drawer__backdrop");
   return backdrop.exists() ? backdrop.classes() : [];
@@ -109,8 +109,6 @@ describe("AppLayout.vue", () => {
     const content = wrapper.get("#app-content");
     expect(content.find(".slot-probe").text()).toBe("conteúdo da página");
 
-    // A single navigation tree, rendered inside the drawer (never duplicated
-    // as a horizontal bar in the header).
     expect(wrapper.findAll("#app-navigation")).toHaveLength(1);
     expect(wrapper.findAll(".app-navigation__links")).toHaveLength(1);
     expect(wrapper.find(".q-drawer #app-navigation").exists()).toBe(true);
@@ -137,7 +135,6 @@ describe("AppLayout.vue", () => {
       "Expandir menu de navegação",
     );
 
-    // Labels stay in the DOM, so links keep an accessible name and tooltip.
     const link = wrapper.get(".app-navigation__link");
     expect(link.element.tagName).toBe("A");
     expect(link.attributes("href")).toBe("/");
@@ -199,7 +196,7 @@ describe("AppLayout.vue", () => {
     await resizeTo(DESKTOP_WIDTH);
     expect(drawer(wrapper).classes()).not.toContain("q-drawer--mobile");
     expect(drawer(wrapper).classes()).toContain("q-drawer--mini");
-    // Desktop keeps the drawer in the layout, without an overlay backdrop.
+
     expect(overlayBackdrop(wrapper)).toEqual([]);
   });
 

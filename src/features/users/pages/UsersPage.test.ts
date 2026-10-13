@@ -89,10 +89,6 @@ const mountedWrappers: VueWrapper[] = [];
 const mountPage = async (
   permissions: readonly string[] = [...CATALOGUE_PERMISSIONS],
 ) => {
-  // Cada caso parte de um cache limpo: o queryClient é compartilhado pelo
-  // arquivo e dados de fixtures anteriores mudariam as contagens de seleção.
-  // O perfil de sessão vive no cache de query (ADR 0002), então a sessão só
-  // pode ser gravada depois da limpeza.
   queryClient.clear();
   const session = useSessionStore();
   session.user = {
@@ -124,8 +120,6 @@ const rowCheckbox = (wrapper: VueWrapper, index: number) =>
 const detailLink = (wrapper: VueWrapper, index: number) =>
   wrapper.get(`[aria-label="Ver detalhe de Pessoa ${index}"]`);
 
-// O diálogo é renderizado em Teleport no document.body pelo Quasar, então as
-// asserções usam o documento e não o wrapper (sem stub que apague o modal).
 const dialogElement = (): HTMLElement | null =>
   document.body.querySelector<HTMLElement>('[role="dialog"]');
 
@@ -182,8 +176,6 @@ const pressBackdrop = (): void => {
 };
 
 afterEach(() => {
-  // Componentes abandonados entre casos reagiriam ao cache compartilhado e
-  // disparariam requisições sem handler.
   while (mountedWrappers.length > 0) {
     mountedWrappers.pop()?.unmount();
   }
@@ -299,7 +291,7 @@ describe("UsersPage", () => {
     expect(dialogGet('[data-testid="save-user"]').textContent?.trim()).toBe(
       "Salvando...",
     );
-    // Mutação pendente bloqueia o fechamento: nenhum confirm é oferecido.
+
     expect(
       dialogGet<HTMLButtonElement>('[data-testid="cancel-edit"]').disabled,
     ).toBe(true);
@@ -383,7 +375,7 @@ describe("UsersPage", () => {
       cpf: "12345678909",
       active: true,
     });
-    // O sucesso fecha o modal e aparece no feedback da lista.
+
     await waitDialogClosed();
     expect(wrapper.text()).toContain("Usuário criado com sucesso.");
   });
@@ -447,7 +439,6 @@ describe("UsersPage", () => {
     );
     dialogGet('[data-testid="submit-create-user"]').click();
 
-    // O erro fica no modal, com os dados preservados, e não vaza para a lista.
     await vi.waitFor(() =>
       expect(dialogElement()?.textContent).toContain("O email já está em uso."),
     );
@@ -553,7 +544,7 @@ describe("UsersPage", () => {
         ),
       ).toBe(true),
     );
-    // Salvar papéis é um salvamento separado: nenhum PATCH de dados saiu.
+
     expect(mocks.calls.filter((call) => call.method === "PATCH")).toHaveLength(
       0,
     );
@@ -594,7 +585,6 @@ describe("UsersPage — forms em modal", () => {
       pressEscape();
       await waitDialogClosed();
 
-      // Cancelar não grava nada.
       expect(
         mocks.calls.filter((call) => call.method === "PATCH"),
       ).toHaveLength(0);
@@ -674,12 +664,10 @@ describe("UsersPage — forms em modal", () => {
         ).toBe(true),
       );
 
-      // Pending: Escape e Cancelar não escondem o resultado.
       pressEscape();
       expect(confirmSpy).not.toHaveBeenCalled();
       expect(dialogElement()).not.toBeNull();
 
-      // Ao concluir, o resultado aparece e o modal fecha sozinho.
       await vi.waitFor(() =>
         expect(wrapper.text()).toContain("Usuário atualizado com sucesso."),
       );
@@ -743,7 +731,6 @@ describe("UsersPage — seleção por página", () => {
     expect(counter(wrapper).text()).toContain("0 de 7 selecionados");
     expect(rowCheckbox(wrapper, 1).element.checked).toBe(false);
 
-    // Selecionar é independente das permissões: nenhuma escrita é disparada.
     expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
   });
 
@@ -784,7 +771,6 @@ describe("UsersPage — seleção por página", () => {
     );
     expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
 
-    // A busca volta para a primeira página mesmo estando na segunda.
     await wrapper.get("label.ui-search input").setValue("Pessoa 2");
     await vi.waitFor(() =>
       expect(
@@ -813,8 +799,6 @@ describe("UsersPage — seleção por página", () => {
     await rowCheckbox(wrapper, 3).setValue(true);
     expect(counter(wrapper).text()).toContain("2 de 7 selecionados");
 
-    // Pessoa 1 sai da listagem: o refetch da mesma página não pode manter um
-    // ID que não está mais visível.
     localUsers.splice(
       localUsers.findIndex((user) => user.id === 1),
       1,
@@ -865,8 +849,6 @@ describe("UsersPage — seleção por página", () => {
     );
     expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
 
-    // Refetch da mesma página com resposta lenta: dados antigos continuam na
-    // tela, mas não podem ser selecionados durante o trânsito.
     server.use(
       http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) => {
         await delay(300);
@@ -890,7 +872,6 @@ describe("UsersPage — seleção por página", () => {
       expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined(),
     );
 
-    // Falha na listagem mantém os dados antigos visíveis e o header desabilitado.
     server.use(
       http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) =>
         HttpResponse.json(
@@ -933,7 +914,6 @@ describe("UsersPage — seleção por página", () => {
     );
     expect(dialogElement()?.textContent).toContain("123.456.789-09");
 
-    // Consultar não seleciona e não libera edição: o detalhe é só leitura.
     expect(counter(wrapper).text()).toContain("0 de 7 selecionados");
     expect(dialogElement()?.querySelectorAll("input")).toHaveLength(0);
     expect(

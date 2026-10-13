@@ -35,5 +35,4 @@ const buildGroups = (): readonly PermissionGroup[] => {
   }));
 };
 
-/** Agrupamento estável derivado do catálogo vigente de permissões. */
 export const PERMISSION_GROUPS: readonly PermissionGroup[] = buildGroups();
