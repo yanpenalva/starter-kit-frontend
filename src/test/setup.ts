@@ -1,11 +1,11 @@
 import { afterAll, afterEach, beforeAll } from "vitest";
 import { config } from "@vue/test-utils";
-import { Quasar } from "quasar";
+import { Notify, Quasar } from "quasar";
 import { server } from "./server";
 
 import.meta.env.VITE_API_URL = "http://localhost:8000";
 
-config.global.plugins.push(Quasar);
+config.global.plugins.push([Quasar, { plugins: { Notify } }]);
 
 function installBrowserShims(): void {
   if (!("orientation" in window.screen)) {

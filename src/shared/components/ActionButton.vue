@@ -56,7 +56,7 @@ const props = withDefaults(
     disabled?: boolean;
     loading?: boolean;
     icon?: string;
-    color?: "info" | "warning" | "error" | "success";
+    color?: "info" | "warning" | "error" | "success" | "secondary";
     iconSize?: number;
     tooltip?: string;
   }>(),
@@ -148,6 +148,10 @@ const handleClick = (event: MouseEvent): void => {
 
 .action-button--success {
   color: var(--color-success);
+}
+
+.action-button--secondary {
+  color: var(--color-muted);
 }
 
 .action-button__label--hidden {

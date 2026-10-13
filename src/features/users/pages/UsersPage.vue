@@ -74,7 +74,18 @@
               </RouterLink>
             </td>
             <td>{{ user.email }}</td>
-            <td>{{ user.deactivated_at === null ? "Ativo" : "Desativado" }}</td>
+            <td>
+              <span
+                class="user-status"
+                :class="
+                  user.deactivated_at === null
+                    ? 'user-status--active'
+                    : 'user-status--deactivated'
+                "
+              >
+                {{ user.deactivated_at === null ? "Ativo" : "Desativado" }}
+              </span>
+            </td>
             <td>
               <span v-if="user.roles.length === 0" class="role-empty">
                 Nenhum
@@ -107,7 +118,7 @@
                 v-if="can('users.set-status')"
                 type="button"
                 :icon="statusAction(user).icon"
-                :color="user.deactivated_at === null ? 'warning' : 'success'"
+                :color="user.deactivated_at === null ? 'secondary' : 'success'"
                 :icon-size="18"
                 :label="statusAction(user).label"
                 :tooltip="UI_HELP_TEXT.rowStatus"
@@ -175,6 +186,7 @@ import { RouterLink } from "vue-router";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import ActionButton from "@/shared/components/ActionButton.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
+import { Notify } from "quasar";
 import Pagination from "@/shared/components/Pagination.vue";
 import UsersListToolbar from "@/features/users/components/UsersListToolbar.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
@@ -320,13 +332,27 @@ const toggleStatus = async (
       userId,
       payload: { status: isActive ? "deactivated" : "active" },
     });
-    feedback.reportSuccess(
-      isActive
-        ? "Usuário desativado com sucesso."
-        : "Usuário ativado com sucesso.",
-    );
+    const message = isActive ? "Usuário desativado." : "Usuário ativado.";
+    feedback.clearFeedback();
+    Notify.create({
+      message,
+      timeout: 4000,
+      position: "bottom-right",
+      color: "dark",
+      textColor: "white",
+      attrs: { role: "status", "aria-live": "polite" },
+    });
   } catch (error: unknown) {
     feedback.handleFailure(error);
+    Notify.create({
+      message:
+        feedback.errorMessage.value ?? "Não foi possível atualizar o usuário.",
+      timeout: 4000,
+      position: "bottom-right",
+      color: "dark",
+      textColor: "white",
+      attrs: { role: "status", "aria-live": "polite" },
+    });
   } finally {
     pendingAction.value = null;
   }
@@ -411,6 +437,33 @@ tbody tr:hover {
   color: var(--color-evergreen, #456b56);
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.user-status {
+  display: inline-block;
+  min-width: 5.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  text-align: center;
+  transition:
+    color var(--motion-quick, 180ms) ease,
+    background-color var(--motion-quick, 180ms) ease;
+}
+
+.user-status--active {
+  background: rgb(88 123 97 / 12%);
+  color: var(--color-success);
+}
+
+.user-status--deactivated {
+  background: rgb(115 118 110 / 12%);
+  color: var(--color-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-status {
+    transition: none;
+  }
 }
 
 .role-empty {

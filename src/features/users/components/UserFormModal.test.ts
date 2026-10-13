@@ -232,7 +232,7 @@ describe("UserFormModal", () => {
     ).toBe("Novo Usuário");
     expect(
       dialogGet('[aria-label="Perfis selecionados"]').textContent,
-    ).toContain("manager");
+    ).toContain("Gerente");
     expect(
       dialogGet<HTMLInputElement>('[aria-label="Perfil manager"]').checked,
     ).toBe(true);
@@ -385,6 +385,6 @@ describe("UserFormModal", () => {
     ).toBe("novo@example.test");
     expect(
       dialogGet('[aria-label="Perfis selecionados"]').textContent,
-    ).toContain("manager");
+    ).toContain("Gerente");
   });
 });
