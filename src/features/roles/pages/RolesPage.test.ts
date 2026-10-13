@@ -134,6 +134,29 @@ afterEach(() => {
 describe("RolesPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
+  it("shows the disabled admin action tooltip on hover and keyboard focus in the scrollable action row", async () => {
+    server.use(...makeRolesRouteMocks(roles).handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain("admin"));
+    const actionsCell = wrapper.get("tbody tr .actions-cell--nowrap");
+    const shell = wrapper
+      .get('[aria-label="Editar permissões do perfil admin"]')
+      .element.closest(".action-button-shell");
+    const tooltip = shell?.querySelector('[role="tooltip"]');
+
+    expect(actionsCell.classes()).toContain("actions-cell--nowrap");
+    shell?.dispatchEvent(new Event("mouseenter"));
+    await vi.waitFor(() =>
+      expect(tooltip?.classList).toContain("action-button-tooltip--visible"),
+    );
+    shell?.dispatchEvent(new Event("mouseleave"));
+    shell?.dispatchEvent(new Event("focusin"));
+    await vi.waitFor(() =>
+      expect(tooltip?.classList).toContain("action-button-tooltip--visible"),
+    );
+  });
+
   it("lists roles and saves editable permissions while protecting admin", async () => {
     const mocks = makeRolesRouteMocks(roles);
     server.use(...mocks.handlers);
