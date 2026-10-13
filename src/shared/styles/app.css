@@ -15,3 +15,11 @@
   --font-sans: "DM Sans", sans-serif;
   --font-display: "DM Serif Display", Georgia, serif;
 }
+
+@layer base {
+  /* Single focus ring for the shell, header, drawer and page content. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus, #71987a);
+    outline-offset: 2px;
+  }
+}
