@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import type { VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
@@ -85,17 +85,19 @@ const overlayBackdrop = (wrapper: VueWrapper): string[] => {
 };
 
 describe("AppLayout.vue", () => {
-  afterEach(() => {
-    while (mountedLayouts.length > 0) {
-      mountedLayouts.pop()?.unmount();
-    }
-  });
-
   beforeEach(() => {
+    vi.useFakeTimers();
     setActivePinia(createPinia());
     const session = useSessionStore();
     session.status = "authenticated";
     session.user = adminUser;
+  });
+
+  afterEach(() => {
+    while (mountedLayouts.length > 0) {
+      mountedLayouts.pop()?.unmount();
+    }
+    vi.useRealTimers();
   });
 
   it("mounts a single shell with header, drawer and the app content container", async () => {
