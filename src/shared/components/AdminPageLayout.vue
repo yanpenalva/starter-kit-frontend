@@ -6,7 +6,17 @@
         <h1 class="page-title">{{ title }}</h1>
         <p class="page-subtitle"><slot name="subtitle" /></p>
       </header>
-      <section class="page-card"><slot /></section>
+
+      <div v-if="$slots.toolbar" class="page-toolbar">
+        <slot name="toolbar" />
+      </div>
+
+      <section class="page-card">
+        <div v-if="$slots.actions" class="page-actions">
+          <slot name="actions" />
+        </div>
+        <slot />
+      </section>
     </div>
   </AppLayout>
 </template>
@@ -52,6 +62,23 @@ defineProps<{
   margin: 0;
   color: var(--color-muted, #666);
   font-size: 0.875rem;
+}
+
+.page-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .page-card {
