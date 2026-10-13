@@ -3,6 +3,10 @@
     class="action-button-shell"
     :tabindex="isUnavailable && tooltip ? 0 : undefined"
     :aria-describedby="isUnavailable && tooltip ? tooltipId : undefined"
+    @focusin="isTooltipVisible = true"
+    @focusout="isTooltipVisible = false"
+    @mouseenter="isTooltipVisible = true"
+    @mouseleave="isTooltipVisible = false"
   >
     <button
       class="ui-control action-button"
@@ -34,6 +38,7 @@
       v-if="isUnavailable && tooltip"
       :id="tooltipId"
       class="action-button-tooltip"
+      :class="{ 'action-button-tooltip--visible': isTooltipVisible }"
       role="tooltip"
     >
       {{ tooltip }}
@@ -42,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, useId } from "vue";
+import { computed, ref, useId } from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -72,6 +77,7 @@ const emit = defineEmits<{
 
 const tooltipId = `action-button-tooltip-${useId()}`;
 const isUnavailable = computed(() => props.disabled || props.loading);
+const isTooltipVisible = ref(false);
 
 const handleClick = (event: MouseEvent): void => {
   if (props.disabled || props.loading) {
@@ -108,6 +114,10 @@ const handleClick = (event: MouseEvent): void => {
 
 .action-button-shell:hover .action-button-tooltip,
 .action-button-shell:focus .action-button-tooltip {
+  opacity: 1;
+}
+
+.action-button-tooltip--visible {
   opacity: 1;
 }
 

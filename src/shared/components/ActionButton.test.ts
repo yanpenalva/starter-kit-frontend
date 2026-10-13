@@ -44,7 +44,7 @@ describe("ActionButton.vue", () => {
     expect(button.classes()).toContain("action-button--icon");
   });
 
-  it("mantém cor e disponibiliza explicação no hover e no foco quando bloqueado", () => {
+  it("mantém cor e disponibiliza explicação no hover e no foco quando bloqueado", async () => {
     const wrapper = mountButton({
       icon: "edit",
       color: "warning",
@@ -70,6 +70,18 @@ describe("ActionButton.vue", () => {
     expect(wrapper.get(`[id="${tooltipId}"]`).text()).toBe(
       "Ação indisponível para o perfil Administrador.",
     );
+
+    const tooltip = wrapper.get(`[id="${tooltipId}"]`);
+    expect(tooltip.classes()).not.toContain("action-button-tooltip--visible");
+
+    await shell.trigger("focusin");
+    expect(tooltip.classes()).toContain("action-button-tooltip--visible");
+
+    await shell.trigger("focusout");
+    expect(tooltip.classes()).not.toContain("action-button-tooltip--visible");
+
+    await shell.trigger("mouseenter");
+    expect(tooltip.classes()).toContain("action-button-tooltip--visible");
   });
 
   it("emite click com o evento nativo quando está habilitado", async () => {
