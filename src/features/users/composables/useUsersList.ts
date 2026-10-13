@@ -18,29 +18,14 @@ import type {
 } from "@/features/users/api/users.types";
 export const USERS_QUERY_KEY = "users";
 export const USER_QUERY_KEY = "user";
-export const useUsersList = () => {
+
+/*
+ * Mutações de usuário isoladas da listagem: os modais de criação/edição
+ * precisam gravar sem montar uma segunda query de lista com os filtros
+ * default. A invalidação continua compartilhada pelo queryClient.
+ */
+export const useUserMutations = () => {
   const queryClient = useQueryClient();
-  const filters = reactive<UserFilters>({
-    page: 1,
-    per_page: 15,
-    search: "",
-    status: undefined,
-    role: undefined,
-  });
-  const query = useQuery({
-    queryKey: computed(() => [USERS_QUERY_KEY, { ...filters }]),
-    queryFn: () => listUsers({ ...filters }),
-  });
-  const hasActiveFilters = (): boolean => {
-    return (
-      filters.search !== "" ||
-      filters.status !== undefined ||
-      filters.role !== undefined
-    );
-  };
-  const resetAndGoToFirstPage = (): void => {
-    filters.page = 1;
-  };
   const invalidate = async (): Promise<void> => {
     await queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] });
     await queryClient.invalidateQueries({ queryKey: [USER_QUERY_KEY] });
@@ -84,13 +69,40 @@ export const useUsersList = () => {
     onSuccess: () => invalidate(),
   });
   return {
-    filters,
-    query,
     updateMutation,
     statusMutation,
     rolesMutation,
     createMutation,
     deleteMutation,
+  };
+};
+
+export const useUsersList = () => {
+  const filters = reactive<UserFilters>({
+    page: 1,
+    per_page: 15,
+    search: "",
+    status: undefined,
+    role: undefined,
+  });
+  const query = useQuery({
+    queryKey: computed(() => [USERS_QUERY_KEY, { ...filters }]),
+    queryFn: () => listUsers({ ...filters }),
+  });
+  const hasActiveFilters = (): boolean => {
+    return (
+      filters.search !== "" ||
+      filters.status !== undefined ||
+      filters.role !== undefined
+    );
+  };
+  const resetAndGoToFirstPage = (): void => {
+    filters.page = 1;
+  };
+  return {
+    filters,
+    query,
+    ...useUserMutations(),
     hasActiveFilters,
     resetAndGoToFirstPage,
   };

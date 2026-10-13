@@ -84,6 +84,9 @@ const toggleLabel = computed(() => {
   color: var(--color-ink, #252a25);
   cursor: pointer;
   place-items: center;
+  transition:
+    border-color var(--motion-quick, 180ms) ease,
+    color var(--motion-quick, 180ms) ease;
 }
 
 .app-header__toggle:hover,
@@ -139,6 +142,12 @@ const toggleLabel = computed(() => {
 @media (max-width: 1023.98px) {
   .app-header__brand-name {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-header__toggle {
+    transition: none;
   }
 }
 </style>

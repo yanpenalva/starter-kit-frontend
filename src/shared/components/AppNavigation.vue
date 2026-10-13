@@ -309,6 +309,13 @@ const handleLogout = async () => {
   font-size: 0.8125rem;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .app-navigation__link,
+  .app-navigation__logout-btn {
+    transition: none;
+  }
+}
+
 /* Mini-state hides the text visually, keeping it available to assistive
    technology and to the focus order. */
 .app-navigation__link--mini .app-navigation__label,

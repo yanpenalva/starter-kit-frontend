@@ -148,7 +148,7 @@ const visibleShortcuts = computed(() =>
   padding: 1.5rem;
   border: 1px solid rgb(58 77 60 / 12%);
   border-radius: 0.5rem;
-  background: white;
+  background: var(--color-panel, #fffefb);
   box-shadow: var(--shadow-panel, 0 10px 25px -5px rgb(0 0 0 / 0.05));
 }
 
@@ -244,5 +244,11 @@ const visibleShortcuts = computed(() =>
 
 .dashboard-action-btn:hover {
   background: rgb(49 72 48 / 15%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-action-btn {
+    transition: none;
+  }
 }
 </style>

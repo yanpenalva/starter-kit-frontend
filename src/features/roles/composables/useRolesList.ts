@@ -13,13 +13,15 @@ import type {
 
 export const ROLES_QUERY_KEY = "roles";
 
-export const useRolesList = () => {
+/*
+ * Mutações de papel isoladas da listagem, com a mesma razão dos usuários: o
+ * modal de criação/edição grava sem montar uma segunda query de lista.
+ */
+export const useRoleMutations = () => {
   const queryClient = useQueryClient();
-  const filters = reactive<RoleFilters>({ page: 1, per_page: 15, search: "" });
-  const query = useQuery({
-    queryKey: computed(() => [ROLES_QUERY_KEY, { ...filters }]),
-    queryFn: () => listRoles({ ...filters }),
-  });
+  const invalidate = async (): Promise<void> => {
+    await queryClient.invalidateQueries({ queryKey: [ROLES_QUERY_KEY] });
+  };
   const permissionMutation = useMutation({
     mutationFn: ({
       roleId,
@@ -28,21 +30,24 @@ export const useRolesList = () => {
       roleId: number;
       payload: UpdateRolePermissionsPayload;
     }) => updateRolePermissions(roleId, payload),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [ROLES_QUERY_KEY] });
-    },
+    onSuccess: () => invalidate(),
   });
   const createMutation = useMutation({
     mutationFn: (payload: { name: string }) => createRole(payload),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [ROLES_QUERY_KEY] });
-    },
+    onSuccess: () => invalidate(),
   });
   const deleteMutation = useMutation({
     mutationFn: (roleId: number) => deleteRole(roleId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [ROLES_QUERY_KEY] });
-    },
+    onSuccess: () => invalidate(),
   });
-  return { filters, query, permissionMutation, createMutation, deleteMutation };
+  return { permissionMutation, createMutation, deleteMutation };
+};
+
+export const useRolesList = () => {
+  const filters = reactive<RoleFilters>({ page: 1, per_page: 15, search: "" });
+  const query = useQuery({
+    queryKey: computed(() => [ROLES_QUERY_KEY, { ...filters }]),
+    queryFn: () => listRoles({ ...filters }),
+  });
+  return { filters, query, ...useRoleMutations() };
 };

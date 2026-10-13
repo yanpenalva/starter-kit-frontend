@@ -1,11 +1,13 @@
 import { VueQueryPlugin } from "@tanstack/vue-query";
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { VueWrapper } from "@vue/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, createRouter } from "vue-router";
 import type { Router } from "vue-router";
 import { delay, http, HttpResponse } from "msw";
 import {
+  makeAdminRole,
   makeAdminUser,
   makeUsersRouteMocks,
   type UsersRouteMocks,
@@ -45,6 +47,32 @@ const makeRouter = async (userId: string): Promise<Router> => {
   return router;
 };
 
+const rolesListHandler = http.get(
+  `${TEST_API_BASE}/api/v1/roles`,
+  async ({ request }) =>
+    HttpResponse.json(
+      {
+        data: [
+          makeAdminRole({ id: 1, name: "admin" }),
+          makeAdminRole({ id: 2, name: "user" }),
+        ],
+        links: { first: null, last: null, prev: null, next: null },
+        meta: {
+          current_page: 1,
+          from: null,
+          last_page: 1,
+          path: "",
+          per_page: 50,
+          to: null,
+          total: 2,
+        },
+      },
+      { headers: makeCorsHeaders(request) },
+    ),
+);
+
+const mountedWrappers: VueWrapper[] = [];
+
 const mountPage = async (
   userId = "7",
   permissions: readonly string[] = [...CATALOGUE_PERMISSIONS],
@@ -58,19 +86,69 @@ const mountPage = async (
     roles: ["admin"],
     permissions: [...permissions],
   };
-  return mount(UserDetailPage, {
+  const wrapper = mount(UserDetailPage, {
     global: {
       plugins: [[VueQueryPlugin, { queryClient }], await makeRouter(userId)],
       stubs: { AppLayout: { template: "<div><slot /></div>" } },
     },
   });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 };
 
 const useUserHandlers = (user = makeUser()): UsersRouteMocks => {
   const mocks = makeUsersRouteMocks([user]);
-  server.use(...mocks.handlers);
+  server.use(...mocks.handlers, rolesListHandler);
   return mocks;
 };
+
+// O modal é teleportado para o documento pelo Quasar.
+const dialogElement = (): HTMLElement | null =>
+  document.body.querySelector<HTMLElement>('[role="dialog"]');
+
+const dialogGet = <T extends HTMLElement = HTMLElement>(
+  selector: string,
+): T => {
+  const element = dialogElement()?.querySelector<T>(selector) ?? null;
+  if (element === null) {
+    throw new Error(`Elemento do diálogo não encontrado: ${selector}`);
+  }
+  return element;
+};
+
+const setDialogValue = async (
+  selector: string,
+  value: string,
+): Promise<void> => {
+  const element = dialogGet<HTMLInputElement>(selector);
+  element.value = value;
+  element.dispatchEvent(new Event("input", { bubbles: true }));
+};
+
+const openEditModal = async (wrapper: VueWrapper): Promise<void> => {
+  await vi.waitFor(() =>
+    expect(wrapper.find('[data-testid="edit-user"]').exists()).toBe(true),
+  );
+  await wrapper.get('[data-testid="edit-user"]').trigger("click");
+  await vi.waitFor(() => expect(dialogElement()).not.toBeNull());
+};
+
+const waitDialogClosed = async (): Promise<void> => {
+  await vi.waitFor(() => expect(dialogElement()).toBeNull());
+};
+
+const beforeUnload = (): Event => {
+  const event = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(event);
+  return event;
+};
+
+afterEach(() => {
+  while (mountedWrappers.length > 0) {
+    mountedWrappers.pop()?.unmount();
+  }
+  document.body.innerHTML = "";
+});
 
 describe("UserDetailPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
@@ -98,6 +176,11 @@ describe("UserDetailPage", () => {
       expect(wrapper.find('[data-testid="user-email"]').exists()).toBe(true),
     );
     expect(wrapper.find('[data-testid="user-cpf"]').exists()).toBe(false);
+
+    await openEditModal(wrapper);
+    expect(
+      dialogElement()?.querySelector('[data-testid="edit-cpf"]'),
+    ).toBeNull();
   });
 
   it("exibe o CPF com a permissão users.read-cpf", async () => {
@@ -112,22 +195,24 @@ describe("UserDetailPage", () => {
     );
   });
 
-  it("salva edições de nome, email e cpf via PATCH", async () => {
+  it("salva edições de nome, email e cpf pelo mesmo modal da listagem", async () => {
     const mocks = useUserHandlers();
     const wrapper = await mountPage();
 
+    await openEditModal(wrapper);
     await vi.waitFor(() =>
       expect(
-        wrapper.get<HTMLInputElement>('[data-testid="edit-name"]').element
-          .value,
+        dialogGet<HTMLInputElement>('[data-testid="edit-name"]').value,
       ).toBe("Maria Silva"),
     );
-    await wrapper.get('[data-testid="edit-name"]').setValue("Maria Editada");
-    await wrapper
-      .get('[data-testid="edit-email"]')
-      .setValue("maria.nova@example.test");
-    await wrapper.get('[data-testid="edit-cpf"]').setValue("98765432100");
-    await wrapper.get("form").trigger("submit");
+
+    await setDialogValue('[data-testid="edit-name"]', "Maria Editada");
+    await setDialogValue(
+      '[data-testid="edit-email"]',
+      "maria.nova@example.test",
+    );
+    await setDialogValue('[data-testid="edit-cpf"]', "98765432100");
+    dialogGet('[data-testid="save-user"]').click();
 
     await vi.waitFor(() =>
       expect(
@@ -144,67 +229,60 @@ describe("UserDetailPage", () => {
         ),
       ).toBe(true),
     );
+    await waitDialogClosed();
+    expect(wrapper.text()).toContain("Usuário atualizado com sucesso.");
   });
 
-  it("bloqueia a saída com estado sujo e confirmação", async () => {
+  it("bloqueia a saída nativa enquanto o estado está sujo", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
+    const confirmSpy = vi.spyOn(globalThis, "confirm");
 
-    await vi.waitFor(() =>
-      expect(
-        wrapper.get<HTMLInputElement>('[data-testid="edit-name"]').element
-          .value,
-      ).toBe("Maria Silva"),
-    );
-    await wrapper.get('[data-testid="edit-name"]').setValue("Nome alterado");
+    try {
+      await openEditModal(wrapper);
+      await setDialogValue('[data-testid="edit-name"]', "Nome alterado");
 
-    const guarded = (
-      wrapper.vm as unknown as {
-        beforeWindowUnload: (event: BeforeUnloadEvent) => void;
-      }
-    ).beforeWindowUnload;
-    const event = new Event("beforeunload", { cancelable: true });
-    guarded(event as BeforeUnloadEvent);
-    expect(event.defaultPrevented).toBe(true);
+      expect(beforeUnload().defaultPrevented).toBe(true);
+      expect(confirmSpy).not.toHaveBeenCalled();
+    } finally {
+      confirmSpy.mockRestore();
+    }
   });
 
   it("não bloqueia a saída com estado limpo", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
 
+    await openEditModal(wrapper);
     await vi.waitFor(() =>
       expect(
-        wrapper.get<HTMLInputElement>('[data-testid="edit-name"]').element
-          .value,
+        dialogGet<HTMLInputElement>('[data-testid="edit-name"]').value,
       ).toBe("Maria Silva"),
     );
 
-    const guarded = (
-      wrapper.vm as unknown as {
-        beforeWindowUnload: (event: BeforeUnloadEvent) => void;
-      }
-    ).beforeWindowUnload;
-    const event = new Event("beforeunload", { cancelable: true });
-    guarded(event as BeforeUnloadEvent);
-    expect(event.defaultPrevented).toBe(false);
+    expect(beforeUnload().defaultPrevented).toBe(false);
   });
 
-  it("reseta o formulário ao cancelar as edições", async () => {
+  it("descarta as edições ao cancelar com confirmação e reabre limpo", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
+    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
 
-    await vi.waitFor(() =>
-      expect(
-        wrapper.get<HTMLInputElement>('[data-testid="edit-name"]').element
-          .value,
-      ).toBe("Maria Silva"),
-    );
-    await wrapper.get('[data-testid="edit-name"]').setValue("Nome alterado");
-    await wrapper.get('[data-testid="cancel-edit"]').trigger("click");
+    try {
+      await openEditModal(wrapper);
+      await setDialogValue('[data-testid="edit-name"]', "Nome alterado");
+      dialogGet('[data-testid="cancel-edit"]').click();
+      await waitDialogClosed();
 
-    expect(
-      wrapper.get<HTMLInputElement>('[data-testid="edit-name"]').element.value,
-    ).toBe("Maria Silva");
+      await openEditModal(wrapper);
+      await vi.waitFor(() =>
+        expect(
+          dialogGet<HTMLInputElement>('[data-testid="edit-name"]').value,
+        ).toBe("Maria Silva"),
+      );
+    } finally {
+      confirmSpy.mockRestore();
+    }
   });
 
   it("mostra erros por campo quando a edição recebe 422", async () => {
@@ -222,22 +300,17 @@ describe("UserDetailPage", () => {
     );
     const wrapper = await mountPage();
 
-    await vi.waitFor(() =>
-      expect(
-        wrapper.get<HTMLInputElement>('[data-testid="edit-email"]').element
-          .value,
-      ).toBe("maria@example.test"),
-    );
-    await wrapper
-      .get('[data-testid="edit-email"]')
-      .setValue("tomada@example.test");
-    await wrapper.get("form").trigger("submit");
+    await openEditModal(wrapper);
+    await vi.waitFor(() => expect(dialogElement()).not.toBeNull());
+    await setDialogValue('[data-testid="edit-email"]', "tomada@example.test");
+    dialogGet('[data-testid="save-user"]').click();
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[role="alert"]').text()).toContain(
-        "O email já está em uso.",
-      ),
+      expect(dialogElement()?.textContent).toContain("O email já está em uso."),
     );
+    // Erro no modal: a página não troca o detalhe por um alerta.
+    expect(dialogElement()).not.toBeNull();
+    expect(wrapper.find(".page-card [role=alert]").exists()).toBe(false);
   });
 
   it("mostra estado de carregamento enquanto busca o usuário", async () => {

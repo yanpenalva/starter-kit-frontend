@@ -72,6 +72,10 @@ defineProps<{
   gap: 1rem;
 }
 
+.page-toolbar > :last-child {
+  margin-left: auto;
+}
+
 .page-actions {
   display: flex;
   align-items: center;
@@ -82,9 +86,9 @@ defineProps<{
 }
 
 .page-card {
-  padding: 1.5rem;
+  padding: var(--space-panel, 1.5rem);
   border: 1px solid rgb(58 77 60 / 12%);
   border-radius: 0.5rem;
-  background: white;
+  background: var(--color-panel, #fffefb);
 }
 </style>
