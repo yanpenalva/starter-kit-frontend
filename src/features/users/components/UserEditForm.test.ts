@@ -53,6 +53,7 @@ const mountedWrappers: VueWrapper[] = [];
 
 const mountModal = async (
   permissions: readonly string[] = [...CATALOGUE_PERMISSIONS],
+  actorRoles: readonly string[] = ["admin"],
 ) => {
   queryClient.clear();
   useSessionStore().user = {
@@ -60,7 +61,7 @@ const mountModal = async (
     name: "Admin",
     email: "admin@example.test",
     email_verified_at: "2026-01-01T00:00:00Z",
-    roles: ["admin"],
+    roles: [...actorRoles],
     permissions: [...permissions],
   };
   const wrapper = mount(UserEditForm, {
@@ -214,9 +215,7 @@ describe("UserEditForm", () => {
     await mountModal(["users.view", "users.assign-roles"]);
 
     expect(document.body.querySelector('[data-testid="save-user"]')).toBeNull();
-    expect(
-      document.body.querySelector('[aria-label="Perfis de Maria Silva"]'),
-    ).not.toBeNull();
+    expect(dialogGet('[aria-label="Perfis selecionados"]')).not.toBeNull();
 
     document.body
       .querySelector('[role="dialog"]')
@@ -237,5 +236,117 @@ describe("UserEditForm", () => {
       document.body.querySelector('[aria-label="Perfis de Maria Silva"]'),
     ).toBeNull();
     expect(dialogGet("[data-testid=roles-readonly]").textContent).toBe("user");
+  });
+
+  it("bloqueia atribuição vazia antes do PUT", async () => {
+    const mocks = makeUsersRouteMocks([user]);
+    server.use(...mocks.handlers, rolesListHandler);
+    await mountModal();
+
+    dialogGet<HTMLButtonElement>('[aria-label="Remover perfil user"]').click();
+    await vi.waitFor(() =>
+      expect(dialogGet(".user-edit__roles").textContent).toContain(
+        "Selecione ao menos um perfil. Uma atribuição vazia não pode ser salva.",
+      ),
+    );
+    expect(
+      dialogGet<HTMLButtonElement>(
+        '[aria-label="Salvar perfis de Maria Silva"]',
+      ).disabled,
+    ).toBe(true);
+    expect(mocks.calls.filter((call) => call.method === "PUT")).toHaveLength(0);
+  });
+
+  it.each([403, 422])(
+    "mantém o erro %i de atribuição dentro do bloco de perfis",
+    async (status) => {
+      const mocks = makeUsersRouteMocks([user]);
+      let putCalls = 0;
+      server.use(...mocks.handlers, rolesListHandler);
+      server.use(
+        http.put(
+          `${TEST_API_BASE}/api/v1/users/:userId/roles`,
+          async ({ request }) => {
+            putCalls += 1;
+            return HttpResponse.json(
+              {
+                message: status === 403 ? "Acesso negado." : "Dados inválidos.",
+                ...(status === 422
+                  ? { errors: { roles: ["Selecione perfis válidos."] } }
+                  : {}),
+              },
+              { status, headers: makeCorsHeaders(request) },
+            );
+          },
+        ),
+      );
+      await mountModal();
+
+      await vi.waitFor(() =>
+        expect(dialogGet('[aria-label="Perfil editor"]')).toBeDefined(),
+      );
+      await setValue(
+        '[aria-label="Perfis de Maria Silva"] [aria-label="Perfil editor"]',
+        true,
+      );
+      await dialogGet('[aria-label="Salvar perfis de Maria Silva"]').click();
+
+      await vi.waitFor(() =>
+        expect(
+          dialogGet('.user-edit__roles [role="alert"]').textContent,
+        ).not.toBe(""),
+      );
+      expect(
+        document.body.querySelector('.user-edit [role="alert"]'),
+      ).toBeNull();
+      expect(putCalls).toBe(1);
+    },
+  );
+
+  it("preserva chips e não consulta catálogo sem roles.view", async () => {
+    const mocks = makeUsersRouteMocks([user]);
+    let catalogCalls = 0;
+    server.use(
+      ...mocks.handlers,
+      http.get(`${TEST_API_BASE}/api/v1/roles`, ({ request }) => {
+        catalogCalls += 1;
+        return HttpResponse.json(
+          { data: [], links: {}, meta: {} },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+    await mountModal(["users.assign-roles"]);
+
+    expect(dialogGet('[role="status"]').textContent).toContain(
+      "roles.view é necessária",
+    );
+    expect(
+      dialogGet('[aria-label="Perfis selecionados"]').textContent,
+    ).toContain("user");
+    expect(catalogCalls).toBe(0);
+  });
+
+  it("permite operador sem admin com roles.view e users.assign-roles", async () => {
+    const mocks = makeUsersRouteMocks([user]);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountModal(
+      ["roles.view", "users.assign-roles"],
+      ["operator"],
+    );
+
+    await vi.waitFor(() =>
+      expect(dialogGet('[aria-label="Perfil editor"]')).toBeDefined(),
+    );
+    await setValue(
+      '[aria-label="Perfis de Maria Silva"] [aria-label="Perfil editor"]',
+      true,
+    );
+    await dialogGet('[aria-label="Salvar perfis de Maria Silva"]').click();
+
+    await vi.waitFor(() => expect(wrapper.emitted("roles-saved")).toBeTruthy());
+    expect(mocks.calls.find((call) => call.method === "PUT")?.body).toEqual({
+      roles: ["user", "editor"],
+    });
   });
 });

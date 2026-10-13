@@ -9,6 +9,10 @@ import {
 import type { AdminUser } from "@/features/users/api/users.types";
 import type { AdminRole } from "@/features/roles/api/roles.types";
 import type { AdminActivity } from "@/features/logs/api/audit.types";
+import {
+  auditActorId,
+  matchesAuditSearch,
+} from "@/features/logs/api/audit-search";
 export const makeAdminUser = (
   overrides: Partial<AdminUser> = {},
 ): AdminUser => {
@@ -45,14 +49,19 @@ export const makeAdminRole = (
 export const makeAdminActivity = (
   overrides: Partial<AdminActivity> = {},
 ): AdminActivity => {
+  const id = overrides.id ?? 1;
   return {
-    id: 1,
+    id,
     event: "privileged.change",
-    log_name: "web",
     subject_type: "user",
     subject_id: 1,
     description: "privileged.change",
-    properties: { correlation_id: "corr-1", actor_type: "user", actor_id: 1 },
+    properties: {
+      correlation_id: "corr-1",
+      actor_type: "user",
+      actor_id: String(id),
+      action: "user.assign_roles",
+    },
     created_at: "2026-10-06T12:00:00Z",
     ...overrides,
   };
@@ -316,6 +325,7 @@ export const makeUsersRouteMocks = (
         id: Math.max(0, ...users.map((user) => user.id)) + 1,
         name: payload.name,
         email: payload.email,
+        roles: [],
       });
       users.push(created);
       return json(request, { data: created }, 201);
@@ -445,6 +455,7 @@ export interface AuditRouteMocks {
 export interface AuditRouteOptions {
   readonly status?: number;
   readonly message?: string;
+  readonly actorNames?: Readonly<Record<number, string>>;
 }
 export const makeAuditRouteMocks = (
   activities: AdminActivity[] = [],
@@ -464,22 +475,25 @@ export const makeAuditRouteMocks = (
       const url = new URL(request.url);
       const search = (url.searchParams.get("search") ?? "").toLowerCase();
       const event = url.searchParams.get("event");
-      const logName = url.searchParams.get("log_name");
+      const action = url.searchParams.get("action");
       const subjectType = url.searchParams.get("subject_type");
       const page = Number(url.searchParams.get("page") ?? "1");
       const perPage = Number(url.searchParams.get("per_page") ?? "15");
-      const filtered = activities.filter(
-        (activity) =>
-          (search === "" ||
-            activity.description.toLowerCase().includes(search)) &&
+      const filtered = activities.filter((activity) => {
+        const actorId = auditActorId(activity);
+        const actorName =
+          actorId === null ? undefined : options.actorNames?.[actorId];
+        return (
+          matchesAuditSearch(activity, search, actorName) &&
           (event === null || event === "" || activity.event === event) &&
-          (logName === null ||
-            logName === "" ||
-            activity.log_name === logName) &&
+          (action === null ||
+            action === "" ||
+            activity.properties.action === action) &&
           (subjectType === null ||
             subjectType === "" ||
-            activity.subject_type === subjectType),
-      );
+            activity.subject_type === subjectType)
+        );
+      });
       const start = (page - 1) * perPage;
       const pageData = filtered.slice(start, start + perPage);
       return json(

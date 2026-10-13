@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  AUDIT_ACTIONS,
   AUDIT_EVENTS,
   AUDIT_SUBJECT_TYPES,
 } from "@/features/logs/api/audit.types";
@@ -45,11 +46,21 @@ describe("createMockDatabase", () => {
     );
   });
 
-  it("includes long texts for layout and responsiveness checks", () => {
+  it("includes long user names for layout and responsiveness checks", () => {
     const database = createMockDatabase();
     expect(database.users.some((user) => user.name.length > 50)).toBe(true);
+  });
+
+  it("includes a user with multiple roles in the fixture", () => {
+    const database = createMockDatabase();
+    const user = database.users.find((candidate) => candidate.roles.length > 1);
+
+    expect(user).toBeDefined();
+    expect(user?.roles).toEqual(["manager", "auditor"]);
     expect(
-      database.activities.some((activity) => activity.description.length > 120),
+      user?.roles.every((role) =>
+        database.roles.some((catalogueRole) => catalogueRole.name === role),
+      ),
     ).toBe(true);
   });
 
@@ -59,6 +70,9 @@ describe("createMockDatabase", () => {
       expect(AUDIT_EVENTS as readonly string[]).toContain(activity.event);
       expect(AUDIT_SUBJECT_TYPES as readonly string[]).toContain(
         activity.subject_type,
+      );
+      expect(AUDIT_ACTIONS as readonly string[]).toContain(
+        activity.properties.action,
       );
     }
   });

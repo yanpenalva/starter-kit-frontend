@@ -15,15 +15,18 @@ import type {
   UseQueryReturnType,
 } from "@tanstack/vue-query";
 
-import { toValue, unref } from "vue";
+import { computed, toValue, unref } from "vue";
 import type { MaybeRefOrGetter } from "vue";
 
 import type {
   AuthenticationExceptionResponse,
   AuthorizationExceptionResponse,
   ModelNotFoundExceptionResponse,
+  RenameRoleRequest,
   RoleIndex200,
   RoleIndexParams,
+  RoleRename200,
+  RoleShow200,
   RoleStore201,
   RoleUpdatePermissions200,
   StoreRoleRequest,
@@ -230,6 +233,209 @@ export function useRoleIndex<
   return query;
 }
 
+export const roleShow = (
+  role: MaybeRefOrGetter<number>,
+  options?: SecondParameter<typeof transportApi>,
+  signal?: AbortSignal,
+) => {
+  role = toValue(role);
+
+  return transportApi<RoleShow200>(
+    { url: `/api/v1/roles/${role}`, method: "GET", signal },
+    options,
+  );
+};
+
+export const getRoleShowQueryKey = (role: MaybeRefOrGetter<number>) => {
+  return ["api", "v1", "roles", role] as const;
+};
+
+export const getRoleShowQueryOptions = <
+  TData = Awaited<ReturnType<typeof roleShow>>,
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ModelNotFoundExceptionResponse
+  >,
+>(
+  role: MaybeRefOrGetter<number>,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof roleShow>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof transportApi>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = getRoleShowQueryKey(role);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof roleShow>>> = ({
+    signal,
+  }) => roleShow(role, requestOptions, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(
+      () => toValue(role) !== null && toValue(role) !== undefined,
+    ),
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof roleShow>>, TError, TData>;
+};
+
+export type RoleShowQueryResult = NonNullable<
+  Awaited<ReturnType<typeof roleShow>>
+>;
+export type RoleShowQueryError = ErrorType<
+  | AuthenticationExceptionResponse
+  | AuthorizationExceptionResponse
+  | ModelNotFoundExceptionResponse
+>;
+
+export function useRoleShow<
+  TData = Awaited<ReturnType<typeof roleShow>>,
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ModelNotFoundExceptionResponse
+  >,
+>(
+  role: MaybeRefOrGetter<number>,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof roleShow>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof transportApi>;
+  },
+  queryClient?: QueryClient,
+): UseQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getRoleShowQueryOptions(role, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
+
+  return query;
+}
+
+export const roleRename = (
+  role: MaybeRefOrGetter<number>,
+  renameRoleRequest: MaybeRefOrGetter<RenameRoleRequest>,
+  options?: SecondParameter<typeof transportApi>,
+  signal?: AbortSignal,
+) => {
+  role = toValue(role);
+  renameRoleRequest = toValue(renameRoleRequest);
+
+  return transportApi<RoleRename200>(
+    {
+      url: `/api/v1/roles/${role}`,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      data: renameRoleRequest,
+      signal,
+    },
+    options,
+  );
+};
+
+export const getRoleRenameMutationKey = () => ["roleRename"] as const;
+
+export const getRoleRenameMutationOptions = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ModelNotFoundExceptionResponse
+    | ValidationExceptionResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof roleRename>>,
+    TError,
+    RoleRenameMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof transportApi>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof roleRename>>,
+  TError,
+  RoleRenameMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRoleRenameMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof roleRename>>,
+    RoleRenameMutationVariables
+  > = (props) => {
+    const { role, data } = props ?? {};
+
+    return roleRename(role, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RoleRenameMutationResult = NonNullable<
+  Awaited<ReturnType<typeof roleRename>>
+>;
+export type RoleRenameMutationBody = RenameRoleRequest;
+export type RoleRenameMutationError = ErrorType<
+  | AuthenticationExceptionResponse
+  | AuthorizationExceptionResponse
+  | ModelNotFoundExceptionResponse
+  | ValidationExceptionResponse
+>;
+export type RoleRenameMutationVariables = {
+  role: number;
+  data: RenameRoleRequest;
+};
+
+export const useRoleRename = <
+  TError = ErrorType<
+    | AuthenticationExceptionResponse
+    | AuthorizationExceptionResponse
+    | ModelNotFoundExceptionResponse
+    | ValidationExceptionResponse
+  >,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof roleRename>>,
+      TError,
+      RoleRenameMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof transportApi>;
+  },
+  queryClient?: QueryClient,
+): UseMutationReturnType<
+  Awaited<ReturnType<typeof roleRename>>,
+  TError,
+  RoleRenameMutationVariables,
+  TContext
+> => {
+  return useMutation(getRoleRenameMutationOptions(options), queryClient);
+};
 export const roleDestroy = (
   role: MaybeRefOrGetter<number>,
   options?: SecondParameter<typeof transportApi>,

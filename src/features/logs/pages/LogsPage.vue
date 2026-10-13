@@ -6,22 +6,26 @@
     </template>
 
     <template #toolbar>
-      <div class="filters" aria-label="Filtros de auditoria">
+      <div v-if="canViewLogs" class="filters" aria-label="Filtros de auditoria">
         <SearchInput
           :model-value="searchTerm"
-          label="Buscar na auditoria"
+          label="Buscar por ator, evento ou ação"
           @update:model-value="searchTerm = $event"
         />
         <label>
-          Canal
+          Ação
           <select
-            v-model="filters.log_name"
-            aria-label="Filtrar por canal"
+            v-model="filters.action"
+            aria-label="Filtrar por ação"
             @change="filters.page = 1"
           >
-            <option value="">Todos</option>
-            <option v-for="name in AUDIT_LOG_NAMES" :key="name" :value="name">
-              {{ AUDIT_LOG_NAME_LABELS[name] }}
+            <option value="">Todas</option>
+            <option
+              v-for="action in AUDIT_ACTIONS"
+              :key="action"
+              :value="action"
+            >
+              {{ AUDIT_ACTION_LABELS[action] }}
             </option>
           </select>
         </label>
@@ -56,94 +60,108 @@
           </select>
         </label>
       </div>
-      <p class="selection-counter" role="status">
+      <p v-if="canViewLogs" class="selection-counter" role="status">
         {{ selection.selectedCount.value }} de
         {{ query.data.value?.data.length ?? 0 }} selecionados
       </p>
     </template>
 
-    <p v-if="query.isPending.value" role="status">
-      Carregando registros de auditoria...
+    <p v-if="!canViewLogs" role="alert" data-testid="logs-restricted">
+      A permissão logs.view é necessária para consultar os registros de
+      auditoria.
     </p>
-    <p v-if="query.isFetching.value && query.data.value" role="status">
-      Atualizando registros de auditoria...
-    </p>
-    <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
-    <div v-if="query.data.value" class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col" class="selection-cell"></th>
-            <th scope="col">Evento</th>
-            <th scope="col">Descrição</th>
-            <th scope="col">Entidade</th>
-            <th scope="col">Data</th>
-            <th scope="col">
-              <span class="sr-only">Ações</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="activity in query.data.value.data" :key="activity.id">
-            <td class="selection-cell">
-              <input
-                type="checkbox"
-                class="selection-toggle"
-                :aria-label="`Selecionar registro ${activity.id}`"
-                :checked="selection.isSelected(activity.id)"
-                :disabled="!selection.isSelectable.value"
-                @change="
-                  selection.setSelected(
-                    activity.id,
-                    ($event.target as HTMLInputElement).checked,
-                  )
-                "
-              />
-            </td>
-            <td>{{ AUDIT_EVENT_LABELS[activity.event] }}</td>
-            <td>{{ activity.description }}</td>
-            <td>
-              {{
-                AUDIT_SUBJECT_TYPE_LABELS[
-                  activity.subject_type as AuditSubjectType
-                ] ?? activity.subject_type
-              }}
-              #{{ activity.subject_id }}
-            </td>
-            <td>
-              {{ activity.created_at ? formatDate(activity.created_at) : "—" }}
-            </td>
-            <td>
-              <ActionButton
-                type="button"
-                icon="visibility"
-                :label="`Ver detalhes do registro ${activity.id}`"
-                @click="openDetail(activity)"
-              />
-            </td>
-          </tr>
-          <tr v-if="query.data.value.data.length === 0">
-            <td colspan="6">Nenhum registro encontrado.</td>
-          </tr>
-        </tbody>
-      </table>
+    <template v-else>
+      <p v-if="query.isPending.value" role="status">
+        Carregando registros de auditoria...
+      </p>
+      <p v-if="query.isFetching.value && query.data.value" role="status">
+        Atualizando registros de auditoria...
+      </p>
+      <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
-      <Pagination
-        aria-label="Paginação de auditoria"
-        :disabled="query.isFetching.value"
-        :meta="query.data.value.meta"
-        :per-page-options="[5, 10, 15, 25, 50]"
-        @change="filters.page = $event"
-        @per-page-change="changePerPage"
+      <div v-if="query.data.value" class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col" class="selection-cell"></th>
+              <th scope="col">Evento</th>
+              <th scope="col">Descrição</th>
+              <th scope="col">Entidade</th>
+              <th scope="col">Data</th>
+              <th scope="col">
+                <span class="sr-only">Ações</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="activity in query.data.value.data" :key="activity.id">
+              <td class="selection-cell">
+                <input
+                  type="checkbox"
+                  class="selection-toggle"
+                  :aria-label="`Selecionar registro ${activity.id}`"
+                  :checked="selection.isSelected(activity.id)"
+                  :disabled="!selection.isSelectable.value"
+                  @change="
+                    selection.setSelected(
+                      activity.id,
+                      ($event.target as HTMLInputElement).checked,
+                    )
+                  "
+                />
+              </td>
+              <td>
+                {{
+                  AUDIT_EVENT_LABELS[activity.event as AuditEvent] ??
+                  activity.event
+                }}
+              </td>
+              <td>{{ activity.description }}</td>
+              <td>
+                {{
+                  AUDIT_SUBJECT_TYPE_LABELS[
+                    activity.subject_type as AuditSubjectType
+                  ] ?? activity.subject_type
+                }}
+                #{{ activity.subject_id }}
+              </td>
+              <td>
+                {{
+                  activity.created_at ? formatDate(activity.created_at) : "—"
+                }}
+              </td>
+              <td>
+                <ActionButton
+                  type="button"
+                  icon="visibility"
+                  :label="`Ver detalhes do registro ${activity.id}`"
+                  @click="openDetail(activity)"
+                />
+              </td>
+            </tr>
+            <tr v-if="query.data.value.data.length === 0">
+              <td colspan="6">Nenhum registro encontrado.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <Pagination
+          aria-label="Paginação de auditoria"
+          :disabled="query.isFetching.value"
+          :meta="query.data.value.meta"
+          :per-page-options="[5, 10, 15, 25, 50]"
+          @change="filters.page = $event"
+          @per-page-change="changePerPage"
+        />
+      </div>
+
+      <LogDetailModal
+        :model-value="selectedActivity !== null"
+        :activity="selectedActivity"
+        @update:model-value="closeDetail"
       />
-    </div>
-
-    <LogDetailModal
-      :model-value="selectedActivity !== null"
-      :activity="selectedActivity"
-      @update:model-value="closeDetail"
-    />
+    </template>
   </AdminPageLayout>
 </template>
 
@@ -159,14 +177,16 @@ import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { useDebouncedSearch } from "@/shared/composables/useDebouncedSearch";
 import { usePageSelection } from "@/shared/composables/usePageSelection";
 import { listActivities } from "@/features/logs/api/audit.api";
+import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import LogDetailModal from "@/features/logs/components/LogDetailModal.vue";
 import {
+  AUDIT_ACTIONS,
+  AUDIT_ACTION_LABELS,
   AUDIT_EVENTS,
   AUDIT_EVENT_LABELS,
-  AUDIT_LOG_NAMES,
-  AUDIT_LOG_NAME_LABELS,
   AUDIT_SUBJECT_TYPE_LABELS,
   AUDIT_SUBJECT_TYPES,
+  type AuditEvent,
   type ActivityFilters,
   type AdminActivity,
   type AuditSubjectType,
@@ -174,6 +194,8 @@ import {
 import { cataloguePermissionLabel } from "@/shared/types/contract";
 
 const feedback = useFormFeedback();
+const { can } = useAuthorization();
+const canViewLogs = computed(() => can("logs.view"));
 const filters = reactive<ActivityFilters>({ page: 1, per_page: 10 });
 const searchTerm = ref(filters.search ?? "");
 const selectedActivity = ref<AdminActivity | null>(null);
@@ -186,6 +208,7 @@ const query = useQuery({
   queryKey: computed(() => ["audit", { ...filters }]),
   queryFn: () => listActivities({ ...filters }),
   placeholderData: keepPreviousData,
+  enabled: canViewLogs,
 });
 
 const selection = usePageSelection({
@@ -198,7 +221,7 @@ const selection = usePageSelection({
       filters.per_page,
       filters.search ?? "",
       filters.event ?? "",
-      filters.log_name ?? "",
+      filters.action ?? "",
       filters.subject_type ?? "",
     ].join("|"),
 });

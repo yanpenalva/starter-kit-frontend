@@ -65,9 +65,18 @@
           <RoleMultiSelect
             :model-value="rolesSelection"
             :aria-label="`Perfis de ${user.name}`"
+            :can-view-catalog="can('roles.view')"
             :disabled="rolesPending"
             @update:model-value="rolesSelection = $event"
           />
+          <p
+            v-if="isRolesDirty && rolesSelection.length === 0"
+            class="user-edit__roles-empty"
+            role="alert"
+          >
+            Selecione ao menos um perfil. Uma atribuição vazia não pode ser
+            salva.
+          </p>
           <FormFeedback :feedback="rolesFeedback" />
           <button
             type="button"
@@ -194,7 +203,11 @@ const canSaveProfile = computed(
   () => can("users.update") && isProfileDirty.value && !profilePending.value,
 );
 const canSaveRoles = computed(
-  () => can("users.assign-roles") && isRolesDirty.value && !rolesPending.value,
+  () =>
+    can("users.assign-roles") &&
+    isRolesDirty.value &&
+    rolesSelection.value.length > 0 &&
+    !rolesPending.value,
 );
 
 const { canDismiss } = useFormDismissGuard({
@@ -302,6 +315,12 @@ const saveRoles = async (): Promise<void> => {
 .user-edit__readonly {
   margin: 0;
   color: var(--color-muted, #73766e);
+  font-size: 0.875rem;
+}
+
+.user-edit__roles-empty {
+  margin: 0;
+  color: #b42318;
   font-size: 0.875rem;
 }
 </style>

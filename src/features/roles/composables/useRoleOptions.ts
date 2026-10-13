@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import type { Ref } from "vue";
 
 export interface RoleOption {
@@ -18,18 +18,22 @@ type ListRolesFn = (filters: {
 export interface RoleOptionsController {
   readonly options: Ref<RoleOption[]>;
   readonly isLoading: Ref<boolean>;
+  readonly hasError: Ref<boolean>;
   readonly hasMore: Ref<boolean>;
   search: (term: string) => void;
   loadMore: () => Promise<void>;
+  retry: () => Promise<void>;
 }
 
 const DEBOUNCE_MS = 250;
 
 export const useRoleOptions = (
   listRoles: ListRolesFn,
+  enabled: () => boolean = () => true,
 ): RoleOptionsController => {
   const options = ref<RoleOption[]>([]);
   const isLoading = ref(false);
+  const hasError = ref(false);
   const currentPage = ref(0);
   const lastPage = ref(1);
   const loadedIds = new Set<number>();
@@ -41,8 +45,10 @@ export const useRoleOptions = (
   const hasMore = computed(() => currentPage.value < lastPage.value);
 
   const fetchPage = async (page: number): Promise<void> => {
+    if (!enabled()) return;
     const token = ++requestToken;
     isLoading.value = true;
+    hasError.value = false;
     try {
       const response = await listRoles({
         page,
@@ -61,6 +67,8 @@ export const useRoleOptions = (
       }
       currentPage.value = response.meta.current_page;
       lastPage.value = response.meta.last_page;
+    } catch {
+      if (token === requestToken) hasError.value = true;
     } finally {
       if (token === requestToken) {
         isLoading.value = false;
@@ -68,7 +76,15 @@ export const useRoleOptions = (
     }
   };
 
-  void fetchPage(1);
+  watch(
+    enabled,
+    (isEnabled) => {
+      requestToken += 1;
+      isLoading.value = false;
+      if (isEnabled) void fetchPage(1);
+    },
+    { immediate: true },
+  );
 
   const search = (term: string): void => {
     pendingTerm = term.trim();
@@ -90,5 +106,9 @@ export const useRoleOptions = (
     await fetchPage(currentPage.value + 1);
   };
 
-  return { options, isLoading, hasMore, search, loadMore };
+  const retry = async (): Promise<void> => {
+    await fetchPage(1);
+  };
+
+  return { options, isLoading, hasError, hasMore, search, loadMore, retry };
 };

@@ -7,5 +7,5 @@ export interface RoleResource {
   id: number;
   name: string;
   guard_name: string;
-  permissions: unknown[];
+  permissions: string[];
 }

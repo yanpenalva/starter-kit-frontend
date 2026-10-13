@@ -9,11 +9,16 @@ import RoleMultiSelect from "./RoleMultiSelect.vue";
 
 type RoleRecord = ReturnType<typeof makeAdminRole>;
 
-const mountSelect = (modelValue: string[] = [], disabled = false) =>
+const mountSelect = (
+  modelValue: string[] = [],
+  disabled = false,
+  canViewCatalog = true,
+) =>
   mount(RoleMultiSelect, {
     props: {
       modelValue,
       disabled,
+      canViewCatalog,
       ariaLabel: "Perfis do usuário",
     },
   });
@@ -150,5 +155,84 @@ describe("RoleMultiSelect", () => {
         .get('input[aria-label="Buscar perfis para Perfis do usuário"]')
         .attributes("disabled"),
     ).toBeDefined();
+  });
+
+  it("preserva os perfis selecionados e não consulta sem roles.view", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/roles`, ({ request }) => {
+        calls += 1;
+        return HttpResponse.json(
+          { data: [], links: {}, meta: {} },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+    const wrapper = mountSelect(["user"], false, false);
+
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain(
+        "A permissão roles.view é necessária para consultar o catálogo.",
+      ),
+    );
+    expect(wrapper.find('[aria-label="Perfis selecionados"]').text()).toContain(
+      "user",
+    );
+    expect(wrapper.find('input[type="search"]').exists()).toBe(false);
+    expect(calls).toBe(0);
+  });
+
+  it("permite retry após erro de catálogo sem apagar os chips", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/roles`, ({ request }) => {
+        calls += 1;
+        if (calls === 1) {
+          return HttpResponse.json(
+            { message: "Sem permissão." },
+            { status: 403, headers: makeCorsHeaders(request) },
+          );
+        }
+        return HttpResponse.json(
+          {
+            data: [makeAdminRole({ id: 2, name: "editor" })],
+            links: { first: null, last: null, prev: null, next: null },
+            meta: {
+              current_page: 1,
+              from: 1,
+              last_page: 1,
+              path: "",
+              per_page: 50,
+              to: 1,
+              total: 1,
+            },
+          },
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+    const wrapper = mountSelect(["user"]);
+
+    await vi.waitFor(() =>
+      expect(wrapper.get('[role="alert"]').text()).toContain(
+        "Não foi possível carregar o catálogo",
+      ),
+    );
+    expect(wrapper.get('[aria-label="Perfis selecionados"]').text()).toContain(
+      "user",
+    );
+    const retryButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Tentar novamente"));
+    expect(retryButton).toBeDefined();
+    await retryButton?.trigger("click");
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[aria-label="Perfil editor"]').exists()).toBe(true),
+    );
+    expect(wrapper.get('[aria-label="Perfis selecionados"]').text()).toContain(
+      "user",
+    );
+    expect(calls).toBe(2);
   });
 });

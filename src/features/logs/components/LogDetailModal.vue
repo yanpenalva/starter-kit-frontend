@@ -14,14 +14,10 @@
         <dl class="log-detail__meta">
           <div>
             <dt>Evento</dt>
-            <dd>{{ AUDIT_EVENT_LABELS[activity.event] }}</dd>
-          </div>
-          <div>
-            <dt>Canal</dt>
             <dd>
               {{
-                AUDIT_LOG_NAME_LABELS[activity.log_name as AuditLogName] ??
-                activity.log_name
+                AUDIT_EVENT_LABELS[activity.event as AuditEvent] ??
+                activity.event
               }}
             </dd>
           </div>
@@ -66,10 +62,9 @@ import { computed } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
 import {
   AUDIT_EVENT_LABELS,
-  AUDIT_LOG_NAME_LABELS,
   AUDIT_SUBJECT_TYPE_LABELS,
   type AdminActivity,
-  type AuditLogName,
+  type AuditEvent,
   type AuditSubjectType,
 } from "@/features/logs/api/audit.types";
 
