@@ -30,7 +30,7 @@
               >
                 Ver perfis ({{ roles.length }})
               </button>
-              <span v-else>Nenhum</span>
+              <span v-if="roles.length <= 0">Nenhum</span>
             </dd>
           </div>
           <div>
@@ -45,7 +45,7 @@
               >
                 Ver permissões ({{ permissions.length }})
               </button>
-              <span v-else>Nenhuma</span>
+              <span v-if="permissions.length <= 0">Nenhuma</span>
             </dd>
           </div>
         </dl>
