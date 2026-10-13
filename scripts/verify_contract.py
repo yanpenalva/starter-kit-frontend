@@ -75,7 +75,7 @@ EXPECTED_PIN: ExpectedPin = {
     "policy_source": "User authorization in FE W2 integration request, 2026-10-13",
     "source": {
         "repository": "yanpenalva/starter-kit-api",
-        "commit_sha": "ec14bab9a24fe2641bb41b927f40365cf8a12af2",
+        "commit_sha": "4f6209194af5892a668cf7469020de144a6cd747",
         "branch": "main",
     },
     "workflow": {
@@ -85,20 +85,20 @@ EXPECTED_PIN: ExpectedPin = {
         "event": "workflow_dispatch",
     },
     "run": {
-        "id": 38409872620,
+        "id": 38448776305,
         "attempt": 1,
         "status": "completed",
         "conclusion": "success",
     },
     "artifact": {
-        "id": 11821515121,
-        "name": "openapi-ec14bab9a24fe2641bb41b927f40365cf8a12af2",
+        "id": 11838753867,
+        "name": "openapi-4f6209194af5892a668cf7469020de144a6cd747",
         "archive_file": "artifact.zip",
-        "archive_bytes": 7941,
-        "archive_sha256": "bf345edba35d3e6bd82404786b8649cb822e883d6703ae4069bff43554a080c0",
+        "archive_bytes": 7945,
+        "archive_sha256": "dc75db085cac8c4b77948804d3923b68e9ccc6d8f088952b9f9a2c334c9a4c23",
         "contract_file": "openapi.json",
-        "contract_bytes": 159585,
-        "contract_sha256": "9f3c72cb17878c79d112cfbdf07e982eeddb7d9774df776d610f4f3aefaf91a9",
+        "contract_bytes": 159899,
+        "contract_sha256": "4ada660b67de220dd686ce2ca949eb4e71cacec05f86db1ea4391ec08698ff33",
     },
     "verification": {
         "mode": "verify-committed",
