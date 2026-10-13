@@ -74,7 +74,7 @@
         Ativo
       </label>
       <section
-        class="user-form__roles"
+        class="user-form__roles user-form__roles--scroll"
         aria-labelledby="user-create-roles-title"
       >
         <h3 id="user-create-roles-title">Perfis (obrigatório)</h3>
@@ -283,6 +283,11 @@ const submit = async (): Promise<void> => {
 .user-form__roles {
   display: grid;
   gap: 0.5rem;
+}
+
+.user-form__roles--scroll {
+  max-height: 16rem;
+  overflow-y: auto;
 }
 
 .user-form__roles h3 {

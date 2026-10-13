@@ -87,9 +87,19 @@ describe("RoleMultiSelect", () => {
     const wrapper = mountSelect();
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Perfil admin"]').exists()).toBe(true),
+      expect(
+        wrapper
+          .find(
+            '[aria-label="Administrador — Acesso administrativo ao sistema"]',
+          )
+          .exists(),
+      ).toBe(true),
     );
-    expect(wrapper.find('[aria-label="Perfil user"]').exists()).toBe(true);
+    expect(
+      wrapper
+        .find('[aria-label="Usuário — Acessa os recursos básicos da conta"]')
+        .element.closest("label")?.textContent,
+    ).toContain("Usuário — Acessa os recursos básicos da conta");
     expect(calls).toContain("1");
   });
 
@@ -104,16 +114,28 @@ describe("RoleMultiSelect", () => {
     const wrapper = mountSelect();
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Perfil editor"]').exists()).toBe(true),
+      expect(
+        wrapper
+          .find('[aria-label^="editor — Perfil personalizado —"]')
+          .exists(),
+      ).toBe(true),
     );
     await wrapper
       .get('input[aria-label="Buscar perfis para Perfis do usuário"]')
       .setValue("edi");
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Perfil admin"]').exists()).toBe(false),
+      expect(
+        wrapper
+          .find(
+            '[aria-label="Administrador — Acesso administrativo ao sistema"]',
+          )
+          .exists(),
+      ).toBe(false),
     );
-    expect(wrapper.find('[aria-label="Perfil editor"]').exists()).toBe(true);
+    expect(
+      wrapper.find('[aria-label^="editor — Perfil personalizado —"]').exists(),
+    ).toBe(true);
   });
 
   it("emite seleção e remoção de perfis", async () => {
@@ -126,9 +148,17 @@ describe("RoleMultiSelect", () => {
     const wrapper = mountSelect(["editor"]);
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Perfil admin"]').exists()).toBe(true),
+      expect(
+        wrapper
+          .find(
+            '[aria-label="Administrador — Acesso administrativo ao sistema"]',
+          )
+          .exists(),
+      ).toBe(true),
     );
-    await wrapper.get('[aria-label="Perfil admin"]').setValue(true);
+    await wrapper
+      .get('[aria-label="Administrador — Acesso administrativo ao sistema"]')
+      .setValue(true);
 
     const emitted = wrapper.emitted("update:modelValue");
     expect(emitted?.at(-1)).toEqual([["editor", "admin"]]);
@@ -144,10 +174,18 @@ describe("RoleMultiSelect", () => {
     const wrapper = mountSelect(["admin"], true);
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Perfil admin"]').exists()).toBe(true),
+      expect(
+        wrapper
+          .find(
+            '[aria-label="Administrador — Acesso administrativo ao sistema"]',
+          )
+          .exists(),
+      ).toBe(true),
     );
     expect(
-      wrapper.get('[aria-label="Perfil admin"]').attributes("disabled"),
+      wrapper
+        .get('[aria-label="Administrador — Acesso administrativo ao sistema"]')
+        .attributes("disabled"),
     ).toBeDefined();
     expect(
       wrapper.get('[aria-label="Remover perfil admin"]').attributes("disabled"),
@@ -243,7 +281,11 @@ describe("RoleMultiSelect", () => {
     await retryButton?.trigger("click");
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Perfil editor"]').exists()).toBe(true),
+      expect(
+        wrapper
+          .find('[aria-label^="editor — Perfil personalizado —"]')
+          .exists(),
+      ).toBe(true),
     );
     expect(wrapper.get('[aria-label="Perfis selecionados"]').text()).toContain(
       "Usuário",

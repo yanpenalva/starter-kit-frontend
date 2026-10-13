@@ -94,7 +94,7 @@
                 {{ roleLabel(role) }}
               </span>
             </td>
-            <td class="actions-cell">
+            <td class="actions-cell actions-cell--nowrap">
               <ActionButton
                 type="button"
                 icon="visibility"
@@ -423,8 +423,17 @@ tbody tr:hover {
 
 .actions-cell {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.actions-cell--nowrap {
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+}
+
+.actions-cell--nowrap > * {
+  flex: 0 0 auto;
 }
 
 .role-pill,

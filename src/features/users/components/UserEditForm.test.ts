@@ -162,7 +162,7 @@ describe("UserEditForm", () => {
     );
 
     await setValue(
-      '[aria-label="Perfis de Maria Silva"] input[aria-label="Perfil editor"][role="option"]',
+      '[aria-label="Perfis de Maria Silva"] input[aria-label^="editor — Perfil personalizado —"][role="option"]',
       true,
     );
     dialogGet('[aria-label="Salvar perfis de Maria Silva"]').click();
@@ -285,10 +285,12 @@ describe("UserEditForm", () => {
       await mountModal();
 
       await vi.waitFor(() =>
-        expect(dialogGet('[aria-label="Perfil editor"]')).toBeDefined(),
+        expect(
+          dialogGet('[aria-label^="editor — Perfil personalizado —"]'),
+        ).toBeDefined(),
       );
       await setValue(
-        '[aria-label="Perfis de Maria Silva"] [aria-label="Perfil editor"]',
+        '[aria-label="Perfis de Maria Silva"] [aria-label^="editor — Perfil personalizado —"]',
         true,
       );
       await dialogGet('[aria-label="Salvar perfis de Maria Silva"]').click();
@@ -338,10 +340,12 @@ describe("UserEditForm", () => {
     );
 
     await vi.waitFor(() =>
-      expect(dialogGet('[aria-label="Perfil editor"]')).toBeDefined(),
+      expect(
+        dialogGet('[aria-label^="editor — Perfil personalizado —"]'),
+      ).toBeDefined(),
     );
     await setValue(
-      '[aria-label="Perfis de Maria Silva"] [aria-label="Perfil editor"]',
+      '[aria-label="Perfis de Maria Silva"] [aria-label^="editor — Perfil personalizado —"]',
       true,
     );
     await dialogGet('[aria-label="Salvar perfis de Maria Silva"]').click();

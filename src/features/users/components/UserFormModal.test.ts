@@ -80,7 +80,11 @@ const fillValidForm = async (): Promise<void> => {
 };
 
 const selectProfile = async (name: string): Promise<void> => {
-  const selector = `[aria-label="Perfil ${name}"][role="option"]`;
+  const labels: Record<string, string> = {
+    admin: "Administrador — Acesso administrativo ao sistema",
+    manager: "Gerente — Gerencia usuários e operações",
+  };
+  const selector = `[aria-label="${labels[name]}"][role="option"]`;
   await vi.waitFor(() => expect(dialogGet(selector)).toBeDefined());
   await setValue(selector, true);
 };
@@ -115,6 +119,7 @@ describe("UserFormModal", () => {
     server.use(...mocks.handlers, ...roles.handlers);
     const wrapper = await mountModal();
     const confirmSpy = vi.spyOn(globalThis, "confirm");
+    expect(dialogGet(".user-form__roles--scroll")).toBeDefined();
 
     try {
       expect(document.body.textContent).toContain(
@@ -234,7 +239,9 @@ describe("UserFormModal", () => {
       dialogGet('[aria-label="Perfis selecionados"]').textContent,
     ).toContain("Gerente");
     expect(
-      dialogGet<HTMLInputElement>('[aria-label="Perfil manager"]').checked,
+      dialogGet<HTMLInputElement>(
+        '[aria-label="Gerente — Gerencia usuários e operações"]',
+      ).checked,
     ).toBe(true);
     expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
     expect(wrapper.emitted("created")).toBeUndefined();

@@ -1,9 +1,11 @@
 import { computed, ref, watch } from "vue";
 import type { Ref } from "vue";
+import type { CataloguePermission } from "@/shared/types/contract";
 
 export interface RoleOption {
   readonly id: number;
   readonly name: string;
+  readonly permissions: CataloguePermission[];
 }
 
 type ListRolesFn = (filters: {
@@ -63,7 +65,10 @@ export const useRoleOptions = (
       for (const role of response.data) {
         if (loadedIds.has(role.id)) continue;
         loadedIds.add(role.id);
-        options.value = [...options.value, role];
+        options.value = [
+          ...options.value,
+          { id: role.id, name: role.name, permissions: role.permissions },
+        ];
       }
       currentPage.value = response.meta.current_page;
       lastPage.value = response.meta.last_page;
