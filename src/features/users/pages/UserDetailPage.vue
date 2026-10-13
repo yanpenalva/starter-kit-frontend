@@ -2,8 +2,12 @@
   <AdminPageLayout eyebrow="ADMINISTRAÇÃO" title="Detalhe do Usuário">
     <template #subtitle>
       Detalhe e edição de um usuário. Área restrita para usuários com permissão
-      <code>users.view</code>.
+      {{ cataloguePermissionLabel("users.view") }}.
     </template>
+
+    <RouterLink :to="{ name: 'users' }" class="ui-control">
+      Voltar à lista de usuários
+    </RouterLink>
 
     <p v-if="query.isPending.value" role="status">Carregando usuário...</p>
     <FormFeedback :feedback="feedback" />
@@ -52,7 +56,7 @@
           </dd>
         </div>
         <div>
-          <dt>Papéis</dt>
+          <dt>Perfis</dt>
           <dd>
             <span v-if="user.roles.length === 0">Nenhum</span>
             <span v-for="role in user.roles" :key="role" class="pill">
@@ -87,7 +91,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useRoute } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
@@ -96,6 +100,7 @@ import { useUserDetail } from "@/features/users/composables/useUsersList";
 import { formatCpf } from "@/features/users/utils/cpf-mask";
 import UserEditForm from "@/features/users/components/UserEditForm.vue";
 import type { AdminUser } from "@/features/users/api/users.types";
+import { cataloguePermissionLabel } from "@/shared/types/contract";
 
 const route = useRoute();
 const { can } = useAuthorization();
@@ -124,7 +129,7 @@ const handleProfileSaved = (): void => {
 };
 const handleRolesSaved = (): void => {
   editOpen.value = false;
-  feedback.reportSuccess("Papéis atualizados com sucesso.");
+  feedback.reportSuccess("Perfis atualizados com sucesso.");
 };
 </script>
 

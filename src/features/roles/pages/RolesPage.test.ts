@@ -4,7 +4,11 @@ import { mount } from "@vue/test-utils";
 import type { VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { delay, http, HttpResponse } from "msw";
-import { makeAdminRole, makeRolesRouteMocks } from "@/test/admin-handlers";
+import {
+  makeAdminRole,
+  makePaginated,
+  makeRolesRouteMocks,
+} from "@/test/admin-handlers";
 import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
 import { useSessionStore } from "@/features/auth/stores/session";
@@ -21,7 +25,7 @@ const makeRoles = (count: number) =>
   Array.from({ length: count }, (_, index) =>
     makeAdminRole({
       id: index + 1,
-      name: index === 0 ? "admin" : `papel-${index + 1}`,
+      name: index === 0 ? "admin" : `perfil-${index + 1}`,
       permissions: index === 1 ? ["users.view"] : [],
     }),
   );
@@ -60,7 +64,7 @@ const mountPage = (
 const counter = (wrapper: VueWrapper) => wrapper.get(".selection-counter");
 const headerCheckbox = (wrapper: VueWrapper) =>
   wrapper.get<HTMLInputElement>(
-    '[aria-label="Selecionar todos os papéis desta página"]',
+    '[aria-label="Selecionar todos os perfis desta página"]',
   );
 const rowCheckbox = (wrapper: VueWrapper, name: string) =>
   wrapper.get<HTMLInputElement>(`[aria-label="Selecionar ${name}"]`);
@@ -106,6 +110,20 @@ const setDialogValue = async (
   element.dispatchEvent(new Event("input", { bubbles: true }));
 };
 
+const pressEscape = (): void => {
+  for (const type of ["keydown", "keyup"]) {
+    document.dispatchEvent(
+      new KeyboardEvent(type, { key: "Escape", keyCode: 27, bubbles: true }),
+    );
+  }
+};
+
+const pressBackdrop = (): void => {
+  document.body
+    .querySelector(".q-dialog__backdrop")
+    ?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+};
+
 afterEach(() => {
   while (mountedWrappers.length > 0) {
     mountedWrappers.pop()?.unmount();
@@ -125,11 +143,14 @@ describe("RolesPage", () => {
     expect(wrapper.text()).toContain("user");
     expect(
       wrapper
-        .get('[aria-label="Editar permissões de admin"]')
+        .get('[aria-label="Editar permissões do perfil admin"]')
         .attributes("disabled"),
     ).toBeDefined();
 
-    await openDialog('[aria-label="Editar permissões de user"]', wrapper);
+    await openDialog(
+      '[aria-label="Editar permissões do perfil user"]',
+      wrapper,
+    );
     expect(dialogElement()?.textContent).toContain("1 de 10 concedidas");
     await setDialogValue(
       '[aria-label="Permissão Ver auditoria para user"]',
@@ -169,6 +190,54 @@ describe("RolesPage", () => {
     );
   });
 
+  it("keeps role search editable and displays the newest result first", async () => {
+    const localRoles = [
+      makeAdminRole({ id: 3, name: "Lento", permissions: [] }),
+      makeAdminRole({ id: 4, name: "Rapido", permissions: [] }),
+    ];
+    const requested: string[] = [];
+    const completed: string[] = [];
+    server.use(...makeRolesRouteMocks([]).handlers);
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/roles`, async ({ request }) => {
+        const url = new URL(request.url);
+        const search = url.searchParams.get("search") ?? "";
+        requested.push(search);
+        await delay(search === "lento" ? 600 : 10);
+        completed.push(search);
+        const filtered = localRoles.filter((role) =>
+          role.name.toLowerCase().includes(search.toLowerCase()),
+        );
+        return HttpResponse.json(
+          makePaginated(filtered, {
+            current_page: 1,
+            last_page: 1,
+            per_page: 15,
+            total: filtered.length,
+          }),
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+    const wrapper = mountPage();
+    await vi.waitFor(() => expect(wrapper.text()).toContain("Lento"));
+
+    const search = wrapper.get<HTMLInputElement>('input[type="search"]');
+    await search.setValue("lento");
+    await vi.waitFor(() => expect(requested).toContain("lento"));
+    expect(search.element.disabled).toBe(false);
+
+    await search.setValue("rapi");
+    await vi.waitFor(() => expect(requested).toContain("rapi"));
+    await vi.waitFor(() =>
+      expect(wrapper.get("tbody").text()).toContain("Rapido"),
+    );
+    await vi.waitFor(() => expect(completed).toContain("lento"));
+
+    expect(wrapper.get("tbody").text()).toContain("Rapido");
+    expect(wrapper.get("tbody").text()).not.toContain("Lento");
+  });
+
   it("disables the save button and shows loading while saving", async () => {
     const mocks = makeRolesRouteMocks(roles);
     server.use(...mocks.handlers);
@@ -192,7 +261,10 @@ describe("RolesPage", () => {
     const wrapper = mountPage();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("user"));
-    await openDialog('[aria-label="Editar permissões de user"]', wrapper);
+    await openDialog(
+      '[aria-label="Editar permissões do perfil user"]',
+      wrapper,
+    );
     await setDialogValue(
       '[aria-label="Permissão Ver auditoria para user"]',
       true,
@@ -222,7 +294,10 @@ describe("RolesPage", () => {
     const wrapper = mountPage();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("user"));
-    await openDialog('[aria-label="Editar permissões de user"]', wrapper);
+    await openDialog(
+      '[aria-label="Editar permissões do perfil user"]',
+      wrapper,
+    );
     await setDialogValue(
       '[aria-label="Permissão Ver auditoria para user"]',
       true,
@@ -250,7 +325,7 @@ describe("RolesPage", () => {
       expect(wrapper.find(".page-toolbar button").exists()).toBe(true),
     );
     await openDialog(".page-toolbar button", wrapper);
-    await setDialogValue('[aria-label="Nome do novo papel"]', "auditor");
+    await setDialogValue('[aria-label="Nome do novo perfil"]', "auditor");
     dialogGet('[data-testid="submit-create-role"]').click();
 
     await vi.waitFor(() =>
@@ -266,7 +341,43 @@ describe("RolesPage", () => {
       )?.body,
     ).toMatchObject({ name: "auditor" });
     await waitDialogClosed();
-    expect(wrapper.text()).toContain("Papel criado com sucesso.");
+    expect(wrapper.text()).toContain("Perfil criado com sucesso.");
+  });
+
+  it("applies the creation guard to cancel, Escape and backdrop", async () => {
+    const mocks = makeRolesRouteMocks(makeMinimalRoles());
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
+
+    try {
+      await vi.waitFor(() =>
+        expect(wrapper.find(".page-toolbar button").exists()).toBe(true),
+      );
+      await openDialog(".page-toolbar button", wrapper);
+      await setDialogValue('[aria-label="Nome do novo perfil"]', "Rascunho");
+
+      dialogGet('[data-testid="cancel-role-form"]').click();
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(dialogElement()).not.toBeNull();
+
+      pressEscape();
+      expect(confirmSpy).toHaveBeenCalledTimes(2);
+      expect(dialogElement()).not.toBeNull();
+
+      pressBackdrop();
+      expect(confirmSpy).toHaveBeenCalledTimes(3);
+      expect(dialogElement()).not.toBeNull();
+
+      confirmSpy.mockReturnValue(true);
+      pressEscape();
+      await waitDialogClosed();
+      expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
+        0,
+      );
+    } finally {
+      confirmSpy.mockRestore();
+    }
   });
 
   it("deletes a non-immutable role after confirmation", async () => {
@@ -277,14 +388,14 @@ describe("RolesPage", () => {
 
     try {
       await vi.waitFor(() =>
-        expect(wrapper.find('[aria-label="Excluir papel user"]').exists()).toBe(
-          true,
-        ),
+        expect(
+          wrapper.find('[aria-label="Excluir perfil user"]').exists(),
+        ).toBe(true),
       );
-      expect(wrapper.find('[aria-label="Excluir papel admin"]').exists()).toBe(
+      expect(wrapper.find('[aria-label="Excluir perfil admin"]').exists()).toBe(
         false,
       );
-      await wrapper.get('[aria-label="Excluir papel user"]').trigger("click");
+      await wrapper.get('[aria-label="Excluir perfil user"]').trigger("click");
 
       await vi.waitFor(() =>
         expect(
@@ -307,7 +418,7 @@ describe("RolesPage", () => {
         HttpResponse.json(
           {
             message: "Dados inválidos.",
-            errors: { name: ["O nome do papel já existe."] },
+            errors: { name: ["O nome do perfil já existe."] },
           },
           { status: 422, headers: makeCorsHeaders(request) },
         ),
@@ -319,16 +430,16 @@ describe("RolesPage", () => {
       expect(wrapper.find(".page-toolbar button").exists()).toBe(true),
     );
     await openDialog(".page-toolbar button", wrapper);
-    await setDialogValue('[aria-label="Nome do novo papel"]', "auditor");
+    await setDialogValue('[aria-label="Nome do novo perfil"]', "auditor");
     dialogGet('[data-testid="submit-create-role"]').click();
 
     await vi.waitFor(() =>
       expect(dialogElement()?.textContent).toContain(
-        "O nome do papel já existe.",
+        "O nome do perfil já existe.",
       ),
     );
     expect(
-      dialogGet<HTMLInputElement>('[aria-label="Nome do novo papel"]').value,
+      dialogGet<HTMLInputElement>('[aria-label="Nome do novo perfil"]').value,
     ).toBe("auditor");
     expect(wrapper.find(".page-card [role=alert]").exists()).toBe(false);
   });
@@ -362,7 +473,10 @@ describe("RolesPage", () => {
     const wrapper = mountPage();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("user"));
-    await openDialog('[aria-label="Editar permissões de user"]', wrapper);
+    await openDialog(
+      '[aria-label="Editar permissões do perfil user"]',
+      wrapper,
+    );
 
     const expansion = dialogGet('[aria-label="Permissões do grupo Usuários"]');
     expect(expansion.getAttribute("role")).toBe("button");
@@ -405,14 +519,14 @@ describe("RolesPage", () => {
 describe("RolesPage — forms em modal", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("não abre edição de permissões para o papel protegido nem grava nada", async () => {
+  it("não abre edição de permissões para o perfil protegido nem grava nada", async () => {
     const mocks = makeRolesRouteMocks(makeMinimalRoles());
     server.use(...mocks.handlers);
     const wrapper = mountPage();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("admin"));
     const adminTrigger = wrapper.get(
-      '[aria-label="Editar permissões de admin"]',
+      '[aria-label="Editar permissões do perfil admin"]',
     );
     expect(adminTrigger.attributes("disabled")).toBeDefined();
 
@@ -436,7 +550,10 @@ describe("RolesPage — forms em modal", () => {
 
     try {
       await vi.waitFor(() => expect(wrapper.text()).toContain("user"));
-      await openDialog('[aria-label="Editar permissões de user"]', wrapper);
+      await openDialog(
+        '[aria-label="Editar permissões do perfil user"]',
+        wrapper,
+      );
       await setDialogValue(
         '[aria-label="Permissão Ver auditoria para user"]',
         true,
@@ -453,7 +570,10 @@ describe("RolesPage — forms em modal", () => {
         0,
       );
 
-      await openDialog('[aria-label="Editar permissões de user"]', wrapper);
+      await openDialog(
+        '[aria-label="Editar permissões do perfil user"]',
+        wrapper,
+      );
       await vi.waitFor(() =>
         expect(dialogElement()?.textContent).toContain("1 de 10 concedidas"),
       );
@@ -467,7 +587,7 @@ describe("RolesPage — forms em modal", () => {
     }
   });
 
-  it("esconde as ações sem permissão de papéis", async () => {
+  it("esconde as ações sem permissão de perfis", async () => {
     const mocks = makeRolesRouteMocks(makeMinimalRoles());
     server.use(...mocks.handlers);
     const wrapper = mountPage(["roles.view"]);
@@ -475,13 +595,13 @@ describe("RolesPage — forms em modal", () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain("user"));
     expect(wrapper.find(".page-toolbar button").exists()).toBe(false);
     expect(
-      wrapper.find('[aria-label="Editar permissões de user"]').exists(),
+      wrapper.find('[aria-label="Editar permissões do perfil user"]').exists(),
     ).toBe(false);
-    expect(wrapper.find('[aria-label="Excluir papel user"]').exists()).toBe(
+    expect(wrapper.find('[aria-label="Excluir perfil user"]').exists()).toBe(
       false,
     );
     expect(
-      wrapper.find('[aria-label="Ver detalhes do papel user"]').exists(),
+      wrapper.find('[aria-label="Ver detalhes do perfil user"]').exists(),
     ).toBe(true);
     expect(dialogElement()).toBeNull();
   });
@@ -501,7 +621,7 @@ describe("RolesPage — seleção por página", () => {
     );
     expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
 
-    await rowCheckbox(wrapper, "papel-2").setValue(true);
+    await rowCheckbox(wrapper, "perfil-2").setValue(true);
 
     expect(headerCheckbox(wrapper).element.indeterminate).toBe(true);
     expect(counter(wrapper).text()).toContain("1 de 5 selecionados");
@@ -515,7 +635,7 @@ describe("RolesPage — seleção por página", () => {
     await headerCheckbox(wrapper).setValue(false);
 
     expect(counter(wrapper).text()).toContain("0 de 5 selecionados");
-    expect(rowCheckbox(wrapper, "papel-2").element.checked).toBe(false);
+    expect(rowCheckbox(wrapper, "perfil-2").element.checked).toBe(false);
 
     expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
   });
@@ -532,7 +652,7 @@ describe("RolesPage — seleção por página", () => {
     await rowCheckbox(wrapper, "admin").setValue(true);
     expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
 
-    await wrapper.get("label.ui-search input").setValue("papel-2");
+    await wrapper.get("label.ui-search input").setValue("perfil-2");
     await vi.waitFor(() =>
       expect(counter(wrapper).text()).toContain("0 de 2 selecionados"),
     );
@@ -544,7 +664,7 @@ describe("RolesPage — seleção por página", () => {
     await vi.waitFor(() =>
       expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined(),
     );
-    await rowCheckbox(wrapper, "papel-2").setValue(true);
+    await rowCheckbox(wrapper, "perfil-2").setValue(true);
     expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
 
     await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
@@ -555,15 +675,15 @@ describe("RolesPage — seleção por página", () => {
     expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
       true,
     );
-    expect(wrapper.text()).toContain("papel-20");
+    expect(wrapper.text()).toContain("perfil-20");
 
-    await wrapper.get("label.ui-search input").setValue("papel-1");
+    await wrapper.get("label.ui-search input").setValue("perfil-1");
     await vi.waitFor(() =>
       expect(
         mocks.calls.some(
           (call) =>
             call.query.get("page") === "1" &&
-            call.query.get("search") === "papel-1",
+            call.query.get("search") === "perfil-1",
         ),
       ).toBe(true),
     );
@@ -581,40 +701,40 @@ describe("RolesPage — seleção por página", () => {
     await vi.waitFor(() =>
       expect(counter(wrapper).text()).toContain("0 de 5 selecionados"),
     );
-    await rowCheckbox(wrapper, "papel-3").setValue(true);
-    await rowCheckbox(wrapper, "papel-4").setValue(true);
+    await rowCheckbox(wrapper, "perfil-3").setValue(true);
+    await rowCheckbox(wrapper, "perfil-4").setValue(true);
     expect(counter(wrapper).text()).toContain("2 de 5 selecionados");
 
     localRoles.splice(
-      localRoles.findIndex((role) => role.name === "papel-4"),
+      localRoles.findIndex((role) => role.name === "perfil-4"),
       1,
     );
     await queryClient.invalidateQueries({ queryKey: ["roles"] });
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Selecionar papel-4"]').exists()).toBe(
+      expect(wrapper.find('[aria-label="Selecionar perfil-4"]').exists()).toBe(
         false,
       ),
     );
     expect(counter(wrapper).text()).toContain("1 de 4 selecionados");
-    expect(rowCheckbox(wrapper, "papel-3").element.checked).toBe(true);
+    expect(rowCheckbox(wrapper, "perfil-3").element.checked).toBe(true);
   });
 
-  it("abre a consulta do papel em modal somente leitura sem selecionar a linha", async () => {
+  it("abre a consulta do perfil em modal somente leitura sem selecionar a linha", async () => {
     const mocks = makeRolesRouteMocks(makeMinimalRoles());
     server.use(...mocks.handlers);
     const wrapper = mountPage();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("user"));
     await wrapper
-      .get('[aria-label="Ver detalhes do papel user"]')
+      .get('[aria-label="Ver detalhes do perfil user"]')
       .trigger("click");
 
     await vi.waitFor(() => expect(dialogElement()).not.toBeNull());
     const dialog = dialogElement() as HTMLElement;
-    expect(dialog.textContent).toContain("Detalhes do papel user");
+    expect(dialog.textContent).toContain("Detalhes do perfil user");
     expect(dialog.textContent).toContain("Usuários");
-    expect(dialog.textContent).toContain("Papéis");
+    expect(dialog.textContent).toContain("Perfis");
     expect(dialog.textContent).toContain("Auditoria");
     expect(dialog.textContent).toContain("Ver usuários");
     expect(dialog.textContent).toContain("Não concedida");

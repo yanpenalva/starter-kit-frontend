@@ -19,7 +19,7 @@
             <dd>{{ isLimited ? "Pendente de verificação" : "Verificado" }}</dd>
           </div>
           <div>
-            <dt>Papéis atribuídos</dt>
+            <dt>Perfis atribuídos</dt>
             <dd>{{ roles.length > 0 ? roles.join(", ") : "Nenhum" }}</dd>
           </div>
           <div>

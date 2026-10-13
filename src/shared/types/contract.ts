@@ -47,11 +47,14 @@ export const CATALOGUE_PERMISSION_LABELS: Readonly<
   "users.view": "Ver usuários",
   "users.update": "Editar usuários",
   "users.set-status": "Ativar/desativar contas",
-  "users.assign-roles": "Atribuir papéis",
+  "users.assign-roles": "Atribuir perfis",
   "users.manage": "Criar/excluir usuários",
   "users.read-cpf": "Ler CPF",
-  "roles.view": "Ver papéis",
-  "roles.update-permissions": "Editar permissões de papéis",
-  "roles.manage": "Criar/excluir papéis",
+  "roles.view": "Ver perfis",
+  "roles.update-permissions": "Editar permissões de perfis",
+  "roles.manage": "Criar/excluir perfis",
   "logs.view": "Ver auditoria",
 };
+
+export const cataloguePermissionLabel = (permission: string): string =>
+  CATALOGUE_PERMISSION_LABELS[permission as CataloguePermission] ?? permission;

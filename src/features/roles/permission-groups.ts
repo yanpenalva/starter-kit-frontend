@@ -11,7 +11,7 @@ export interface PermissionGroup {
 
 const GROUP_LABELS: Readonly<Record<string, string>> = {
   users: "Usuários",
-  roles: "Papéis",
+  roles: "Perfis",
   logs: "Auditoria",
 };
 

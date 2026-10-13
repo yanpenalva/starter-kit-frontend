@@ -85,12 +85,12 @@ afterEach(() => {
 describe("RoleFormModal — criação", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("cria o papel com o payload atual de nome", async () => {
+  it("cria o perfil com o payload atual de nome", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
     const wrapper = await mountModal({ mode: "create" });
 
-    await setValue('[aria-label="Nome do novo papel"]', "auditor");
+    await setValue('[aria-label="Nome do novo perfil"]', "auditor");
     dialogGet('[data-testid="submit-create-role"]').click();
 
     await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
@@ -108,7 +108,7 @@ describe("RoleFormModal — criação", () => {
     const wrapper = await mountModal({ mode: "create" }, ["roles.view"]);
 
     try {
-      await setValue('[aria-label="Nome do novo papel"]', "rascunho");
+      await setValue('[aria-label="Nome do novo perfil"]', "rascunho");
       dialogGet('[data-testid="cancel-role-form"]').click();
 
       expect(confirmSpy).toHaveBeenCalledTimes(1);
@@ -132,7 +132,7 @@ describe("RoleFormModal — criação", () => {
         HttpResponse.json(
           {
             message: "Dados inválidos.",
-            errors: { name: ["O nome do papel já existe."] },
+            errors: { name: ["O nome do perfil já existe."] },
           },
           { status: 422, headers: makeCorsHeaders(request) },
         ),
@@ -140,14 +140,16 @@ describe("RoleFormModal — criação", () => {
     );
     const wrapper = await mountModal({ mode: "create" });
 
-    await setValue('[aria-label="Nome do novo papel"]', "auditor");
+    await setValue('[aria-label="Nome do novo perfil"]', "auditor");
     dialogGet('[data-testid="submit-create-role"]').click();
 
     await vi.waitFor(() =>
-      expect(document.body.textContent).toContain("O nome do papel já existe."),
+      expect(document.body.textContent).toContain(
+        "O nome do perfil já existe.",
+      ),
     );
     expect(
-      dialogGet<HTMLInputElement>('[aria-label="Nome do novo papel"]').value,
+      dialogGet<HTMLInputElement>('[aria-label="Nome do novo perfil"]').value,
     ).toBe("auditor");
     expect(wrapper.emitted("created")).toBeUndefined();
   });
@@ -176,13 +178,13 @@ describe("RoleFormModal — edição de permissões", () => {
     ).toEqual({ permissions: ["users.view", "logs.view"] });
   });
 
-  it("não grava nada para o papel admin nem sem roles.update-permissions", async () => {
+  it("não grava nada para o perfil admin nem sem roles.update-permissions", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
     const wrapper = await mountModal({ mode: "edit", role: adminRole });
 
     expect(document.body.textContent).toContain(
-      "Papel protegido: permissões não podem ser alteradas.",
+      "Perfil protegido: permissões não podem ser alteradas.",
     );
     expect(
       dialogGet<HTMLInputElement>(

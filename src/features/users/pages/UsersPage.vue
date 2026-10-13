@@ -1,19 +1,19 @@
 <template>
   <AdminPageLayout eyebrow="ADMINISTRAÇÃO" title="Gerenciamento de Usuários">
     <template #subtitle>
-      Área restrita para usuários com permissão <code>users.view</code>.
+      Área restrita para usuários com permissão
+      {{ cataloguePermissionLabel("users.view") }}.
     </template>
 
     <template #toolbar>
       <UsersListToolbar
-        :search="filters.search ?? ''"
+        :search="searchTerm"
         :status="filters.status ?? ''"
         :role="filters.role ?? ''"
         :roles="filterRoleOptions"
-        :disabled="query.isFetching.value"
         :selected-count="selection.selectedCount.value"
         :visible-count="visibleUserIds.length"
-        @update:search="filters.search = $event"
+        @update:search="searchTerm = $event"
         @update:status="filters.status = $event || undefined"
         @update:role="filters.role = $event || undefined"
       />
@@ -26,31 +26,20 @@
     </template>
 
     <p v-if="query.isPending.value" role="status">Carregando usuários...</p>
+    <p v-if="query.isFetching.value && query.data.value" role="status">
+      Atualizando usuários...
+    </p>
     <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
     <div v-if="query.data.value" class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th scope="col" class="selection-cell">
-              <input
-                type="checkbox"
-                class="selection-toggle"
-                aria-label="Selecionar todos os usuários desta página"
-                :checked="selection.isAllSelected.value"
-                :indeterminate.prop="selection.isIndeterminate.value"
-                :disabled="!selection.isSelectable.value"
-                @change="
-                  selection.toggleAll(
-                    ($event.target as HTMLInputElement).checked,
-                  )
-                "
-              />
-            </th>
+            <th scope="col" class="selection-cell"></th>
             <th scope="col">Nome</th>
             <th scope="col">Email</th>
             <th scope="col">Status</th>
-            <th scope="col">Papéis</th>
+            <th scope="col">Perfis</th>
             <th scope="col">Ações</th>
           </tr>
         </thead>
@@ -91,53 +80,37 @@
               </span>
             </td>
             <td class="actions-cell">
-              <button
+              <ActionButton
                 type="button"
-                class="ui-control"
-                :aria-label="`Ver detalhes de ${user.name}`"
+                icon="visibility"
+                :label="`Ver detalhes de ${user.name}`"
                 @click="openDetail(user.id)"
-              >
-                Detalhes
-              </button>
-              <button
+              />
+              <ActionButton
                 v-if="can('users.update')"
                 type="button"
-                class="ui-control"
-                :aria-label="`Editar ${user.name}`"
+                icon="edit"
+                :label="`Editar ${user.name}`"
                 @click="openEdit(user)"
-              >
-                Editar
-              </button>
-              <button
+              />
+              <ActionButton
                 v-if="can('users.set-status')"
                 type="button"
-                class="ui-control"
-                :aria-label="`${user.deactivated_at === null ? 'Desativar' : 'Ativar'} ${user.name}`"
+                :icon="statusAction(user).icon"
+                :label="statusAction(user).label"
                 :disabled="isMutating"
+                :loading="isActionPending('status', user.id)"
                 @click="toggleStatus(user.id, user.deactivated_at === null)"
-              >
-                {{
-                  isActionPending("status", user.id)
-                    ? "Atualizando..."
-                    : user.deactivated_at === null
-                      ? "Desativar"
-                      : "Ativar"
-                }}
-              </button>
-              <button
+              />
+              <ActionButton
                 v-if="can('users.manage')"
                 type="button"
-                class="ui-control"
-                :aria-label="`Excluir ${user.name}`"
+                :icon="deleteAction(user).icon"
+                :label="deleteAction(user).label"
                 :disabled="isMutating"
+                :loading="isActionPending('delete', user.id)"
                 @click="removeUser(user.id, user.name)"
-              >
-                {{
-                  isActionPending("delete", user.id)
-                    ? "Excluindo..."
-                    : "Excluir"
-                }}
-              </button>
+              />
             </td>
           </tr>
           <tr v-if="query.data.value.data.length === 0">
@@ -162,7 +135,11 @@
       @update:model-value="closeDetail"
     />
 
-    <UserFormModal :model-value="createOpen" @created="handleCreated" />
+    <UserFormModal
+      :model-value="createOpen"
+      @update:model-value="handleCreateVisibility"
+      @created="handleCreated"
+    />
 
     <UserEditForm
       :model-value="editingUser !== null"
@@ -184,6 +161,7 @@ import Pagination from "@/shared/components/Pagination.vue";
 import UsersListToolbar from "@/features/users/components/UsersListToolbar.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { useDebouncedSearch } from "@/shared/composables/useDebouncedSearch";
 import { usePageSelection } from "@/shared/composables/usePageSelection";
 import { useRoleOptions } from "@/features/roles/composables/useRoleOptions";
 import { listRoles } from "@/features/roles/api/roles.api";
@@ -195,12 +173,18 @@ import UserDetails from "@/features/users/components/UserDetails.vue";
 import UserEditForm from "@/features/users/components/UserEditForm.vue";
 import UserFormModal from "@/features/users/components/UserFormModal.vue";
 import type { AdminUser } from "@/features/users/api/users.types";
+import { cataloguePermissionLabel } from "@/shared/types/contract";
 
 type PendingActionKind = "status" | "delete";
 
 interface PendingAction {
   kind: PendingActionKind;
   userId: number;
+}
+
+interface RowActionPresentation {
+  icon: string;
+  label: string;
 }
 
 const { can } = useAuthorization();
@@ -210,12 +194,35 @@ const roleOptionsController = useRoleOptions(
 );
 const filterRoleOptions = roleOptionsController.options;
 const { filters, query, statusMutation, deleteMutation } = useUsersList();
+const searchTerm = ref(filters.search ?? "");
+useDebouncedSearch(searchTerm, (value) => {
+  filters.page = 1;
+  filters.search = value;
+});
 const createOpen = ref(false);
 const editingUser = ref<AdminUser | null>(null);
 const pendingAction = ref<PendingAction | null>(null);
 const isMutating = computed(() => pendingAction.value !== null);
 const isActionPending = (kind: PendingActionKind, userId: number): boolean =>
   pendingAction.value?.kind === kind && pendingAction.value?.userId === userId;
+const statusAction = (user: AdminUser): RowActionPresentation => {
+  if (isActionPending("status", user.id)) {
+    return {
+      icon: "progress_activity",
+      label: `Atualizando status de ${user.name}`,
+    };
+  }
+  if (user.deactivated_at === null) {
+    return { icon: "toggle_off", label: `Desativar ${user.name}` };
+  }
+  return { icon: "toggle_on", label: `Ativar ${user.name}` };
+};
+const deleteAction = (user: AdminUser): RowActionPresentation => {
+  if (isActionPending("delete", user.id)) {
+    return { icon: "progress_activity", label: `Excluindo ${user.name}` };
+  }
+  return { icon: "delete", label: `Excluir ${user.name}` };
+};
 
 const visibleUserIds = computed<readonly number[]>(() =>
   (query.data.value?.data ?? []).map((user) => user.id),
@@ -245,6 +252,9 @@ const closeDetail = (): void => {
 const openCreate = (): void => {
   createOpen.value = true;
 };
+const handleCreateVisibility = (value: boolean): void => {
+  if (!value) createOpen.value = false;
+};
 const openEdit = (user: AdminUser): void => {
   editingUser.value = user;
 };
@@ -262,7 +272,7 @@ const handleProfileSaved = (): void => {
 };
 const handleRolesSaved = (): void => {
   editingUser.value = null;
-  feedback.reportSuccess("Papéis atualizados com sucesso.");
+  feedback.reportSuccess("Perfis atualizados com sucesso.");
 };
 
 watch([() => filters.search, () => filters.status, () => filters.role], () => {

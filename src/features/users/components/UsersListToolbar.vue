@@ -8,7 +8,6 @@ defineProps<{
   status: UserStatus | "";
   role: string;
   roles: readonly RoleOption[];
-  disabled: boolean;
   selectedCount: number;
   visibleCount: number;
 }>();
@@ -26,7 +25,6 @@ const emit = defineEmits<{
       :model-value="search"
       label="Buscar"
       placeholder="Nome ou email"
-      :disabled="disabled"
       @update:model-value="emit('update:search', $event)"
     />
     <label>
@@ -47,10 +45,10 @@ const emit = defineEmits<{
       </select>
     </label>
     <label>
-      Papel
+      Perfil
       <select
         :value="role"
-        aria-label="Filtrar por papel"
+        aria-label="Filtrar por perfil"
         @change="
           emit('update:role', ($event.target as HTMLSelectElement).value)
         "

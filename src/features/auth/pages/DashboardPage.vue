@@ -33,7 +33,7 @@
               </dd>
             </div>
             <div class="dashboard-card__item">
-              <dt>Papéis atribuídos</dt>
+              <dt>Perfis atribuídos</dt>
               <dd>
                 <span v-if="roles.length === 0" class="dashboard-card__empty"
                   >Nenhum</span
@@ -56,7 +56,7 @@
                   :key="perm"
                   class="dashboard-pill"
                 >
-                  {{ perm }}
+                  {{ cataloguePermissionLabel(perm) }}
                 </span>
               </dd>
             </div>
@@ -92,6 +92,7 @@ import { RouterLink } from "vue-router";
 import AppLayout from "@/shared/layouts/AppLayout.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { shortcutDescriptors } from "@/app/router/descriptors";
+import { cataloguePermissionLabel } from "@/shared/types/contract";
 
 const { user, isLimited, roles, permissions, can } = useAuthorization();
 

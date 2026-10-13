@@ -8,20 +8,20 @@
       <form
         :id="formId"
         class="role-form"
-        aria-label="Formulário de novo papel"
+        aria-label="Formulário de novo perfil"
         @submit.prevent="submitCreate"
       >
         <label>
-          Nome do papel
+          Nome do perfil
           <input
             v-model="name"
-            aria-label="Nome do novo papel"
+            aria-label="Nome do novo perfil"
             autofocus
             required
           />
           <FieldErrors
             :errors="feedback.fieldErrors.value.name ?? []"
-            field-label="Nome do novo papel"
+            field-label="Nome do novo perfil"
           />
         </label>
       </form>
@@ -35,7 +35,7 @@
         {{ selection.length }} de {{ CATALOGUE_PERMISSIONS.length }} concedidas
       </p>
       <p v-if="isRoleImmutable(role)" role="note" class="role-form__notice">
-        Papel protegido: permissões não podem ser alteradas.
+        Perfil protegido: permissões não podem ser alteradas.
       </p>
 
       <q-expansion-item
@@ -86,7 +86,7 @@
         :form="formId"
         :disabled="isPending"
       >
-        {{ isPending ? "Criando..." : "Criar papel" }}
+        {{ isPending ? "Criando..." : "Criar perfil" }}
       </button>
       <button
         v-else
@@ -161,7 +161,7 @@ const isLocked = computed(
 
 const title = computed(() =>
   props.mode === "create"
-    ? "Criar papel"
+    ? "Criar perfil"
     : `Editar permissões${props.role ? ` de ${props.role.name}` : ""}`,
 );
 

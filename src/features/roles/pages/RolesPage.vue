@@ -1,17 +1,17 @@
 <template>
-  <AdminPageLayout eyebrow="ADMINISTRAÇÃO" title="Gerenciamento de Papéis">
+  <AdminPageLayout eyebrow="ADMINISTRAÇÃO" title="Gerenciamento de Perfis">
     <template #subtitle>
-      Área restrita para usuários com permissão <code>roles.view</code>.
+      Área restrita para usuários com permissão
+      {{ cataloguePermissionLabel("roles.view") }}.
     </template>
 
     <template #toolbar>
-      <div class="filters" aria-label="Filtros de papéis">
+      <div class="filters" aria-label="Filtros de perfis">
         <SearchInput
-          :model-value="filters.search ?? ''"
+          :model-value="searchTerm"
           label="Buscar"
-          placeholder="Nome ou permissão"
-          :disabled="query.isFetching.value"
-          @update:model-value="filters.search = $event"
+          placeholder="Nome do perfil"
+          @update:model-value="searchTerm = $event"
         />
       </div>
 
@@ -22,12 +22,15 @@
 
       <ActionButton
         v-if="can('roles.manage')"
-        label="Criar papel"
+        label="Criar perfil"
         @click="createOpen = true"
       />
     </template>
 
-    <p v-if="query.isPending.value" role="status">Carregando papéis...</p>
+    <p v-if="query.isPending.value" role="status">Carregando perfis...</p>
+    <p v-if="query.isFetching.value && query.data.value" role="status">
+      Atualizando perfis...
+    </p>
     <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
     <div v-if="query.data.value" class="table-wrap">
@@ -38,7 +41,7 @@
               <input
                 type="checkbox"
                 class="selection-toggle"
-                aria-label="Selecionar todos os papéis desta página"
+                aria-label="Selecionar todos os perfis desta página"
                 :checked="selection.isAllSelected.value"
                 :indeterminate.prop="selection.isIndeterminate.value"
                 :disabled="!selection.isSelectable.value"
@@ -49,7 +52,7 @@
                 "
               />
             </th>
-            <th scope="col">Papel</th>
+            <th scope="col">Perfil</th>
             <th scope="col">Permissões</th>
             <th scope="col">Ações</th>
           </tr>
@@ -88,46 +91,39 @@
               </span>
             </td>
             <td class="actions-cell">
-              <button
+              <ActionButton
                 type="button"
-                class="ui-control"
-                :aria-label="`Ver detalhes do papel ${role.name}`"
+                icon="visibility"
+                :label="`Ver detalhes do perfil ${role.name}`"
                 @click="openDetail(role)"
-              >
-                Detalhes
-              </button>
-              <button
+              />
+              <ActionButton
                 v-if="can('roles.update-permissions')"
                 type="button"
-                class="ui-control"
+                icon="edit"
                 :disabled="isRoleImmutable(role)"
-                :aria-label="`Editar permissões de ${role.name}`"
+                :label="`Editar permissões do perfil ${role.name}`"
                 @click="openEdit(role)"
-              >
-                Editar permissões
-              </button>
-              <button
+              />
+              <ActionButton
                 v-if="can('roles.manage') && !isRoleImmutable(role)"
                 type="button"
-                class="ui-control"
+                :icon="deleteAction(role).icon"
                 :disabled="deletingRoleId !== null"
-                :aria-label="`Excluir papel ${role.name}`"
+                :loading="deleteAction(role).loading"
+                :label="deleteAction(role).label"
                 @click="removeRole(role.id, role.name)"
-              >
-                {{
-                  deletingRoleId === role.id ? "Excluindo..." : "Excluir papel"
-                }}
-              </button>
+              />
             </td>
           </tr>
           <tr v-if="query.data.value.data.length === 0">
-            <td colspan="4">Nenhum papel encontrado.</td>
+            <td colspan="4">Nenhum perfil encontrado.</td>
           </tr>
         </tbody>
       </table>
 
       <Pagination
-        aria-label="Paginação de papéis"
+        aria-label="Paginação de perfis"
         :disabled="query.isFetching.value"
         :meta="query.data.value.meta"
         @change="filters.page = $event"
@@ -143,6 +139,7 @@
     <RoleFormModal
       :model-value="createOpen"
       mode="create"
+      @update:model-value="handleCreateVisibility"
       @created="handleCreated"
     />
 
@@ -165,8 +162,12 @@ import Pagination from "@/shared/components/Pagination.vue";
 import SearchInput from "@/shared/components/SearchInput.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { useDebouncedSearch } from "@/shared/composables/useDebouncedSearch";
 import { usePageSelection } from "@/shared/composables/usePageSelection";
-import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
+import {
+  CATALOGUE_PERMISSIONS,
+  cataloguePermissionLabel,
+} from "@/shared/types/contract";
 import {
   isRoleImmutable,
   type AdminRole,
@@ -178,6 +179,11 @@ import RoleFormModal from "@/features/roles/components/RoleFormModal.vue";
 const { can } = useAuthorization();
 const feedback = useFormFeedback();
 const { filters, query, deleteMutation } = useRolesList();
+const searchTerm = ref(filters.search ?? "");
+useDebouncedSearch(searchTerm, (value) => {
+  filters.page = 1;
+  filters.search = value;
+});
 const createOpen = ref(false);
 const editRole = ref<AdminRole | null>(null);
 const deletingRoleId = ref<number | null>(null);
@@ -199,6 +205,22 @@ const openDetail = (role: AdminRole): void => {
 const closeDetail = (): void => {
   detailRole.value = null;
 };
+const deleteAction = (
+  role: AdminRole,
+): { icon: string; label: string; loading: boolean } => {
+  if (deletingRoleId.value === role.id) {
+    return {
+      icon: "progress_activity",
+      label: `Excluindo perfil ${role.name}`,
+      loading: true,
+    };
+  }
+  return {
+    icon: "delete",
+    label: `Excluir perfil ${role.name}`,
+    loading: false,
+  };
+};
 const openEdit = (role: AdminRole): void => {
   if (isRoleImmutable(role)) return;
   editRole.value = role;
@@ -209,7 +231,10 @@ const handleEditVisibility = (value: boolean): void => {
 
 const handleCreated = (): void => {
   createOpen.value = false;
-  feedback.reportSuccess("Papel criado com sucesso.");
+  feedback.reportSuccess("Perfil criado com sucesso.");
+};
+const handleCreateVisibility = (value: boolean): void => {
+  if (!value) createOpen.value = false;
 };
 const handlePermissionsSaved = (): void => {
   editRole.value = null;
@@ -230,11 +255,11 @@ watch(query.error, (error) => {
 
 const removeRole = async (roleId: number, roleName: string): Promise<void> => {
   if (deletingRoleId.value !== null || !can("roles.manage")) return;
-  if (globalThis.confirm(`Excluir o papel ${roleName}?`)) {
+  if (globalThis.confirm(`Excluir o perfil ${roleName}?`)) {
     deletingRoleId.value = roleId;
     try {
       await deleteMutation.mutateAsync(roleId);
-      feedback.reportSuccess("Papel excluído com sucesso.");
+      feedback.reportSuccess("Perfil excluído com sucesso.");
     } catch (error: unknown) {
       feedback.handleFailure(error);
     } finally {

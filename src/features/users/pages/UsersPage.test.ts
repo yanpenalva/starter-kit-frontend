@@ -111,10 +111,6 @@ const mountPage = async (
 };
 
 const counter = (wrapper: VueWrapper) => wrapper.get(".selection-counter");
-const headerCheckbox = (wrapper: VueWrapper) =>
-  wrapper.get<HTMLInputElement>(
-    '[aria-label="Selecionar todos os usuários desta página"]',
-  );
 const rowCheckbox = (wrapper: VueWrapper, index: number) =>
   wrapper.get<HTMLInputElement>(`[aria-label="Selecionar Pessoa ${index}"]`);
 const detailLink = (wrapper: VueWrapper, index: number) =>
@@ -212,6 +208,42 @@ describe("UsersPage", () => {
     );
   });
 
+  it("uses the same dirty-form guard for create cancel, Escape and backdrop", async () => {
+    const mocks = makeUsersRouteMocks(users);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
+
+    try {
+      await vi.waitFor(() =>
+        expect(wrapper.find(".page-toolbar button").exists()).toBe(true),
+      );
+      await openDialog(".page-toolbar button", wrapper);
+      await setDialogValue('[aria-label="Nome do novo usuário"]', "Rascunho");
+
+      dialogGet('[data-testid="cancel-create"]').click();
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(dialogElement()).not.toBeNull();
+
+      pressEscape();
+      expect(confirmSpy).toHaveBeenCalledTimes(2);
+      expect(dialogElement()).not.toBeNull();
+
+      pressBackdrop();
+      expect(confirmSpy).toHaveBeenCalledTimes(3);
+      expect(dialogElement()).not.toBeNull();
+
+      confirmSpy.mockReturnValue(true);
+      pressEscape();
+      await waitDialogClosed();
+      expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
+        0,
+      );
+    } finally {
+      confirmSpy.mockRestore();
+    }
+  });
+
   it("filters users and submits status changes", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers, rolesListHandler);
@@ -250,6 +282,64 @@ describe("UsersPage", () => {
         ),
       ).toBe(true),
     );
+  });
+
+  it("keeps the user search editable and shows the latest result after a late response", async () => {
+    const localUsers = [
+      makeAdminUser({
+        id: 1,
+        name: "Lento",
+        email: "lento@example.test",
+      }),
+      makeAdminUser({
+        id: 2,
+        name: "Rápido",
+        email: "rapido@example.test",
+      }),
+    ];
+    const requested: string[] = [];
+    const completed: string[] = [];
+    server.use(...makeUsersRouteMocks([]).handlers, rolesListHandler);
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) => {
+        const url = new URL(request.url);
+        const search = url.searchParams.get("search") ?? "";
+        requested.push(search);
+        await delay(search === "lento" ? 600 : 10);
+        completed.push(search);
+        const filtered = localUsers.filter(
+          (user) =>
+            user.name.toLowerCase().includes(search.toLowerCase()) ||
+            user.email.toLowerCase().includes(search.toLowerCase()),
+        );
+        return HttpResponse.json(
+          makePaginated(filtered, {
+            current_page: 1,
+            last_page: 1,
+            per_page: 15,
+            total: filtered.length,
+          }),
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+    const wrapper = await mountPage();
+    await vi.waitFor(() => expect(wrapper.text()).toContain("Lento"));
+
+    const search = wrapper.get<HTMLInputElement>('input[type="search"]');
+    await search.setValue("lento");
+    await vi.waitFor(() => expect(requested).toContain("lento"));
+    expect(search.element.disabled).toBe(false);
+
+    await search.setValue("rapido@example.test");
+    await vi.waitFor(() => expect(requested).toContain("rapido@example.test"));
+    await vi.waitFor(() =>
+      expect(wrapper.get("tbody").text()).toContain("Rápido"),
+    );
+    await vi.waitFor(() => expect(completed).toContain("lento"));
+
+    expect(wrapper.get("tbody").text()).toContain("Rápido");
+    expect(wrapper.get("tbody").text()).not.toContain("Lento");
   });
 
   it("desabilita o salvar do modal e mostra loading enquanto grava", async () => {
@@ -488,7 +578,7 @@ describe("UsersPage", () => {
     );
   });
 
-  it("atribui papéis via multi-select pesquisável no modal de edição", async () => {
+  it("atribui perfis via multi-select pesquisável no modal de edição", async () => {
     const localUsers = Array.from({ length: 3 }, (_, index) =>
       makeAdminUser({
         id: index + 1,
@@ -510,28 +600,28 @@ describe("UsersPage", () => {
     await vi.waitFor(() =>
       expect(
         dialogElement()?.querySelector(
-          '[aria-label="Buscar papéis para Papéis de Pessoa 2"]',
+          '[aria-label="Buscar perfis para Perfis de Pessoa 2"]',
         ),
       ).not.toBeNull(),
     );
     await setDialogValue(
-      '[aria-label="Buscar papéis para Papéis de Pessoa 2"]',
+      '[aria-label="Buscar perfis para Perfis de Pessoa 2"]',
       "edi",
     );
     await vi.waitFor(
       () =>
         expect(
           dialogElement()?.querySelector(
-            '[aria-label="Papéis de Pessoa 2"] input[aria-label="Papel editor"][role="option"]',
+            '[aria-label="Perfis de Pessoa 2"] input[aria-label="Perfil editor"][role="option"]',
           ),
         ).not.toBeNull(),
       { timeout: 4000 },
     );
     await setDialogValue(
-      '[aria-label="Papéis de Pessoa 2"] input[aria-label="Papel editor"][role="option"]',
+      '[aria-label="Perfis de Pessoa 2"] input[aria-label="Perfil editor"][role="option"]',
       true,
     );
-    dialogGet('[aria-label="Salvar papéis de Pessoa 2"]').click();
+    dialogGet('[aria-label="Salvar perfis de Pessoa 2"]').click();
 
     await vi.waitFor(() =>
       expect(
@@ -702,7 +792,7 @@ describe("UsersPage — forms em modal", () => {
 describe("UsersPage — seleção por página", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("seleciona a linha, deixa o header indeterminado e limpa ao clicar de novo", async () => {
+  it("seleciona usuários individualmente sem seletor de todos", async () => {
     const localUsers = makeUsers(7);
     const mocks = makeUsersRouteMocks(localUsers);
     server.use(...mocks.handlers, rolesListHandler);
@@ -711,25 +801,23 @@ describe("UsersPage — seleção por página", () => {
     await vi.waitFor(() =>
       expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
     );
-    expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
+    expect(
+      wrapper
+        .find('[aria-label="Selecionar todos os usuários desta página"]')
+        .exists(),
+    ).toBe(false);
 
     await rowCheckbox(wrapper, 1).setValue(true);
 
-    expect(headerCheckbox(wrapper).element.indeterminate).toBe(true);
-    expect(headerCheckbox(wrapper).element.checked).toBe(false);
     expect(counter(wrapper).text()).toContain("1 de 7 selecionados");
 
-    await headerCheckbox(wrapper).setValue(true);
+    await rowCheckbox(wrapper, 7).setValue(true);
 
-    expect(counter(wrapper).text()).toContain("7 de 7 selecionados");
-    expect(headerCheckbox(wrapper).element.checked).toBe(true);
-    expect(headerCheckbox(wrapper).element.indeterminate).toBe(false);
-    expect(rowCheckbox(wrapper, 7).element.checked).toBe(true);
+    expect(counter(wrapper).text()).toContain("2 de 7 selecionados");
 
-    await headerCheckbox(wrapper).setValue(false);
+    await rowCheckbox(wrapper, 1).setValue(false);
 
-    expect(counter(wrapper).text()).toContain("0 de 7 selecionados");
-    expect(rowCheckbox(wrapper, 1).element.checked).toBe(false);
+    expect(counter(wrapper).text()).toContain("1 de 7 selecionados");
 
     expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
   });
@@ -756,7 +844,7 @@ describe("UsersPage — seleção por página", () => {
       expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
     );
     await vi.waitFor(() =>
-      expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined(),
+      expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined(),
     );
     await rowCheckbox(wrapper, 3).setValue(true);
     expect(counter(wrapper).text()).toContain("1 de 15 selecionados");
@@ -769,7 +857,7 @@ describe("UsersPage — seleção por página", () => {
     expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
       true,
     );
-    expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
+    expect(rowCheckbox(wrapper, 16).attributes("disabled")).toBeUndefined();
 
     await wrapper.get("label.ui-search input").setValue("Pessoa 2");
     await vi.waitFor(() =>
@@ -832,13 +920,10 @@ describe("UsersPage — seleção por página", () => {
       expect(wrapper.text()).toContain("Nenhum usuário encontrado."),
     );
     expect(counter(wrapper).text()).toContain("0 de 0 selecionados");
-    expect(headerCheckbox(wrapper).attributes("disabled")).toBeDefined();
-
-    await headerCheckbox(wrapper).setValue(true);
-    expect(counter(wrapper).text()).toContain("0 de 0 selecionados");
+    expect(wrapper.find('[aria-label^="Selecionar "]').exists()).toBe(false);
   });
 
-  it("desabilita o header enquanto a listagem recarrega e quando falha", async () => {
+  it("desabilita a seleção enquanto a listagem recarrega e quando falha", async () => {
     const localUsers = makeUsers(7);
     const mocks = makeUsersRouteMocks(localUsers);
     server.use(...mocks.handlers, rolesListHandler);
@@ -847,7 +932,7 @@ describe("UsersPage — seleção por página", () => {
     await vi.waitFor(() =>
       expect(counter(wrapper).text()).toContain("0 de 7 selecionados"),
     );
-    expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined();
+    expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined();
 
     server.use(
       http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) => {
@@ -866,10 +951,10 @@ describe("UsersPage — seleção por página", () => {
     void queryClient.invalidateQueries({ queryKey: ["users"] });
 
     await vi.waitFor(() =>
-      expect(headerCheckbox(wrapper).attributes("disabled")).toBeDefined(),
+      expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeDefined(),
     );
     await vi.waitFor(() =>
-      expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined(),
+      expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined(),
     );
 
     server.use(
@@ -885,7 +970,7 @@ describe("UsersPage — seleção por página", () => {
     await vi.waitFor(() =>
       expect(wrapper.find('[role="alert"]').exists()).toBe(true),
     );
-    expect(headerCheckbox(wrapper).attributes("disabled")).toBeDefined();
+    expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeDefined();
   });
 
   it("abre a consulta em modal sem selecionar a linha e mantém o link da rota", async () => {
@@ -948,14 +1033,8 @@ describe("UsersPage — seleção por página", () => {
       wrapper.find('[aria-label="Ver detalhe de Pessoa 32"]').exists(),
     ).toBe(true);
 
-    await wrapper
-      .get<HTMLInputElement>(
-        '[aria-label="Selecionar todos os usuários desta página"]',
-      )
-      .setValue(true);
-
-    expect(counter(wrapper).text()).toContain("2 de 2 selecionados");
-    expect(rowCheckbox(wrapper, 32).element.checked).toBe(true);
+    await rowCheckbox(wrapper, 32).setValue(true);
+    expect(counter(wrapper).text()).toContain("1 de 2 selecionados");
 
     await wrapper.get('button[aria-label="Primeira página"]').trigger("click");
 
@@ -963,7 +1042,7 @@ describe("UsersPage — seleção por página", () => {
       expect(counter(wrapper).text()).toContain("0 de 15 selecionados"),
     );
     await vi.waitFor(() =>
-      expect(headerCheckbox(wrapper).attributes("disabled")).toBeUndefined(),
+      expect(rowCheckbox(wrapper, 1).attributes("disabled")).toBeUndefined(),
     );
     expect(rowCheckbox(wrapper, 1).element.checked).toBe(false);
     expect(rowCheckbox(wrapper, 15).element.checked).toBe(false);
