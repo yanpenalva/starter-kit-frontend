@@ -418,11 +418,18 @@ const activityHandlers = (
       const source: readonly AdminActivity[] =
         scenario === "empty" ? [] : database.activities;
       const url = new URL(request.url);
+      const search = (url.searchParams.get("search") ?? "").toLowerCase();
       const event = url.searchParams.get("event");
+      const logName = url.searchParams.get("log_name");
       const subjectType = url.searchParams.get("subject_type");
       const filtered = source.filter(
         (activity) =>
+          (search === "" ||
+            activity.description.toLowerCase().includes(search)) &&
           (event === null || event === "" || activity.event === event) &&
+          (logName === null ||
+            logName === "" ||
+            activity.log_name === logName) &&
           (subjectType === null ||
             subjectType === "" ||
             activity.subject_type === subjectType),

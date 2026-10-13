@@ -70,41 +70,16 @@
           <p class="dashboard-card__desc">
             Acesso liberado de acordo com seu perfil:
           </p>
-          <div class="dashboard-actions">
-            <RouterLink
-              v-if="can('users.view')"
-              to="/users"
-              class="dashboard-action-btn"
-            >
-              Gerenciar Usuários
-            </RouterLink>
-
-            <RouterLink
-              v-if="hasRole('admin')"
-              to="/roles"
-              class="dashboard-action-btn"
-            >
-              Gerenciar Papéis
-            </RouterLink>
-
-            <RouterLink
-              v-if="can('logs.view')"
-              to="/logs"
-              class="dashboard-action-btn"
-            >
-              Ver Logs de Auditoria
-            </RouterLink>
-
-            <p
-              v-if="
-                !can('users.view') && !hasRole('admin') && !can('logs.view')
-              "
-              class="dashboard-card__empty"
-            >
-              Nenhum atalho administrativo adicional configurado para seu
-              perfil.
-            </p>
-          </div>
+          <ul class="dashboard-actions" role="list">
+            <li v-for="shortcut in visibleShortcuts" :key="shortcut.name">
+              <RouterLink :to="shortcut.path" class="dashboard-action-btn">
+                {{ shortcut.label }}
+              </RouterLink>
+            </li>
+          </ul>
+          <p v-if="visibleShortcuts.length === 0" class="dashboard-card__empty">
+            Nenhum atalho administrativo adicional configurado para seu perfil.
+          </p>
         </section>
       </div>
     </div>
@@ -112,12 +87,21 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import AppLayout from "@/shared/layouts/AppLayout.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
+import { shortcutDescriptors } from "@/app/router/descriptors";
 
-const { user, isLimited, roles, permissions, can, hasRole } =
-  useAuthorization();
+const { user, isLimited, roles, permissions, can } = useAuthorization();
+
+const visibleShortcuts = computed(() =>
+  shortcutDescriptors.filter(
+    (shortcut) =>
+      shortcut.permissions.length === 0 ||
+      shortcut.permissions.some((permission) => can(permission)),
+  ),
+);
 </script>
 
 <style scoped>
@@ -241,6 +225,9 @@ const { user, isLimited, roles, permissions, can, hasRole } =
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .dashboard-action-btn {

@@ -2,8 +2,13 @@ import { VueQueryPlugin } from "@tanstack/vue-query";
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createMemoryHistory, createRouter } from "vue-router";
 import { delay, http, HttpResponse } from "msw";
-import { makeAdminUser, makeUsersRouteMocks } from "@/test/admin-handlers";
+import {
+  makeAdminRole,
+  makeAdminUser,
+  makeUsersRouteMocks,
+} from "@/test/admin-handlers";
 import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
 import { useSessionStore } from "@/features/auth/stores/session";
@@ -20,7 +25,56 @@ const users = Array.from({ length: 16 }, (_, index) =>
   }),
 );
 
-const mountPage = () => {
+const makeRouter = async () => {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      {
+        path: "/users/:userId",
+        name: "user-detail",
+        component: { template: "<div />" },
+      },
+    ],
+  });
+  await router.push("/users");
+  await router.isReady();
+  return router;
+};
+
+const rolesListHandler = http.get(
+  `${TEST_API_BASE}/api/v1/roles`,
+  async ({ request }) => {
+    const url = new URL(request.url);
+    const search = (url.searchParams.get("search") ?? "").toLowerCase();
+    const all = [
+      makeAdminRole({ id: 1, name: "admin" }),
+      makeAdminRole({ id: 2, name: "user" }),
+      makeAdminRole({ id: 3, name: "editor" }),
+      makeAdminRole({ id: 4, name: "auditor" }),
+    ];
+    const filtered = all.filter(
+      (role) => search === "" || role.name.toLowerCase().includes(search),
+    );
+    return HttpResponse.json(
+      {
+        data: filtered,
+        links: { first: null, last: null, prev: null, next: null },
+        meta: {
+          current_page: 1,
+          from: null,
+          last_page: 1,
+          path: "",
+          per_page: 50,
+          to: null,
+          total: filtered.length,
+        },
+      },
+      { headers: makeCorsHeaders(request) },
+    );
+  },
+);
+
+const mountPage = async () => {
   useSessionStore().user = {
     id: 1,
     name: "Admin",
@@ -31,7 +85,7 @@ const mountPage = () => {
   };
   return mount(UsersPage, {
     global: {
-      plugins: [[VueQueryPlugin, { queryClient }]],
+      plugins: [[VueQueryPlugin, { queryClient }], await makeRouter()],
       stubs: { AppLayout: { template: "<div><slot /></div>" } },
     },
   });
@@ -42,8 +96,8 @@ describe("UsersPage", () => {
 
   it("lists users and changes pages", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(
@@ -71,8 +125,8 @@ describe("UsersPage", () => {
 
   it("filters users and submits status changes", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Nome de Pessoa 1"]').exists()).toBe(
@@ -113,7 +167,7 @@ describe("UsersPage", () => {
 
   it("disables action buttons and shows loading while saving", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
+    server.use(...mocks.handlers, rolesListHandler);
     server.use(
       http.patch(
         `${TEST_API_BASE}/api/v1/users/:userId`,
@@ -129,7 +183,7 @@ describe("UsersPage", () => {
         },
       ),
     );
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Nome de Pessoa 1"]').exists()).toBe(
@@ -158,8 +212,8 @@ describe("UsersPage", () => {
 
   it("ignores duplicate submits while a request is pending", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Nome de Pessoa 1"]').exists()).toBe(
@@ -180,8 +234,8 @@ describe("UsersPage", () => {
 
   it("creates a user through the creation form", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Criar usuário"]').exists()).toBe(true),
@@ -221,8 +275,8 @@ describe("UsersPage", () => {
 
   it("deletes a user after confirmation", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
-    const wrapper = mountPage();
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
     const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
 
     try {
@@ -248,7 +302,7 @@ describe("UsersPage", () => {
 
   it("mostra erros por campo quando a API rejeita o formulário com 422", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
+    server.use(...mocks.handlers, rolesListHandler);
     server.use(
       http.post(`${TEST_API_BASE}/api/v1/users`, async ({ request }) =>
         HttpResponse.json(
@@ -260,7 +314,7 @@ describe("UsersPage", () => {
         ),
       ),
     );
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[aria-label="Criar usuário"]').exists()).toBe(true),
@@ -289,7 +343,7 @@ describe("UsersPage", () => {
 
   it("inicia contagem regressiva quando a listagem recebe 429", async () => {
     const mocks = makeUsersRouteMocks(users);
-    server.use(...mocks.handlers);
+    server.use(...mocks.handlers, rolesListHandler);
     server.use(
       http.get(`${TEST_API_BASE}/api/v1/users`, async ({ request }) =>
         HttpResponse.json(
@@ -304,12 +358,82 @@ describe("UsersPage", () => {
         ),
       ),
     );
-    const wrapper = mountPage();
+    const wrapper = await mountPage();
 
     await vi.waitFor(() =>
       expect(wrapper.find('[role="alert"]').text()).toContain(
         "Aguarde 30 segundos",
       ),
+    );
+  });
+
+  it("expõe atalho para o detalhe do usuário na listagem", async () => {
+    const mocks = makeUsersRouteMocks(users);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .get('[aria-label="Ver detalhe de Pessoa 1"]')
+          .attributes("href"),
+      ).toBe("/users/1"),
+    );
+  });
+
+  it("atribui papéis via multi-select pesquisável em vez de texto livre", async () => {
+    const localUsers = Array.from({ length: 3 }, (_, index) =>
+      makeAdminUser({
+        id: index + 1,
+        name: `Pessoa ${index + 1}`,
+        email: `pessoa${index + 1}@example.test`,
+        roles: index === 0 ? ["admin"] : ["user"],
+      }),
+    );
+    const mocks = makeUsersRouteMocks(localUsers);
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .find('[aria-label="Buscar papéis para Papéis de Pessoa 2"]')
+          .exists(),
+      ).toBe(true),
+    );
+    await wrapper
+      .get('[aria-label="Buscar papéis para Papéis de Pessoa 2"]')
+      .setValue("edi");
+    await vi.waitFor(
+      () =>
+        expect(
+          wrapper
+            .find(
+              '[aria-label="Papéis de Pessoa 2"] input[aria-label="Papel editor"][role="option"]',
+            )
+            .exists(),
+        ).toBe(true),
+      { timeout: 4000 },
+    );
+    await wrapper
+      .get(
+        '[aria-label="Papéis de Pessoa 2"] input[aria-label="Papel editor"][role="option"]',
+      )
+      .setValue(true);
+    await wrapper
+      .get('[aria-label="Salvar papéis de Pessoa 2"]')
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.method === "PUT" &&
+            call.path === "/api/v1/users/2/roles" &&
+            JSON.stringify(call.body) ===
+              JSON.stringify({ roles: ["user", "editor"] }),
+        ),
+      ).toBe(true),
     );
   });
 });

@@ -48,6 +48,7 @@ export const makeAdminActivity = (
   return {
     id: 1,
     event: "privileged.change",
+    log_name: "web",
     subject_type: "user",
     subject_id: 1,
     description: "privileged.change",
@@ -461,13 +462,20 @@ export const makeAuditRouteMocks = (
         );
       }
       const url = new URL(request.url);
+      const search = (url.searchParams.get("search") ?? "").toLowerCase();
       const event = url.searchParams.get("event");
+      const logName = url.searchParams.get("log_name");
       const subjectType = url.searchParams.get("subject_type");
       const page = Number(url.searchParams.get("page") ?? "1");
       const perPage = Number(url.searchParams.get("per_page") ?? "15");
       const filtered = activities.filter(
         (activity) =>
+          (search === "" ||
+            activity.description.toLowerCase().includes(search)) &&
           (event === null || event === "" || activity.event === event) &&
+          (logName === null ||
+            logName === "" ||
+            activity.log_name === logName) &&
           (subjectType === null ||
             subjectType === "" ||
             activity.subject_type === subjectType),
