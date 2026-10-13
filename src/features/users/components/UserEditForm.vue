@@ -94,7 +94,9 @@
           data-testid="roles-readonly"
         >
           {{
-            user.roles.length === 0 ? "Nenhum perfil" : user.roles.join(", ")
+            user.roles.length === 0
+              ? "Nenhum perfil"
+              : user.roles.map(roleLabel).join(", ")
           }}
         </p>
       </section>
@@ -132,6 +134,7 @@ import FormFeedback from "@/shared/components/FormFeedback.vue";
 import RoleMultiSelect from "@/shared/components/RoleMultiSelect.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { roleLabel } from "@/shared/utils/role-labels";
 import { useFormDismissGuard } from "@/shared/composables/useFormDismissGuard";
 import { useUserMutations } from "@/features/users/composables/useUsersList";
 import { formatCpf } from "@/features/users/utils/cpf-mask";

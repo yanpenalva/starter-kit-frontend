@@ -59,7 +59,6 @@ describe("AppNavigation.vue", () => {
     const wrapper = mount(AppNavigation);
 
     expect(wrapper.find(".app-navigation__login-link").exists()).toBe(true);
-    expect(wrapper.find(".app-navigation__logout-btn").exists()).toBe(false);
     expect(wrapper.findAll(".app-navigation__link")).toHaveLength(0);
   });
 
@@ -69,9 +68,8 @@ describe("AppNavigation.vue", () => {
     const wrapper = mount(AppNavigation);
 
     expect(wrapper.find(".app-navigation__login-link").exists()).toBe(false);
-    expect(wrapper.find(".app-navigation__logout-btn").exists()).toBe(true);
-    expect(wrapper.text()).toContain("Maria Admin");
-    expect(wrapper.text()).toContain("admin");
+    expect(wrapper.text()).not.toContain("Maria Admin");
+    expect(wrapper.text()).not.toContain("admin");
     expect(wrapper.text()).toContain("Início");
     expect(wrapper.text()).not.toContain("Painel");
     expect(wrapper.text()).toContain("Usuários");
@@ -213,48 +211,14 @@ describe("AppNavigation.vue", () => {
     const labels = wrapper.findAll(".app-navigation__label");
     expect(labels.map((label) => label.text()).join(" ")).toContain("Usuários");
 
-    expect(wrapper.get(".app-navigation__user").classes()).toContain(
-      "app-navigation__user--mini",
-    );
-    expect(wrapper.get(".app-navigation__user-name").text()).toBe(
-      "Maria Admin",
-    );
-    expect(wrapper.get(".app-navigation__logout-btn").classes()).toContain(
-      "app-navigation__logout-btn--mini",
-    );
-    expect(wrapper.get(".app-navigation__logout-label").text()).toBe("Sair");
+    expect(wrapper.find(".app-navigation__user").exists()).toBe(false);
   });
 
-  it("calls session.logout and navigates to login when clicking logout", async () => {
+  it("does not render account identity in the sidebar", () => {
     authenticate();
-    const session = useSessionStore();
-    const logoutSpy = vi.spyOn(session, "logout").mockResolvedValue(undefined);
-
     const wrapper = mount(AppNavigation);
 
-    await wrapper.find(".app-navigation__logout-btn").trigger("click");
-
-    expect(logoutSpy).toHaveBeenCalledTimes(1);
-    expect(mockRouterPush).toHaveBeenCalledWith({ name: "login" });
-  });
-
-  it("clears session, navigates to login and shows feedback when logout fails", async () => {
-    authenticate();
-    const session = useSessionStore();
-    vi.spyOn(session, "logout").mockImplementation(async () => {
-      session.clearSession();
-      throw new Error("Offline");
-    });
-
-    const wrapper = mount(AppNavigation);
-
-    await wrapper.find(".app-navigation__logout-btn").trigger("click");
-    await wrapper.vm.$nextTick();
-
-    expect(session.user).toBeNull();
-    expect(mockRouterPush).toHaveBeenCalledWith({ name: "login" });
-    expect(wrapper.get('[role="alert"]').text()).toContain(
-      "Não foi possível concluir a solicitação de saída.",
-    );
+    expect(wrapper.find(".app-navigation__avatar").exists()).toBe(false);
+    expect(wrapper.find(".app-navigation__user-name").exists()).toBe(false);
   });
 });

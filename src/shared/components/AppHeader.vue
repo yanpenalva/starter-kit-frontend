@@ -22,12 +22,44 @@
       </span>
 
       <span v-if="context" class="app-header__context">{{ context }}</span>
+
+      <button
+        ref="accountButton"
+        type="button"
+        class="app-header__account"
+        aria-label="Abrir menu da conta"
+        :aria-expanded="accountMenuOpen"
+      >
+        <span class="app-header__avatar" aria-hidden="true">{{
+          initials
+        }}</span>
+      </button>
+      <q-menu
+        v-if="accountButton"
+        v-model="accountMenuOpen"
+        :target="accountButton"
+        anchor="bottom right"
+        self="top right"
+      >
+        <div class="app-header__account-menu">
+          <strong>{{ user?.name ?? "Conta" }}</strong>
+          <span>{{ roles.map(roleLabel).join(", ") || "Sem perfil" }}</span>
+          <button type="button" :disabled="isLoggingOut" @click="handleLogout">
+            {{ isLoggingOut ? "Saindo..." : "Sair" }}
+          </button>
+          <p v-if="logoutError" role="alert">{{ logoutError }}</p>
+        </div>
+      </q-menu>
     </div>
   </q-header>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthorization } from "@/features/auth/composables/useAuthorization";
+import { useSessionStore } from "@/features/auth/stores/session";
+import { roleLabel } from "@/shared/utils/role-labels";
 
 const props = defineProps<{
   isDesktop: boolean;
@@ -37,6 +69,32 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ toggle: [] }>();
+const { user, roles } = useAuthorization();
+const session = useSessionStore();
+const router = useRouter();
+const accountMenuOpen = ref(false);
+const accountButton = ref<HTMLButtonElement | null>(null);
+const isLoggingOut = ref(false);
+const logoutError = ref<string | null>(null);
+const initials = computed(() => {
+  const names = (user.value?.name ?? "").trim().split(/\s+/).filter(Boolean);
+  return names.length > 1
+    ? `${names[0]?.[0] ?? ""}${names[1]?.[0] ?? ""}`.toUpperCase()
+    : (names[0]?.slice(0, 2).toUpperCase() ?? "?");
+});
+
+const handleLogout = async (): Promise<void> => {
+  isLoggingOut.value = true;
+  logoutError.value = null;
+  try {
+    await session.logout();
+  } catch {
+    logoutError.value = "Não foi possível concluir a solicitação de saída.";
+  } finally {
+    await router.push({ name: "login" });
+    isLoggingOut.value = false;
+  }
+};
 
 const isExpanded = computed(() =>
   props.isDesktop ? !props.mini : props.drawerOpen,
@@ -137,6 +195,49 @@ const toggleLabel = computed(() => {
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+.app-header__account {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  margin-left: auto;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  place-items: center;
+}
+
+.app-header__avatar {
+  display: grid;
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 50%;
+  background: rgb(69 107 86 / 12%);
+  color: var(--color-evergreen);
+  font-size: 0.75rem;
+  font-weight: 700;
+  place-items: center;
+}
+
+.app-header__account-menu {
+  display: grid;
+  min-width: 12rem;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.app-header__account-menu > span,
+.app-header__account-menu p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.app-header__account-menu button {
+  justify-self: start;
 }
 
 @media (max-width: 1023.98px) {

@@ -21,6 +21,7 @@ export const MANUAL_SECTIONS: readonly ManualSection[] = [
       "Confirme o endereço pelo link enviado por e-mail. Enquanto a confirmação estiver pendente, a sessão fica limitada e permite acessar a verificação e o Manual.",
       "Entre com e-mail e senha. Se a tela solicitar uma verificação adicional, siga as instruções apresentadas para concluir o acesso.",
       "Os atalhos administrativos aparecem conforme as permissões da sua conta. Se uma área não estiver disponível, peça acesso a um administrador.",
+      UI_HELP_TEXT.immutableRole,
     ],
   },
   {
@@ -65,6 +66,7 @@ export const MANUAL_SECTIONS: readonly ManualSection[] = [
       "O perfil Administrador não pode ser renomeado, excluído nem ter permissões alteradas. Um perfil atribuído a usuários não pode ser excluído; a interface informa esse motivo quando o servidor recusa a ação.",
       "A disponibilidade de cada ação depende da autorização da sua conta. A interface e o servidor aplicam essas restrições.",
       "Os ícones das ações têm nomes acessíveis para que seja possível identificar a operação antes de selecioná-la.",
+      Object.values(UI_HELP_TEXT).join(" "),
     ],
   },
   {
@@ -108,7 +110,7 @@ export const MANUAL_FAQ: readonly ManualFaq[] = [
   {
     question: "Quanto tempo dura a sessão?",
     answer:
-      "A sessão real é mantida pelo servidor e seu prazo depende da configuração do ambiente. No projeto, o padrão do servidor é de 120 minutos, mas o ambiente pode definir outro valor. A antiga limpeza do perfil no cache do navegador após cinco minutos sem observadores foi corrigida; ela não media inatividade nem encerrava a sessão do servidor.",
+      "Você permanece conectado por uma sessão mantida pelo servidor. Por padrão, ela dura 120 minutos; um administrador pode configurar outro prazo.",
   },
   {
     question: "A sessão terminou. O que faço com alterações não enviadas?",
@@ -131,3 +133,4 @@ export const MANUAL_FAQ: readonly ManualFaq[] = [
       "O serviço limita tentativas dentro de uma janela de tempo. Aguarde o intervalo indicado na mensagem e tente novamente.",
   },
 ];
+import { UI_HELP_TEXT } from "@/shared/utils/ui-help";

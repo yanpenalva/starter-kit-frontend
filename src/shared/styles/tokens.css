@@ -4,6 +4,14 @@
   --color-muted: #73766e;
   --color-evergreen: #456b56;
   --color-evergreen-deep: #365744;
+  --color-primary: #456b56;
+  --color-success: #587b61;
+  --color-warning: #c18a48;
+  --color-error: #a4473e;
+  --color-info: #557e88;
+  --color-neutral-100: #f4f2ec;
+  --color-neutral-500: #73766e;
+  --color-neutral-900: #252a25;
   --color-canvas: #f4f2ec;
   --color-panel: #fffefb;
   --color-mist: #edf0e8;

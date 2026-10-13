@@ -11,6 +11,7 @@
 
     <template v-if="displayedUser !== null">
       <q-expansion-item
+        group="user-details"
         dense
         default-opened
         label="Conta"
@@ -53,8 +54,8 @@
       </q-expansion-item>
 
       <q-expansion-item
+        group="user-details"
         dense
-        default-opened
         label="Perfis"
         toggle-aria-label="Perfis do usuário"
       >
@@ -62,7 +63,9 @@
           Nenhum perfil atribuído.
         </p>
         <ul v-if="displayedUser.roles.length > 0" class="user-detail__roles">
-          <li v-for="role in displayedUser.roles" :key="role">{{ role }}</li>
+          <li v-for="role in displayedUser.roles" :key="role">
+            {{ roleLabel(role) }}
+          </li>
         </ul>
       </q-expansion-item>
     </template>
@@ -75,6 +78,7 @@ import DialogComponent from "@/shared/components/DialogComponent.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { formatCpf } from "@/features/users/utils/cpf-mask";
 import type { AdminUser } from "@/features/users/api/users.types";
+import { roleLabel } from "@/shared/utils/role-labels";
 
 const props = withDefaults(
   defineProps<{

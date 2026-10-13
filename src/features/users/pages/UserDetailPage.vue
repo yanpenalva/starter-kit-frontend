@@ -1,5 +1,9 @@
 <template>
-  <AdminPageLayout eyebrow="ADMINISTRAÇÃO" title="Detalhe do Usuário">
+  <AdminPageLayout
+    eyebrow="ADMINISTRAÇÃO"
+    title="Detalhe do Usuário"
+    help-text="Confira os dados da conta e os perfis atribuídos. As ações de edição dependem das suas permissões."
+  >
     <template #subtitle>
       Detalhe e edição de um usuário. Área restrita para usuários com permissão
       {{ cataloguePermissionLabel("users.view") }}.
@@ -60,7 +64,7 @@
           <dd>
             <span v-if="user.roles.length === 0">Nenhum</span>
             <span v-for="role in user.roles" :key="role" class="pill">
-              {{ role }}
+              {{ roleLabel(role) }}
             </span>
           </dd>
         </div>
@@ -100,6 +104,7 @@ import { useUserDetail } from "@/features/users/composables/useUsersList";
 import { formatCpf } from "@/features/users/utils/cpf-mask";
 import UserEditForm from "@/features/users/components/UserEditForm.vue";
 import type { AdminUser } from "@/features/users/api/users.types";
+import { roleLabel } from "@/shared/utils/role-labels";
 import { cataloguePermissionLabel } from "@/shared/types/contract";
 
 const route = useRoute();

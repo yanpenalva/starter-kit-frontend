@@ -1,5 +1,9 @@
 <template>
-  <AdminPageLayout eyebrow="ADMINISTRAÇÃO" title="Gerenciamento de Perfis">
+  <AdminPageLayout
+    eyebrow="ADMINISTRAÇÃO"
+    title="Gerenciamento de Perfis"
+    help-text="Consulte os perfis e suas permissões. Alterações ficam disponíveis conforme o seu acesso."
+  >
     <template #subtitle>
       Área restrita para usuários com permissão
       {{ cataloguePermissionLabel("roles.view") }}.
@@ -78,7 +82,7 @@
               />
             </td>
             <th scope="row">
-              {{ role.name }}
+              {{ roleLabel(role.name) }}
               <span
                 v-if="isRoleImmutable(role)"
                 class="role-immutable"
@@ -89,22 +93,29 @@
             </th>
             <td>
               <span class="permission-summary">
-                {{ role.permissions.length }} de
-                {{ CATALOGUE_PERMISSIONS.length }} concedidas
+                {{ role.permissions.length }} permissões
               </span>
             </td>
             <td class="actions-cell">
               <ActionButton
                 type="button"
                 icon="visibility"
+                color="info"
+                :icon-size="18"
                 :label="`Ver detalhes do perfil ${role.name}`"
+                :tooltip="UI_HELP_TEXT.rowDetails"
                 @click="openDetail(role)"
               />
               <ActionButton
                 v-if="can('roles.update-permissions')"
                 type="button"
                 icon="edit"
+                color="warning"
+                :icon-size="18"
                 :disabled="isRoleImmutable(role)"
+                :tooltip="
+                  isRoleImmutable(role) ? UI_HELP_TEXT.immutableRole : undefined
+                "
                 :label="`Editar permissões do perfil ${role.name}`"
                 @click="openEdit(role)"
               />
@@ -112,9 +123,12 @@
                 v-if="can('roles.manage') && !isRoleImmutable(role)"
                 type="button"
                 :icon="deleteAction(role).icon"
+                color="error"
+                :icon-size="18"
                 :disabled="deletingRoleId !== null"
                 :loading="deleteAction(role).loading"
                 :label="deleteAction(role).label"
+                :tooltip="UI_HELP_TEXT.rowDelete"
                 @click="removeRole(role.id, role.name)"
               />
             </td>
@@ -170,16 +184,15 @@ import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { useDebouncedSearch } from "@/shared/composables/useDebouncedSearch";
 import { usePageSelection } from "@/shared/composables/usePageSelection";
-import {
-  CATALOGUE_PERMISSIONS,
-  cataloguePermissionLabel,
-} from "@/shared/types/contract";
+import { cataloguePermissionLabel } from "@/shared/types/contract";
 import {
   isRoleImmutable,
   type AdminRole,
 } from "@/features/roles/api/roles.types";
 import { useRolesList } from "@/features/roles/composables/useRolesList";
 import { isValidationHttpError } from "@/lib/http";
+import { roleLabel } from "@/shared/utils/role-labels";
+import { UI_HELP_TEXT } from "@/shared/utils/ui-help";
 import RoleDetails from "@/features/roles/components/RoleDetails.vue";
 import RoleFormModal from "@/features/roles/components/RoleFormModal.vue";
 

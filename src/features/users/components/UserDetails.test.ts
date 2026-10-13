@@ -113,11 +113,14 @@ describe("UserDetails", () => {
     for (const label of ["Informações da conta", "Perfis do usuário"]) {
       const header = expansionHeader(label);
       expect(header.getAttribute("role")).toBe("button");
-      expect(header.getAttribute("aria-expanded")).toBe("true");
+      expect(header.getAttribute("aria-expanded")).toBe(
+        label === "Informações da conta" ? "true" : "false",
+      );
       expect(header.getAttribute("aria-controls")).not.toBeNull();
     }
-    expect(dialogText()).toContain("admin");
-    expect(dialogText()).toContain("user");
+    await clickExpansion("Perfis do usuário");
+    expect(dialogText()).toContain("Administrador");
+    expect(dialogText()).toContain("Usuário");
   });
 
   it("recolhe o conteúdo denso sem perder dados e reabre por mouse e teclado", async () => {
@@ -128,25 +131,25 @@ describe("UserDetails", () => {
     await clickExpansion("Perfis do usuário");
     expect(
       expansionHeader("Perfis do usuário").getAttribute("aria-expanded"),
-    ).toBe("false");
+    ).toBe("true");
 
-    expect(dialogText()).toContain("admin");
+    expect(dialogText()).toContain("Administrador");
 
     await activateExpansionByKeyboard("Perfis do usuário", 13);
     expect(
       expansionHeader("Perfis do usuário").getAttribute("aria-expanded"),
-    ).toBe("true");
+    ).toBe("false");
 
     await activateExpansionByKeyboard("Perfis do usuário", 32);
     expect(
       expansionHeader("Perfis do usuário").getAttribute("aria-expanded"),
-    ).toBe("false");
+    ).toBe("true");
 
     await clickExpansion("Perfis do usuário");
     expect(
       expansionHeader("Perfis do usuário").getAttribute("aria-expanded"),
-    ).toBe("true");
-    expect(dialogText()).toContain("admin");
+    ).toBe("false");
+    expect(dialogText()).toContain("Administrador");
   });
 
   it("mostra o CPF somente com users.read-cpf", async () => {

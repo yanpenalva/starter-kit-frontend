@@ -419,7 +419,9 @@ describe("LogsPage", () => {
     for (const label of ["Metadados do registro", "Payload da auditoria"]) {
       const header = dialogExpansion(label);
       expect(header.getAttribute("role")).toBe("button");
-      expect(header.getAttribute("aria-expanded")).toBe("true");
+      expect(header.getAttribute("aria-expanded")).toBe(
+        label === "Metadados do registro" ? "true" : "false",
+      );
       expect(header.getAttribute("aria-controls")).not.toBeNull();
     }
 
@@ -431,8 +433,11 @@ describe("LogsPage", () => {
     await vi.waitFor(() =>
       expect(
         dialogExpansion("Payload da auditoria").getAttribute("aria-expanded"),
-      ).toBe("false"),
+      ).toBe("true"),
     );
+    expect(
+      dialogExpansion("Metadados do registro").getAttribute("aria-expanded"),
+    ).toBe("false");
     expect(JSON.parse(payload())).toEqual({
       correlation_id: "corr-11",
       actor_type: "user",
@@ -443,7 +448,7 @@ describe("LogsPage", () => {
     await activateExpansionByKeyboard("Payload da auditoria", 13);
     expect(
       dialogExpansion("Payload da auditoria").getAttribute("aria-expanded"),
-    ).toBe("true");
+    ).toBe("false");
     expect(JSON.parse(payload())).toEqual({
       correlation_id: "corr-11",
       actor_type: "user",
@@ -454,14 +459,14 @@ describe("LogsPage", () => {
     await activateExpansionByKeyboard("Metadados do registro", 32);
     expect(
       dialogExpansion("Metadados do registro").getAttribute("aria-expanded"),
-    ).toBe("false");
+    ).toBe("true");
     expect(dialogElement()?.textContent).toContain("Mudança de privilégio");
 
     dialogExpansion("Metadados do registro").click();
     await vi.waitFor(() =>
       expect(
         dialogExpansion("Metadados do registro").getAttribute("aria-expanded"),
-      ).toBe("true"),
+      ).toBe("false"),
     );
   });
 });

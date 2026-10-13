@@ -87,7 +87,7 @@ describe("MfaChallengePage.vue", () => {
       });
     const wrapper = mount(MfaChallengePage);
 
-    await wrapper.get("button[type='button']").trigger("click");
+    await wrapper.get(".mfa-form__toggle").trigger("click");
     expect(wrapper.text()).toContain("usar código de autenticação");
     await wrapper.get("#mfa-recovery-code").setValue("ABCD-EFGH");
     await wrapper.get("form").trigger("submit.prevent");

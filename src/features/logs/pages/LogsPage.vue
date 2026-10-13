@@ -1,5 +1,9 @@
 <template>
-  <AdminPageLayout eyebrow="SEGURANÇA & AUDITORIA" title="Logs de Auditoria">
+  <AdminPageLayout
+    eyebrow="SEGURANÇA & AUDITORIA"
+    title="Logs de Auditoria"
+    help-text="Filtre os registros e abra um item para consultar seus metadados e payload."
+  >
     <template #subtitle>
       Área restrita para usuários com permissão
       {{ cataloguePermissionLabel("logs.view") }}.
@@ -135,7 +139,10 @@
                 <ActionButton
                   type="button"
                   icon="visibility"
+                  color="info"
+                  :icon-size="18"
                   :label="`Ver detalhes do registro ${activity.id}`"
+                  :tooltip="UI_HELP_TEXT.rowDetails"
                   @click="openDetail(activity)"
                 />
               </td>
@@ -192,6 +199,7 @@ import {
   type AuditSubjectType,
 } from "@/features/logs/api/audit.types";
 import { cataloguePermissionLabel } from "@/shared/types/contract";
+import { UI_HELP_TEXT } from "@/shared/utils/ui-help";
 
 const feedback = useFormFeedback();
 const { can } = useAuthorization();

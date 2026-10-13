@@ -44,6 +44,46 @@ describe("ActionButton.vue", () => {
     expect(button.classes()).toContain("action-button--icon");
   });
 
+  it("mantém cor e disponibiliza explicação no hover e no foco quando bloqueado", async () => {
+    const wrapper = mountButton({
+      icon: "edit",
+      color: "warning",
+      iconSize: 18,
+      disabled: true,
+      tooltip: "Ação indisponível para o perfil Administrador.",
+    });
+    const button = wrapper.get("button");
+    const shell = wrapper.get(".action-button-shell");
+    const tooltipId = shell.attributes("aria-describedby");
+
+    expect(button.classes()).toContain("action-button--warning");
+    expect(button.attributes("disabled")).toBeDefined();
+    expect(button.attributes("title")).toBeUndefined();
+    expect(button.attributes("aria-description")).toBe(
+      "Ação indisponível para o perfil Administrador.",
+    );
+    expect(shell.attributes("tabindex")).toBe("0");
+    expect(tooltipId).toBeTruthy();
+    expect(wrapper.get(`[id="${tooltipId}"]`).attributes("role")).toBe(
+      "tooltip",
+    );
+    expect(wrapper.get(`[id="${tooltipId}"]`).text()).toBe(
+      "Ação indisponível para o perfil Administrador.",
+    );
+
+    const tooltip = wrapper.get(`[id="${tooltipId}"]`);
+    expect(tooltip.classes()).not.toContain("action-button-tooltip--visible");
+
+    await shell.trigger("focusin");
+    expect(tooltip.classes()).toContain("action-button-tooltip--visible");
+
+    await shell.trigger("focusout");
+    expect(tooltip.classes()).not.toContain("action-button-tooltip--visible");
+
+    await shell.trigger("mouseenter");
+    expect(tooltip.classes()).toContain("action-button-tooltip--visible");
+  });
+
   it("emite click com o evento nativo quando está habilitado", async () => {
     const wrapper = mountButton();
 

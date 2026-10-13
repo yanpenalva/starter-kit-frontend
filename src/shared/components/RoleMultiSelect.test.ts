@@ -191,7 +191,7 @@ describe("RoleMultiSelect", () => {
       ),
     );
     expect(wrapper.find('[aria-label="Perfis selecionados"]').text()).toContain(
-      "user",
+      "Usuário",
     );
     expect(wrapper.find('input[type="search"]').exists()).toBe(false);
     expect(calls).toBe(0);
@@ -234,7 +234,7 @@ describe("RoleMultiSelect", () => {
       ),
     );
     expect(wrapper.get('[aria-label="Perfis selecionados"]').text()).toContain(
-      "user",
+      "Usuário",
     );
     const retryButton = wrapper
       .findAll("button")
@@ -246,7 +246,7 @@ describe("RoleMultiSelect", () => {
       expect(wrapper.find('[aria-label="Perfil editor"]').exists()).toBe(true),
     );
     expect(wrapper.get('[aria-label="Perfis selecionados"]').text()).toContain(
-      "user",
+      "Usuário",
     );
     expect(calls).toBe(2);
   });

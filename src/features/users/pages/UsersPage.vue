@@ -1,5 +1,9 @@
 <template>
-  <AdminPageLayout eyebrow="ADMINISTRAÇÃO" title="Gerenciamento de Usuários">
+  <AdminPageLayout
+    eyebrow="ADMINISTRAÇÃO"
+    title="Gerenciamento de Usuários"
+    help-text="Pesquise contas, revise seus dados e use as ações disponíveis conforme suas permissões."
+  >
     <template #subtitle>
       Área restrita para usuários com permissão
       {{ cataloguePermissionLabel("users.view") }}.
@@ -76,28 +80,37 @@
                 Nenhum
               </span>
               <span v-for="role in user.roles" :key="role" class="role-pill">
-                {{ role }}
+                {{ roleLabel(role) }}
               </span>
             </td>
             <td class="actions-cell">
               <ActionButton
                 type="button"
                 icon="visibility"
+                color="info"
+                :icon-size="18"
                 :label="`Ver detalhes de ${user.name}`"
+                :tooltip="UI_HELP_TEXT.rowDetails"
                 @click="openDetail(user.id)"
               />
               <ActionButton
                 v-if="can('users.update')"
                 type="button"
                 icon="edit"
+                color="warning"
+                :icon-size="18"
                 :label="`Editar ${user.name}`"
+                :tooltip="UI_HELP_TEXT.rowEdit"
                 @click="openEdit(user)"
               />
               <ActionButton
                 v-if="can('users.set-status')"
                 type="button"
                 :icon="statusAction(user).icon"
+                :color="user.deactivated_at === null ? 'warning' : 'success'"
+                :icon-size="18"
                 :label="statusAction(user).label"
+                :tooltip="UI_HELP_TEXT.rowStatus"
                 :disabled="isMutating"
                 :loading="isActionPending('status', user.id)"
                 @click="toggleStatus(user.id, user.deactivated_at === null)"
@@ -106,7 +119,10 @@
                 v-if="can('users.manage')"
                 type="button"
                 :icon="deleteAction(user).icon"
+                color="error"
+                :icon-size="18"
                 :label="deleteAction(user).label"
+                :tooltip="UI_HELP_TEXT.rowDelete"
                 :disabled="isMutating"
                 :loading="isActionPending('delete', user.id)"
                 @click="removeUser(user.id, user.name)"
@@ -176,6 +192,8 @@ import UserEditForm from "@/features/users/components/UserEditForm.vue";
 import UserFormModal from "@/features/users/components/UserFormModal.vue";
 import type { AdminUser } from "@/features/users/api/users.types";
 import { cataloguePermissionLabel } from "@/shared/types/contract";
+import { roleLabel } from "@/shared/utils/role-labels";
+import { UI_HELP_TEXT } from "@/shared/utils/ui-help";
 
 type PendingActionKind = "status" | "delete";
 

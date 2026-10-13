@@ -140,16 +140,30 @@ describe("RolesPage", () => {
     const wrapper = mountPage();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("admin"));
+    expect(wrapper.get("tbody").text()).toContain("Administrador");
+    expect(wrapper.get("tbody").text()).toContain("Usuário");
     expect(wrapper.text()).toContain("Gerenciamento de Perfis");
     expect(wrapper.get('input[type="search"]').attributes("placeholder")).toBe(
       "Nome do perfil",
     );
     expect(wrapper.text()).toContain("user");
+    const blockedAdminEdit = wrapper.get(
+      '[aria-label="Editar permissões do perfil admin"]',
+    );
+    expect(blockedAdminEdit.attributes("disabled")).toBeDefined();
+    const blockedAdminShell = blockedAdminEdit.element.parentElement;
+    expect(blockedAdminShell?.getAttribute("tabindex")).toBe("0");
+    expect(blockedAdminShell?.getAttribute("aria-describedby")).toBeTruthy();
+    expect(blockedAdminEdit.attributes("title")).toBeUndefined();
     expect(
-      wrapper
-        .get('[aria-label="Editar permissões do perfil admin"]')
-        .attributes("disabled"),
-    ).toBeDefined();
+      blockedAdminShell?.querySelector('[role="tooltip"]')?.textContent,
+    ).toBe("Ação indisponível para o perfil Administrador.");
+    expect(blockedAdminEdit.attributes("aria-description")).toBe(
+      "Ação indisponível para o perfil Administrador.",
+    );
+    expect(
+      wrapper.get('[aria-label="Ver detalhes do perfil admin"]').classes(),
+    ).toContain("action-button--info");
 
     await openDialog(
       '[aria-label="Editar permissões do perfil user"]',
@@ -832,12 +846,12 @@ describe("RolesPage — seleção por página", () => {
 
     await vi.waitFor(() => expect(dialogElement()).not.toBeNull());
     const dialog = dialogElement() as HTMLElement;
-    expect(dialog.textContent).toContain("Detalhes do perfil user");
+    expect(dialog.textContent).toContain("Detalhes do perfil Usuário");
     expect(dialog.textContent).toContain("Usuários");
     expect(dialog.textContent).toContain("Perfis");
     expect(dialog.textContent).toContain("Auditoria");
     expect(dialog.textContent).toContain("Ver usuários");
-    expect(dialog.textContent).toContain("Não concedida");
+    expect(dialog.textContent).not.toMatch(/concedida/i);
 
     expect(dialog.querySelectorAll("input")).toHaveLength(0);
     expect(

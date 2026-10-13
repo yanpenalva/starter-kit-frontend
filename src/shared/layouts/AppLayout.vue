@@ -24,6 +24,7 @@
 
     <q-page-container>
       <main id="app-content" class="app-layout__main">
+        <BackButton />
         <slot />
       </main>
     </q-page-container>
@@ -34,6 +35,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import AppHeader from "@/shared/components/AppHeader.vue";
+import BackButton from "@/shared/components/BackButton.vue";
 import AppNavigation from "@/shared/components/AppNavigation.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 

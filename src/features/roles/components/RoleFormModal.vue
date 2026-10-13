@@ -29,7 +29,7 @@
 
     <template v-if="mode === 'edit' && role">
       <p class="role-form__name" data-testid="role-form-name">
-        {{ role.name }}
+        {{ roleLabel(role.name) }}
       </p>
       <p class="role-form__summary" data-testid="role-form-summary">
         {{ selection.length }} de {{ CATALOGUE_PERMISSIONS.length }} concedidas
@@ -51,10 +51,11 @@
       </label>
 
       <q-expansion-item
-        v-for="group in PERMISSION_GROUPS"
+        v-for="(group, index) in PERMISSION_GROUPS"
         :key="group.id"
+        group="role-permissions-form"
         dense
-        default-opened
+        :default-opened="index === 0"
         :label="group.label"
         :caption="`${grantedCount(group)} de ${group.permissions.length} concedidas`"
         :toggle-aria-label="`Permissões do grupo ${group.label}`"
@@ -132,6 +133,7 @@ import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { roleLabel } from "@/shared/utils/role-labels";
 import { useFormDismissGuard } from "@/shared/composables/useFormDismissGuard";
 import {
   CATALOGUE_PERMISSIONS,

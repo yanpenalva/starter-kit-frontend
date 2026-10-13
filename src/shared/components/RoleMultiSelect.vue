@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { useRoleOptions } from "@/features/roles/composables/useRoleOptions";
 import { listRoles } from "@/features/roles/api/roles.api";
+import { roleLabel } from "@/shared/utils/role-labels";
 
 const props = withDefaults(
   defineProps<{
@@ -58,7 +59,7 @@ const onListScroll = (event: Event): void => {
   <div class="role-multi-select">
     <ul class="role-multi-select__chips" aria-label="Perfis selecionados">
       <li v-for="role in props.modelValue" :key="role" class="chip">
-        {{ role }}
+        {{ roleLabel(role) }}
         <button
           type="button"
           class="chip__remove"
@@ -126,7 +127,7 @@ const onListScroll = (event: Event): void => {
                 :aria-selected="selectedNames.has(option.name)"
                 @change="toggle(option.name)"
               />
-              {{ option.name }}
+              {{ roleLabel(option.name) }}
             </label>
           </li>
         </template>

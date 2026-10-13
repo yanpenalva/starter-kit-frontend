@@ -268,6 +268,7 @@ import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { cataloguePermissionLabel } from "@/shared/types/contract";
+import { roleLabel } from "@/shared/utils/role-labels";
 import { useSessionStore } from "@/features/auth/stores/session";
 import {
   changeMyPassword,
@@ -291,13 +292,6 @@ const password = ref("");
 const passwordConfirmation = ref("");
 const isSavingName = ref(false);
 const isSavingPassword = ref(false);
-
-const roleLabels: Readonly<Record<string, string>> = {
-  admin: "Administrador",
-  user: "Usuário",
-};
-
-const roleLabel = (role: string): string => roleLabels[role] ?? role;
 
 watch(
   user,
