@@ -40,9 +40,7 @@
     <p v-if="query.isPending.value" role="status">
       Carregando registros de auditoria...
     </p>
-    <p v-if="query.isError.value" role="alert">
-      Não foi possível carregar os registros de auditoria.
-    </p>
+    <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
     <div v-if="query.data.value" class="table-wrap">
       <table>
@@ -107,9 +105,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from "vue";
+import { computed, reactive, watch } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
+import FormFeedback from "@/shared/components/FormFeedback.vue";
+import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { listActivities } from "@/features/logs/api/audit.api";
 import {
   AUDIT_EVENTS,
@@ -120,10 +120,16 @@ import {
   type AuditSubjectType,
 } from "@/features/logs/api/audit.types";
 
+const feedback = useFormFeedback();
 const filters = reactive<ActivityFilters>({ page: 1, per_page: 15 });
 const query = useQuery({
   queryKey: computed(() => ["audit", { ...filters }]),
   queryFn: () => listActivities({ ...filters }),
+});
+watch(query.error, (error) => {
+  if (error !== null && query.isError.value) {
+    feedback.handleFailure(error);
+  }
 });
 const formatDate = (value: string): string =>
   new Intl.DateTimeFormat("pt-BR", {

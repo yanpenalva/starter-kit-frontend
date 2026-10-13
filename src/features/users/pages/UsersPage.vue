@@ -32,10 +32,7 @@
     </div>
 
     <p v-if="query.isPending.value" role="status">Carregando usuários...</p>
-    <p v-if="query.isError.value" role="alert">
-      Não foi possível carregar os usuários.
-    </p>
-    <p v-if="mutationError" role="alert">{{ mutationError }}</p>
+    <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
     <form
       v-if="can('users.manage')"
@@ -59,6 +56,10 @@
           type="email"
           required
         />
+        <FieldErrors
+          :errors="feedback.fieldErrors.value.email ?? []"
+          field-label="Email do novo usuário"
+        />
       </label>
       <label>
         CPF
@@ -67,6 +68,10 @@
           aria-label="CPF do novo usuário"
           inputmode="numeric"
           required
+        />
+        <FieldErrors
+          :errors="feedback.fieldErrors.value.cpf ?? []"
+          field-label="CPF do novo usuário"
         />
       </label>
       <label>
@@ -215,7 +220,10 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
+import FormFeedback from "@/shared/components/FormFeedback.vue";
+import FieldErrors from "@/shared/components/FieldErrors.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
+import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { useUsersList } from "@/features/users/composables/useUsersList";
 
 type PendingActionKind = "name" | "roles" | "status" | "create" | "delete";
@@ -226,6 +234,7 @@ interface PendingAction {
 }
 
 const { can } = useAuthorization();
+const feedback = useFormFeedback();
 const {
   filters,
   query,
@@ -244,13 +253,17 @@ const newUser = reactive({
   password: "",
   active: false,
 });
-const mutationError = ref<string | null>(null);
 const pendingAction = ref<PendingAction | null>(null);
 const isMutating = computed(() => pendingAction.value !== null);
 const isActionPending = (kind: PendingActionKind, userId: number): boolean =>
   pendingAction.value?.kind === kind && pendingAction.value?.userId === userId;
 watch([() => filters.search, () => filters.status, () => filters.role], () => {
   filters.page = 1;
+});
+watch(query.error, (error) => {
+  if (error !== null && query.isError.value) {
+    feedback.handleFailure(error);
+  }
 });
 watch(
   query.data,
@@ -265,22 +278,21 @@ watch(
 
 const saveName = async (userId: number): Promise<void> => {
   if (pendingAction.value !== null || !can("users.update")) return;
-  mutationError.value = null;
   pendingAction.value = { kind: "name", userId };
   try {
     await updateMutation.mutateAsync({
       userId,
       payload: { name: editedNames[userId] },
     });
-  } catch {
-    mutationError.value = "Não foi possível atualizar o usuário.";
+    feedback.reportSuccess("Nome atualizado com sucesso.");
+  } catch (error: unknown) {
+    feedback.handleFailure(error);
   } finally {
     pendingAction.value = null;
   }
 };
 const saveRoles = async (userId: number): Promise<void> => {
   if (pendingAction.value !== null || !can("users.assign-roles")) return;
-  mutationError.value = null;
   pendingAction.value = { kind: "roles", userId };
   try {
     const roles = (editedRoles[userId] ?? "")
@@ -288,8 +300,9 @@ const saveRoles = async (userId: number): Promise<void> => {
       .map((role) => role.trim())
       .filter(Boolean);
     await rolesMutation.mutateAsync({ userId, payload: { roles } });
-  } catch {
-    mutationError.value = "Não foi possível atualizar os papéis do usuário.";
+    feedback.reportSuccess("Papéis atualizados com sucesso.");
+  } catch (error: unknown) {
+    feedback.handleFailure(error);
   } finally {
     pendingAction.value = null;
   }
@@ -299,28 +312,39 @@ const toggleStatus = async (
   isActive: boolean,
 ): Promise<void> => {
   if (pendingAction.value !== null || !can("users.set-status")) return;
-  mutationError.value = null;
   pendingAction.value = { kind: "status", userId };
   try {
     await statusMutation.mutateAsync({
       userId,
       payload: { status: isActive ? "deactivated" : "active" },
     });
-  } catch {
-    mutationError.value = "Não foi possível atualizar o status do usuário.";
+    feedback.reportSuccess(
+      isActive
+        ? "Usuário desativado com sucesso."
+        : "Usuário ativado com sucesso.",
+    );
+  } catch (error: unknown) {
+    feedback.handleFailure(error);
   } finally {
     pendingAction.value = null;
   }
 };
 const createNewUser = async (): Promise<void> => {
   if (pendingAction.value !== null || !can("users.manage")) return;
-  mutationError.value = null;
   if (!/^\d{11}$/.test(newUser.cpf)) {
-    mutationError.value = "Informe um CPF válido com 11 dígitos.";
+    feedback.handleFailure(new Error("cpf-local"));
+    feedback.clearFeedback();
+    feedback.fieldErrors.value = {
+      ...feedback.fieldErrors.value,
+      cpf: ["Informe um CPF válido com 11 dígitos."],
+    };
     return;
   }
   if (newUser.password.length < 12) {
-    mutationError.value = "A senha deve ter pelo menos 12 caracteres.";
+    feedback.clearFeedback();
+    feedback.fieldErrors.value = {
+      password: ["A senha deve ter pelo menos 12 caracteres."],
+    };
     return;
   }
   pendingAction.value = { kind: "create", userId: 0 };
@@ -337,8 +361,9 @@ const createNewUser = async (): Promise<void> => {
     newUser.cpf = "";
     newUser.password = "";
     newUser.active = false;
-  } catch {
-    mutationError.value = "Não foi possível criar o usuário.";
+    feedback.reportSuccess("Usuário criado com sucesso.");
+  } catch (error: unknown) {
+    feedback.handleFailure(error);
   } finally {
     pendingAction.value = null;
   }
@@ -346,12 +371,12 @@ const createNewUser = async (): Promise<void> => {
 const removeUser = async (userId: number, userName: string): Promise<void> => {
   if (pendingAction.value !== null || !can("users.manage")) return;
   if (!globalThis.confirm(`Excluir o usuário ${userName}?`)) return;
-  mutationError.value = null;
   pendingAction.value = { kind: "delete", userId };
   try {
     await deleteMutation.mutateAsync(userId);
-  } catch {
-    mutationError.value = "Não foi possível excluir o usuário.";
+    feedback.reportSuccess("Usuário excluído com sucesso.");
+  } catch (error: unknown) {
+    feedback.handleFailure(error);
   } finally {
     pendingAction.value = null;
   }
