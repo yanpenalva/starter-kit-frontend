@@ -96,6 +96,25 @@ describe("useSessionStore", () => {
     expect(store.user).toBeNull();
   });
 
+  it("retains the cached session profile for more than five minutes", async () => {
+    vi.useFakeTimers();
+    try {
+      const profileQueryKey = getAuthMyProfileQueryKey();
+      queryClient.setQueryData<AuthMyProfile200>(profileQueryKey, {
+        data: mockVerifiedProfile,
+      });
+
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 1);
+
+      expect(
+        queryClient.getQueryData<AuthMyProfile200>(profileQueryKey),
+      ).toEqual({ data: mockVerifiedProfile });
+      expect(useSessionStore().user).toEqual(mockVerifiedProfile);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("bootstraps verified session correctly", async () => {
     server.use(
       http.get(PROFILE_URL, ({ request }) =>

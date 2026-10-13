@@ -9,7 +9,7 @@
         {{ role.name }}
       </p>
       <p v-if="isRoleImmutable(role)" role="note" class="role-detail__notice">
-        Papel protegido: não pode ser editado nem excluído.
+        Perfil protegido: não pode ser editado nem excluído.
       </p>
 
       <q-expansion-item
@@ -65,8 +65,8 @@ const emit = defineEmits<{
 
 const title = computed(() =>
   props.role === null
-    ? "Detalhes do papel"
-    : `Detalhes do papel ${props.role.name}`,
+    ? "Detalhes do perfil"
+    : `Detalhes do perfil ${props.role.name}`,
 );
 
 const isGranted = (permission: CataloguePermission): boolean =>

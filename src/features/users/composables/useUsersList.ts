@@ -1,5 +1,10 @@
-import { computed, reactive, watch } from "vue";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import { computed, reactive } from "vue";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/vue-query";
 import {
   assignUserRoles,
   createUser,
@@ -75,7 +80,7 @@ export const useUserMutations = () => {
 export const useUsersList = () => {
   const filters = reactive<UserFilters>({
     page: 1,
-    per_page: 15,
+    per_page: 10,
     search: "",
     status: undefined,
     role: undefined,
@@ -83,6 +88,7 @@ export const useUsersList = () => {
   const query = useQuery({
     queryKey: computed(() => [USERS_QUERY_KEY, { ...filters }]),
     queryFn: () => listUsers({ ...filters }),
+    placeholderData: keepPreviousData,
   });
   const hasActiveFilters = (): boolean => {
     return (
@@ -108,29 +114,4 @@ export const useUserDetail = (userId: () => number | null) => {
     queryFn: () => showUser(userId() as number),
     enabled: computed(() => userId() !== null),
   });
-};
-export const usersSearchDebounce = (
-  filters: UserFilters,
-  apply: (value: string) => void,
-  delayMs = 350,
-): (() => void) => {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const stop = watch(
-    () => filters.search,
-    (value) => {
-      if (value === undefined) {
-        return;
-      }
-      if (timer !== null) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(() => apply(value), delayMs);
-    },
-  );
-  return () => {
-    if (timer !== null) {
-      clearTimeout(timer);
-    }
-    stop();
-  };
 };

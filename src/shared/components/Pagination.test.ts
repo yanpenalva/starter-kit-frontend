@@ -132,4 +132,28 @@ describe("Pagination.vue", () => {
 
     expect(wrapper.emitted("change")).toBeUndefined();
   });
+
+  it("emite uma opção válida de itens por página", async () => {
+    const wrapper = mountPagination(
+      { per_page: 10 },
+      { perPageOptions: [5, 10, 15, 25, 50] },
+    );
+
+    await wrapper.get('select[aria-label="Itens por página"]').setValue("25");
+
+    expect(wrapper.emitted("per-page-change")).toEqual([[25]]);
+  });
+
+  it("bloqueia a troca do tamanho da página durante uma busca", async () => {
+    const wrapper = mountPagination(
+      { per_page: 10 },
+      { disabled: true, perPageOptions: [5, 10, 15, 25, 50] },
+    );
+
+    const select = wrapper.get('select[aria-label="Itens por página"]');
+    expect(select.attributes("disabled")).toBeDefined();
+    await select.setValue("25");
+
+    expect(wrapper.emitted("per-page-change")).toBeUndefined();
+  });
 });

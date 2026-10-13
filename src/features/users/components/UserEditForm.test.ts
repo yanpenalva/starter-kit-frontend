@@ -138,7 +138,7 @@ describe("UserEditForm", () => {
     ).toEqual({ name: "Maria Editada" });
   });
 
-  it("salva papéis em chamada separada e não apaga o feedback do bloco de dados", async () => {
+  it("salva perfis em chamada separada e não apaga o feedback do bloco de dados", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     server.use(
@@ -161,10 +161,10 @@ describe("UserEditForm", () => {
     );
 
     await setValue(
-      '[aria-label="Papéis de Maria Silva"] input[aria-label="Papel editor"][role="option"]',
+      '[aria-label="Perfis de Maria Silva"] input[aria-label="Perfil editor"][role="option"]',
       true,
     );
-    dialogGet('[aria-label="Salvar papéis de Maria Silva"]').click();
+    dialogGet('[aria-label="Salvar perfis de Maria Silva"]').click();
 
     await vi.waitFor(() => expect(wrapper.emitted("roles-saved")).toBeTruthy());
     expect(
@@ -215,7 +215,7 @@ describe("UserEditForm", () => {
 
     expect(document.body.querySelector('[data-testid="save-user"]')).toBeNull();
     expect(
-      document.body.querySelector('[aria-label="Papéis de Maria Silva"]'),
+      document.body.querySelector('[aria-label="Perfis de Maria Silva"]'),
     ).not.toBeNull();
 
     document.body
@@ -228,13 +228,13 @@ describe("UserEditForm", () => {
     );
   });
 
-  it("sem users.assign-roles mostra os papéis como leitura", async () => {
+  it("sem users.assign-roles mostra os perfis como leitura", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     await mountModal(["users.view", "users.update"]);
 
     expect(
-      document.body.querySelector('[aria-label="Papéis de Maria Silva"]'),
+      document.body.querySelector('[aria-label="Perfis de Maria Silva"]'),
     ).toBeNull();
     expect(dialogGet("[data-testid=roles-readonly]").textContent).toBe("user");
   });

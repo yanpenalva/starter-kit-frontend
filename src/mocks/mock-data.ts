@@ -120,9 +120,9 @@ const makeMockRoles = (): AdminRole[] => [
 ];
 
 const ACTIVITY_DESCRIPTIONS = [
-  "Atribuição de papéis alterada para o usuário com justificativa registrada no processo administrativo de revisão periódica de acessos privilegiados do trimestre.",
+  "Atribuição de perfis alterada para o usuário com justificativa registrada no processo administrativo de revisão periódica de acessos privilegiados do trimestre.",
   "Conta desativada após três tentativas consecutivas de autenticação com credenciais inválidas em janela de quinze minutos a partir de origem desconhecida.",
-  "Permissões do papel atualizadas pela matriz de acessos com remoção de privilégios de escrita e manutenção exclusiva dos privilégios de leitura e auditoria.",
+  "Permissões do perfil atualizadas pela matriz de acessos com remoção de privilégios de escrita e manutenção exclusiva dos privilégios de leitura e auditoria.",
   "Sessão administrativa iniciada pela interface de linha de comando durante a rotina automatizada de verificação de integridade dos registros de auditoria.",
 ] as const;
 

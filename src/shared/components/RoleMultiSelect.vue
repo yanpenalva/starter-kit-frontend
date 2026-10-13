@@ -11,7 +11,7 @@ const props = withDefaults(
   }>(),
   {
     disabled: false,
-    ariaLabel: "Selecionar papéis",
+    ariaLabel: "Selecionar perfis",
   },
 );
 
@@ -52,13 +52,13 @@ const onListScroll = (event: Event): void => {
 
 <template>
   <div class="role-multi-select">
-    <ul class="role-multi-select__chips" aria-label="Papéis selecionados">
+    <ul class="role-multi-select__chips" aria-label="Perfis selecionados">
       <li v-for="role in props.modelValue" :key="role" class="chip">
         {{ role }}
         <button
           type="button"
           class="chip__remove"
-          :aria-label="`Remover papel ${role}`"
+          :aria-label="`Remover perfil ${role}`"
           :disabled="props.disabled"
           @click="remove(role)"
         >
@@ -66,7 +66,7 @@ const onListScroll = (event: Event): void => {
         </button>
       </li>
       <li v-if="props.modelValue.length === 0" class="chip chip--empty">
-        Nenhum papel
+        Nenhum perfil
       </li>
     </ul>
 
@@ -74,8 +74,8 @@ const onListScroll = (event: Event): void => {
       v-model="term"
       type="search"
       class="role-multi-select__search"
-      :aria-label="`Buscar papéis para ${props.ariaLabel}`"
-      placeholder="Buscar papéis..."
+      :aria-label="`Buscar perfis para ${props.ariaLabel}`"
+      placeholder="Buscar perfis..."
       :disabled="props.disabled"
     />
 
@@ -87,7 +87,7 @@ const onListScroll = (event: Event): void => {
       @scroll="onListScroll"
     >
       <li v-if="isLoading && options.length === 0" role="status">
-        Carregando papéis...
+        Carregando perfis...
       </li>
       <li
         v-for="option in options"
@@ -100,7 +100,7 @@ const onListScroll = (event: Event): void => {
             type="checkbox"
             :checked="selectedNames.has(option.name)"
             :disabled="props.disabled"
-            :aria-label="`Papel ${option.name}`"
+            :aria-label="`Perfil ${option.name}`"
             role="option"
             :aria-selected="selectedNames.has(option.name)"
             @change="toggle(option.name)"
@@ -109,7 +109,7 @@ const onListScroll = (event: Event): void => {
         </label>
       </li>
       <li v-if="!isLoading && options.length === 0">
-        Nenhum papel encontrado.
+        Nenhum perfil encontrado.
       </li>
       <li v-if="hasMore && options.length > 0" class="role-option--more">
         Role para carregar mais...

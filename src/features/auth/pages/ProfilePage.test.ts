@@ -23,7 +23,7 @@ const verifiedUser: MyProfileResource = {
   email: "ana@example.com",
   email_verified_at: "2026-10-01T12:00:00Z",
   roles: ["member"],
-  permissions: ["reports.view"],
+  permissions: ["logs.view"],
 };
 
 const limitedUser: MyProfileResource = {
@@ -82,7 +82,7 @@ describe("ProfilePage.vue", () => {
     expect(wrapper.text()).toContain("ana@example.com");
     expect(wrapper.text()).toContain("Verificado");
     expect(wrapper.text()).toContain("member");
-    expect(wrapper.text()).toContain("reports.view");
+    expect(wrapper.text()).toContain("Ver auditoria");
     expect(wrapper.find("input[type=email]").exists()).toBe(false);
   });
 

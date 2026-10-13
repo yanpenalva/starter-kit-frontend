@@ -36,7 +36,7 @@ export const AUDIT_SUBJECT_TYPE_LABELS: Readonly<
   Record<AuditSubjectType, string>
 > = {
   user: "Usuário",
-  role: "Papel",
+  role: "Perfil",
 };
 
 export const AUDIT_LOG_NAME_LABELS: Readonly<Record<AuditLogName, string>> = {

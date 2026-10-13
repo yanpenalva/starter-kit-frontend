@@ -59,7 +59,7 @@ describe("RoleDetails", () => {
     );
 
     await vi.waitFor(() =>
-      expect(dialogText()).toContain("Detalhes do papel user"),
+      expect(dialogText()).toContain("Detalhes do perfil user"),
     );
     expect(
       document.body.querySelector('[data-testid="role-detail-name"]')
@@ -68,7 +68,7 @@ describe("RoleDetails", () => {
 
     for (const label of [
       "Permissões do grupo Usuários",
-      "Permissões do grupo Papéis",
+      "Permissões do grupo Perfis",
       "Permissões do grupo Auditoria",
     ]) {
       const header = expansionHeader(label);
@@ -115,7 +115,9 @@ describe("RoleDetails", () => {
   it("consulta somente leitura: nenhum controle de edição", async () => {
     mountDetails(makeAdminRole({ id: 2, name: "user" }));
 
-    await vi.waitFor(() => expect(dialogText()).toContain("Detalhes do papel"));
+    await vi.waitFor(() =>
+      expect(dialogText()).toContain("Detalhes do perfil"),
+    );
 
     const dialog = dialogElement() as HTMLElement;
     expect(dialog.querySelectorAll("input")).toHaveLength(0);
@@ -127,14 +129,14 @@ describe("RoleDetails", () => {
     ).toEqual(["Fechar"]);
   });
 
-  it("consulta o papel admin sinalizando que ele é protegido", async () => {
+  it("consulta o perfil admin sinalizando que ele é protegido", async () => {
     mountDetails(makeAdminRole({ id: 1, name: "admin" }));
 
     await vi.waitFor(() =>
-      expect(dialogText()).toContain("Detalhes do papel admin"),
+      expect(dialogText()).toContain("Detalhes do perfil admin"),
     );
     expect(dialogText()).toContain(
-      "Papel protegido: não pode ser editado nem excluído.",
+      "Perfil protegido: não pode ser editado nem excluído.",
     );
     expect(dialogElement()?.querySelectorAll("input")).toHaveLength(0);
   });

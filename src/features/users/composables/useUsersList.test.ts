@@ -1,14 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import { nextTick } from "vue";
+import { effectScope, nextTick, ref } from "vue";
 import { VueQueryPlugin } from "@tanstack/vue-query";
 import { server } from "@/test/server";
 import { makeAdminUser, makeUsersRouteMocks } from "@/test/admin-handlers";
-import {
-  useUsersList,
-  usersSearchDebounce,
-  useUserDetail,
-} from "./useUsersList";
+import { useDebouncedSearch } from "@/shared/composables/useDebouncedSearch";
+import { useUsersList, useUserDetail } from "./useUsersList";
 const users = [
   makeAdminUser({ id: 1, name: "Alice Souza", email: "alice@example.test" }),
   makeAdminUser({
@@ -19,7 +16,7 @@ const users = [
     roles: ["admin"],
   }),
 ];
-import { defineComponent, effectScope, h, reactive } from "vue";
+import { defineComponent, h } from "vue";
 const withSetup = <T>(
   composable: () => T,
 ): {
@@ -52,7 +49,7 @@ describe("useUsersList", () => {
     expect(result.query.data.value?.meta.total).toBe(2);
     unmount();
   });
-  it("sends debounced search, status and role filters", async () => {
+  it("sends search, status and role filters", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers);
     const { result, unmount } = withSetup(() => useUsersList());
@@ -152,25 +149,21 @@ describe("useUsersList", () => {
   it("debounces rapid search typing into one delayed apply", async () => {
     vi.useFakeTimers();
     try {
-      const filters = reactive({ search: "" }) as unknown as Parameters<
-        typeof usersSearchDebounce
-      >[0];
+      const search = ref("");
       const apply = vi.fn();
-      let stop: (() => void) | undefined;
       const scope = effectScope();
       scope.run(() => {
-        stop = usersSearchDebounce(filters, apply, 350);
+        useDebouncedSearch(search, apply, 350);
       });
-      filters.search = "a";
+      search.value = "a";
       await vi.advanceTimersByTimeAsync(100);
-      filters.search = "al";
+      search.value = "al";
       await vi.advanceTimersByTimeAsync(100);
-      filters.search = "ali";
+      search.value = "ali";
       expect(apply).not.toHaveBeenCalled();
       await vi.advanceTimersByTimeAsync(400);
       expect(apply).toHaveBeenCalledTimes(1);
       expect(apply).toHaveBeenCalledWith("ali");
-      stop?.();
       scope.stop();
     } finally {
       vi.useRealTimers();

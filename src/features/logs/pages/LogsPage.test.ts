@@ -2,8 +2,12 @@ import { VueQueryPlugin } from "@tanstack/vue-query";
 import { createPinia, setActivePinia } from "pinia";
 import { mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { http, HttpResponse } from "msw";
-import { makeAdminActivity, makeAuditRouteMocks } from "@/test/admin-handlers";
+import { delay, http, HttpResponse } from "msw";
+import {
+  makeAdminActivity,
+  makeAuditRouteMocks,
+  makePaginated,
+} from "@/test/admin-handlers";
 import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
 import { queryClient } from "@/app/providers/query";
@@ -40,11 +44,6 @@ const pressEscape = (): void => {
 };
 
 const counter = (page: VueWrapper) => page.get(".selection-counter");
-
-const headerCheckbox = (page: VueWrapper) =>
-  page.get<HTMLInputElement>(
-    '[aria-label="Selecionar todos os registros desta página"]',
-  );
 
 const rowCheckbox = (page: VueWrapper, id: number) =>
   page.get<HTMLInputElement>(`[aria-label="Selecionar registro ${id}"]`);
@@ -140,23 +139,23 @@ describe("LogsPage", () => {
     );
   });
 
-  it("filtra por busca textual e canal log_name", async () => {
+  it("envia o termo de busca e o filtro de canal na consulta", async () => {
     const mocks = makeAuditRouteMocks([
-      makeAdminActivity({ id: 1, description: "Papel atualizado" }),
+      makeAdminActivity({ id: 1, description: "Perfil atualizado" }),
     ]);
     server.use(...mocks.handlers);
     const page = mountPage();
 
-    await vi.waitFor(() => expect(page.text()).toContain("Papel atualizado"));
+    await vi.waitFor(() => expect(page.text()).toContain("Perfil atualizado"));
 
     const search = page.get('input[type="search"]');
     expect(search.attributes("aria-label")).toBeUndefined();
     expect(page.get("label.ui-search").text()).toContain("Buscar na auditoria");
 
-    await search.setValue("papel");
+    await search.setValue("perfil");
     await vi.waitFor(() =>
       expect(
-        mocks.calls.some((call) => call.query.get("search") === "papel"),
+        mocks.calls.some((call) => call.query.get("search") === "perfil"),
       ).toBe(true),
     );
 
@@ -166,6 +165,74 @@ describe("LogsPage", () => {
         mocks.calls.some((call) => call.query.get("log_name") === "cli"),
       ).toBe(true),
     );
+  });
+
+  it("keeps audit search editable and the newest term active after a late response", async () => {
+    const activities = [
+      makeAdminActivity({ id: 1, description: "lento" }),
+      makeAdminActivity({ id: 2, description: "rapido" }),
+      ...Array.from({ length: 16 }, (_, index) =>
+        makeAdminActivity({
+          id: index + 3,
+          description: `registro ${index + 3}`,
+        }),
+      ),
+    ];
+    const requested: Array<{ search: string; page: string | null }> = [];
+    const completed: string[] = [];
+    server.use(
+      http.get(`${TEST_API_BASE}/api/v1/activity-log`, async ({ request }) => {
+        const url = new URL(request.url);
+        const search = url.searchParams.get("search") ?? "";
+        const currentPage = Number(url.searchParams.get("page") ?? 1);
+        const perPage = Number(url.searchParams.get("per_page") ?? 10);
+        requested.push({ search, page: url.searchParams.get("page") });
+        await delay(search === "lento" ? 600 : 10);
+        completed.push(search);
+        const filtered = activities.filter((activity) =>
+          activity.description.includes(search),
+        );
+        const start = (currentPage - 1) * perPage;
+        return HttpResponse.json(
+          makePaginated(filtered.slice(start, start + perPage), {
+            current_page: currentPage,
+            last_page: Math.max(1, Math.ceil(filtered.length / perPage)),
+            per_page: perPage,
+            total: filtered.length,
+          }),
+          { headers: makeCorsHeaders(request) },
+        );
+      }),
+    );
+    const page = mountPage();
+    await vi.waitFor(() => expect(page.text()).toContain("lento"));
+    await page.get('button[aria-label="Próxima página"]').trigger("click");
+    await vi.waitFor(() =>
+      expect(page.get(".ui-pagination__status").text()).toContain("Página 2"),
+    );
+
+    const search = page.get<HTMLInputElement>('input[type="search"]');
+    await search.setValue("lento");
+    await vi.waitFor(() =>
+      expect(
+        requested.some((call) => call.search === "lento" && call.page === "1"),
+      ).toBe(true),
+    );
+    expect(search.element.disabled).toBe(false);
+
+    await search.setValue("rapido");
+    await vi.waitFor(() =>
+      expect(
+        requested.some((call) => call.search === "rapido" && call.page === "1"),
+      ).toBe(true),
+    );
+    await vi.waitFor(() =>
+      expect(page.get("tbody").text()).toContain("rapido"),
+    );
+    await vi.waitFor(() => expect(completed).toContain("lento"));
+
+    expect(page.get("tbody").text()).toContain("rapido");
+    expect(page.get("tbody").text()).not.toContain("lento");
   });
 
   it("pagina pela meta da API e volta para a primeira página", async () => {
@@ -180,7 +247,7 @@ describe("LogsPage", () => {
     const page = mountPage();
 
     await vi.waitFor(() =>
-      expect(page.get(".ui-pagination__range").text()).toBe("1–15 de 16"),
+      expect(page.get(".ui-pagination__range").text()).toBe("1–10 de 16"),
     );
     expect(page.get(".ui-pagination__status").text()).toContain(
       "Página 1 de 2",
@@ -195,13 +262,13 @@ describe("LogsPage", () => {
       ),
     );
     await vi.waitFor(() =>
-      expect(page.get(".ui-pagination__range").text()).toBe("16–16 de 16"),
+      expect(page.get(".ui-pagination__range").text()).toBe("11–16 de 16"),
     );
     expect(page.text()).toContain("Registro número 16");
 
     await page.get('button[aria-label="Página anterior"]').trigger("click");
     await vi.waitFor(() =>
-      expect(page.get(".ui-pagination__range").text()).toBe("1–15 de 16"),
+      expect(page.get(".ui-pagination__range").text()).toBe("1–10 de 16"),
     );
   });
 
@@ -209,7 +276,7 @@ describe("LogsPage", () => {
     const mocks = makeAuditRouteMocks([
       makeAdminActivity({
         id: 7,
-        description: "Papéis sincronizados",
+        description: "Perfis sincronizados",
         properties: {
           correlation_id: "corr-42",
           actor_type: "user",
@@ -222,7 +289,7 @@ describe("LogsPage", () => {
     const page = mountPage();
 
     await vi.waitFor(() =>
-      expect(page.text()).toContain("Papéis sincronizados"),
+      expect(page.text()).toContain("Perfis sincronizados"),
     );
     expect(dialogElement()).toBeNull();
 
@@ -237,7 +304,7 @@ describe("LogsPage", () => {
     expect(dialog.textContent).toContain("Detalhes do registro #7");
     expect(dialog.textContent).toContain("Evento");
     expect(dialog.textContent).toContain("Mudança de privilégio");
-    expect(dialog.textContent).toContain("Papéis sincronizados");
+    expect(dialog.textContent).toContain("Perfis sincronizados");
     expect(dialog.textContent).toContain("corr-42");
 
     dialogButton("Fechar")?.click();
@@ -344,7 +411,7 @@ describe("LogsPage", () => {
 describe("LogsPage — seleção por página", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("seleciona registros, deixa o header indeterminado e limpa ao clicar de novo", async () => {
+  it("seleciona registros individualmente sem seletor de todos", async () => {
     const mocks = makeAuditRouteMocks([
       makeAdminActivity({ id: 1, description: "Registro um" }),
       makeAdminActivity({ id: 2, description: "Registro dois" }),
@@ -356,25 +423,55 @@ describe("LogsPage — seleção por página", () => {
     await vi.waitFor(() =>
       expect(counter(page).text()).toContain("0 de 3 selecionados"),
     );
-    expect(headerCheckbox(page).attributes("disabled")).toBeUndefined();
+    expect(
+      page
+        .find('[aria-label="Selecionar todos os registros desta página"]')
+        .exists(),
+    ).toBe(false);
 
     await rowCheckbox(page, 1).setValue(true);
-
-    expect(headerCheckbox(page).element.indeterminate).toBe(true);
     expect(counter(page).text()).toContain("1 de 3 selecionados");
 
-    await headerCheckbox(page).setValue(true);
-
-    expect(counter(page).text()).toContain("3 de 3 selecionados");
-    expect(headerCheckbox(page).element.indeterminate).toBe(false);
+    await rowCheckbox(page, 3).setValue(true);
+    expect(counter(page).text()).toContain("2 de 3 selecionados");
     expect(rowCheckbox(page, 3).element.checked).toBe(true);
 
-    await headerCheckbox(page).setValue(false);
-
-    expect(counter(page).text()).toContain("0 de 3 selecionados");
-    expect(rowCheckbox(page, 1).element.checked).toBe(false);
+    await rowCheckbox(page, 1).setValue(false);
+    expect(counter(page).text()).toContain("1 de 3 selecionados");
 
     expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
+  });
+
+  it("troca itens por página entre opções permitidas e limpa a seleção", async () => {
+    const activities = Array.from({ length: 16 }, (_, index) =>
+      makeAdminActivity({ id: index + 1 }),
+    );
+    const mocks = makeAuditRouteMocks(activities);
+    server.use(...mocks.handlers);
+    const page = mountPage();
+
+    await vi.waitFor(() =>
+      expect(counter(page).text()).toContain("0 de 10 selecionados"),
+    );
+    const perPage = page.get<HTMLSelectElement>(
+      'select[aria-label="Itens por página"]',
+    );
+    expect(perPage.element.value).toBe("10");
+    await rowCheckbox(page, 1).setValue(true);
+    expect(counter(page).text()).toContain("1 de 10 selecionados");
+
+    await perPage.setValue("5");
+
+    await vi.waitFor(() =>
+      expect(counter(page).text()).toContain("0 de 5 selecionados"),
+    );
+    expect(page.get(".ui-pagination__range").text()).toBe("1–5 de 16");
+    expect(
+      mocks.calls.some(
+        (call) =>
+          call.query.get("per_page") === "5" && call.query.get("page") === "1",
+      ),
+    ).toBe(true);
   });
 
   it("limpa a seleção ao buscar, filtrar e paginar", async () => {
@@ -389,10 +486,10 @@ describe("LogsPage — seleção por página", () => {
     const page = mountPage();
 
     await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 15 selecionados"),
+      expect(counter(page).text()).toContain("0 de 10 selecionados"),
     );
     await rowCheckbox(page, 1).setValue(true);
-    expect(counter(page).text()).toContain("1 de 15 selecionados");
+    expect(counter(page).text()).toContain("1 de 10 selecionados");
 
     await page.get('input[type="search"]').setValue("Registro número 2");
     await vi.waitFor(() =>
@@ -401,13 +498,10 @@ describe("LogsPage — seleção por página", () => {
 
     await page.get('input[type="search"]').setValue("");
     await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 15 selecionados"),
-    );
-    await vi.waitFor(() =>
-      expect(headerCheckbox(page).attributes("disabled")).toBeUndefined(),
+      expect(counter(page).text()).toContain("0 de 10 selecionados"),
     );
     await rowCheckbox(page, 3).setValue(true);
-    expect(counter(page).text()).toContain("1 de 15 selecionados");
+    expect(counter(page).text()).toContain("1 de 10 selecionados");
 
     await page
       .get('select[aria-label="Filtrar por evento"]')
@@ -423,18 +517,15 @@ describe("LogsPage — seleção por página", () => {
 
     await page.get('select[aria-label="Filtrar por evento"]').setValue("");
     await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 15 selecionados"),
-    );
-    await vi.waitFor(() =>
-      expect(headerCheckbox(page).attributes("disabled")).toBeUndefined(),
+      expect(counter(page).text()).toContain("0 de 10 selecionados"),
     );
     await rowCheckbox(page, 4).setValue(true);
-    expect(counter(page).text()).toContain("1 de 15 selecionados");
+    expect(counter(page).text()).toContain("1 de 10 selecionados");
 
     await page.get('button[aria-label="Próxima página"]').trigger("click");
 
     await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 1 selecionados"),
+      expect(counter(page).text()).toContain("0 de 6 selecionados"),
     );
     expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
       true,

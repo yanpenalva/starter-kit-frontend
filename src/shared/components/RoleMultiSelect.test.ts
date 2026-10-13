@@ -14,7 +14,7 @@ const mountSelect = (modelValue: string[] = [], disabled = false) =>
     props: {
       modelValue,
       disabled,
-      ariaLabel: "Papéis do usuário",
+      ariaLabel: "Perfis do usuário",
     },
   });
 
@@ -80,9 +80,9 @@ describe("RoleMultiSelect", () => {
     const wrapper = mountSelect();
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Papel admin"]').exists()).toBe(true),
+      expect(wrapper.find('[aria-label="Perfil admin"]').exists()).toBe(true),
     );
-    expect(wrapper.find('[aria-label="Papel user"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Perfil user"]').exists()).toBe(true);
     expect(calls).toContain("1");
   });
 
@@ -97,19 +97,19 @@ describe("RoleMultiSelect", () => {
     const wrapper = mountSelect();
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Papel editor"]').exists()).toBe(true),
+      expect(wrapper.find('[aria-label="Perfil editor"]').exists()).toBe(true),
     );
     await wrapper
-      .get('input[aria-label="Buscar papéis para Papéis do usuário"]')
+      .get('input[aria-label="Buscar perfis para Perfis do usuário"]')
       .setValue("edi");
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Papel admin"]').exists()).toBe(false),
+      expect(wrapper.find('[aria-label="Perfil admin"]').exists()).toBe(false),
     );
-    expect(wrapper.find('[aria-label="Papel editor"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Perfil editor"]').exists()).toBe(true);
   });
 
-  it("emite seleção e remoção de papéis", async () => {
+  it("emite seleção e remoção de perfis", async () => {
     server.use(
       makeRolesHandler([
         makeAdminRole({ id: 1, name: "admin" }),
@@ -119,15 +119,15 @@ describe("RoleMultiSelect", () => {
     const wrapper = mountSelect(["editor"]);
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Papel admin"]').exists()).toBe(true),
+      expect(wrapper.find('[aria-label="Perfil admin"]').exists()).toBe(true),
     );
-    await wrapper.get('[aria-label="Papel admin"]').setValue(true);
+    await wrapper.get('[aria-label="Perfil admin"]').setValue(true);
 
     const emitted = wrapper.emitted("update:modelValue");
     expect(emitted?.at(-1)).toEqual([["editor", "admin"]]);
 
     await wrapper.setProps({ modelValue: ["editor", "admin"] });
-    await wrapper.get('[aria-label="Remover papel editor"]').trigger("click");
+    await wrapper.get('[aria-label="Remover perfil editor"]').trigger("click");
     const emittedAgain = wrapper.emitted("update:modelValue");
     expect(emittedAgain?.at(-1)).toEqual([["admin"]]);
   });
@@ -137,17 +137,17 @@ describe("RoleMultiSelect", () => {
     const wrapper = mountSelect(["admin"], true);
 
     await vi.waitFor(() =>
-      expect(wrapper.find('[aria-label="Papel admin"]').exists()).toBe(true),
+      expect(wrapper.find('[aria-label="Perfil admin"]').exists()).toBe(true),
     );
     expect(
-      wrapper.get('[aria-label="Papel admin"]').attributes("disabled"),
+      wrapper.get('[aria-label="Perfil admin"]').attributes("disabled"),
     ).toBeDefined();
     expect(
-      wrapper.get('[aria-label="Remover papel admin"]').attributes("disabled"),
+      wrapper.get('[aria-label="Remover perfil admin"]').attributes("disabled"),
     ).toBeDefined();
     expect(
       wrapper
-        .get('input[aria-label="Buscar papéis para Papéis do usuário"]')
+        .get('input[aria-label="Buscar perfis para Perfis do usuário"]')
         .attributes("disabled"),
     ).toBeDefined();
   });

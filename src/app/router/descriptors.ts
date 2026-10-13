@@ -107,7 +107,7 @@ export const routeDescriptors: readonly NavigationDescriptor[] = [
     path: "/roles",
     component: () => import("@features/roles/pages/RolesPage.vue"),
     meta: { requiresAuth: true, permissions: ["roles.view"] },
-    nav: { label: "Papéis" },
+    nav: { label: "Perfis" },
   },
   {
     name: "logs",
@@ -157,7 +157,7 @@ export const shortcutDescriptors: readonly ShortcutDescriptor[] = [
   {
     name: "roles",
     path: "/roles",
-    label: "Gerenciar Papéis",
+    label: "Gerenciar Perfis",
     permissions: ["roles.view"],
   },
   {

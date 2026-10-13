@@ -10,6 +10,8 @@ import { queryClient } from "@/app/providers/query";
 const profileQueryKey = getAuthMyProfileQueryKey();
 const profileRevision = ref(0);
 
+queryClient.setQueryDefaults(profileQueryKey, { gcTime: Infinity });
+
 const sameProfileQuery = (queryKey: readonly unknown[]): boolean =>
   queryKey.length === profileQueryKey.length &&
   queryKey.every((part, index) => part === profileQueryKey[index]);

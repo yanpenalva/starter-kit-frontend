@@ -1,16 +1,16 @@
 <template>
   <AdminPageLayout eyebrow="SEGURANÇA & AUDITORIA" title="Logs de Auditoria">
     <template #subtitle>
-      Área restrita para usuários com permissão <code>logs.view</code>.
+      Área restrita para usuários com permissão
+      {{ cataloguePermissionLabel("logs.view") }}.
     </template>
 
     <template #toolbar>
       <div class="filters" aria-label="Filtros de auditoria">
         <SearchInput
-          :model-value="filters.search ?? ''"
+          :model-value="searchTerm"
           label="Buscar na auditoria"
-          :disabled="query.isPending.value"
-          @update:model-value="filters.search = $event"
+          @update:model-value="searchTerm = $event"
         />
         <label>
           Canal
@@ -56,15 +56,17 @@
           </select>
         </label>
       </div>
-
       <p class="selection-counter" role="status">
-        {{ selection.selectedCount.value }} de {{ visibleActivityIds.length }}
-        selecionados
+        {{ selection.selectedCount.value }} de
+        {{ query.data.value?.data.length ?? 0 }} selecionados
       </p>
     </template>
 
     <p v-if="query.isPending.value" role="status">
       Carregando registros de auditoria...
+    </p>
+    <p v-if="query.isFetching.value && query.data.value" role="status">
+      Atualizando registros de auditoria...
     </p>
     <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
@@ -72,21 +74,7 @@
       <table>
         <thead>
           <tr>
-            <th scope="col" class="selection-cell">
-              <input
-                type="checkbox"
-                class="selection-toggle"
-                aria-label="Selecionar todos os registros desta página"
-                :checked="selection.isAllSelected.value"
-                :indeterminate.prop="selection.isIndeterminate.value"
-                :disabled="!selection.isSelectable.value"
-                @change="
-                  selection.toggleAll(
-                    ($event.target as HTMLInputElement).checked,
-                  )
-                "
-              />
-            </th>
+            <th scope="col" class="selection-cell"></th>
             <th scope="col">Evento</th>
             <th scope="col">Descrição</th>
             <th scope="col">Entidade</th>
@@ -127,13 +115,12 @@
               {{ activity.created_at ? formatDate(activity.created_at) : "—" }}
             </td>
             <td>
-              <button
+              <ActionButton
                 type="button"
-                :aria-label="`Ver detalhes do registro ${activity.id}`"
+                icon="visibility"
+                :label="`Ver detalhes do registro ${activity.id}`"
                 @click="openDetail(activity)"
-              >
-                Detalhes
-              </button>
+              />
             </td>
           </tr>
           <tr v-if="query.data.value.data.length === 0">
@@ -146,7 +133,9 @@
         aria-label="Paginação de auditoria"
         :disabled="query.isFetching.value"
         :meta="query.data.value.meta"
+        :per-page-options="[5, 10, 15, 25, 50]"
         @change="filters.page = $event"
+        @per-page-change="changePerPage"
       />
     </div>
 
@@ -160,12 +149,14 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { useQuery } from "@tanstack/vue-query";
+import { keepPreviousData, useQuery } from "@tanstack/vue-query";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
+import ActionButton from "@/shared/components/ActionButton.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import Pagination from "@/shared/components/Pagination.vue";
 import SearchInput from "@/shared/components/SearchInput.vue";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
+import { useDebouncedSearch } from "@/shared/composables/useDebouncedSearch";
 import { usePageSelection } from "@/shared/composables/usePageSelection";
 import { listActivities } from "@/features/logs/api/audit.api";
 import LogDetailModal from "@/features/logs/components/LogDetailModal.vue";
@@ -180,21 +171,26 @@ import {
   type AdminActivity,
   type AuditSubjectType,
 } from "@/features/logs/api/audit.types";
+import { cataloguePermissionLabel } from "@/shared/types/contract";
 
 const feedback = useFormFeedback();
-const filters = reactive<ActivityFilters>({ page: 1, per_page: 15 });
+const filters = reactive<ActivityFilters>({ page: 1, per_page: 10 });
+const searchTerm = ref(filters.search ?? "");
 const selectedActivity = ref<AdminActivity | null>(null);
+useDebouncedSearch(searchTerm, (value) => {
+  filters.page = 1;
+  filters.search = value;
+});
 
 const query = useQuery({
   queryKey: computed(() => ["audit", { ...filters }]),
   queryFn: () => listActivities({ ...filters }),
+  placeholderData: keepPreviousData,
 });
 
-const visibleActivityIds = computed<readonly number[]>(() =>
-  (query.data.value?.data ?? []).map((activity) => activity.id),
-);
 const selection = usePageSelection({
-  visibleIds: () => visibleActivityIds.value,
+  visibleIds: () =>
+    (query.data.value?.data ?? []).map((activity) => activity.id),
   enabled: () => !query.isFetching.value && !query.isError.value,
   scopeKey: () =>
     [
@@ -212,18 +208,15 @@ watch(query.error, (error) => {
     feedback.handleFailure(error);
   }
 });
-watch(
-  () => filters.search,
-  () => {
-    filters.page = 1;
-  },
-);
-
 const openDetail = (activity: AdminActivity): void => {
   selectedActivity.value = activity;
 };
 const closeDetail = (): void => {
   selectedActivity.value = null;
+};
+const changePerPage = (perPage: number): void => {
+  filters.page = 1;
+  filters.per_page = perPage;
 };
 const formatDate = (value: string): string =>
   new Intl.DateTimeFormat("pt-BR", {

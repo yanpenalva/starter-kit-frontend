@@ -55,11 +55,11 @@
       <q-expansion-item
         dense
         default-opened
-        label="Papéis"
-        toggle-aria-label="Papéis do usuário"
+        label="Perfis"
+        toggle-aria-label="Perfis do usuário"
       >
         <p v-if="displayedUser.roles.length === 0" class="user-detail__empty">
-          Nenhum papel atribuído.
+          Nenhum perfil atribuído.
         </p>
         <ul v-if="displayedUser.roles.length > 0" class="user-detail__roles">
           <li v-for="role in displayedUser.roles" :key="role">{{ role }}</li>

@@ -75,7 +75,7 @@ describe("AppNavigation.vue", () => {
     expect(wrapper.text()).toContain("admin");
     expect(wrapper.text()).toContain("Painel");
     expect(wrapper.text()).toContain("Usuários");
-    expect(wrapper.text()).toContain("Papéis");
+    expect(wrapper.text()).toContain("Perfis");
     expect(wrapper.text()).toContain("Auditoria");
     expect(wrapper.text()).toContain("Manual");
   });
@@ -103,7 +103,7 @@ describe("AppNavigation.vue", () => {
       "Sessões",
       "Minha Conta",
       "Usuários",
-      "Papéis",
+      "Perfis",
       "Auditoria",
       "Manual",
     ]);

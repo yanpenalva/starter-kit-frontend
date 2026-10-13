@@ -35,6 +35,7 @@ const makeRouter = async (userId: string): Promise<Router> => {
     history: createMemoryHistory(),
     routes: [
       { path: "/", name: "home", component: { template: "<div />" } },
+      { path: "/users", name: "users", component: { template: "<div />" } },
       {
         path: "/users/:userId",
         name: "user-detail",
@@ -152,7 +153,7 @@ afterEach(() => {
 describe("UserDetailPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("exibe email, status de verificação e papéis do usuário", async () => {
+  it("exibe email, status de verificação e perfis do usuário", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
 
@@ -165,6 +166,11 @@ describe("UserDetailPage", () => {
       "Verificado",
     );
     expect(wrapper.text()).toContain("user");
+    expect(wrapper.text()).toContain("Ver usuários");
+    expect(wrapper.text()).not.toContain("users.view");
+    expect(wrapper.get('a[href="/users"]').text()).toBe(
+      "Voltar à lista de usuários",
+    );
   });
 
   it("oculta o CPF sem a permissão users.read-cpf", async () => {

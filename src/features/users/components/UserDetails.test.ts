@@ -100,7 +100,7 @@ afterEach(() => {
 describe("UserDetails", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("mostra os grupos Conta e Papéis em expansões anunciadas", async () => {
+  it("mostra os grupos Conta e Perfis em expansões anunciadas", async () => {
     mountDetails(user);
 
     await vi.waitFor(() =>
@@ -110,7 +110,7 @@ describe("UserDetails", () => {
     expect(dialogText()).toContain("Verificado");
     expect(dialogText()).toContain("Ativo");
 
-    for (const label of ["Informações da conta", "Papéis do usuário"]) {
+    for (const label of ["Informações da conta", "Perfis do usuário"]) {
       const header = expansionHeader(label);
       expect(header.getAttribute("role")).toBe("button");
       expect(header.getAttribute("aria-expanded")).toBe("true");
@@ -125,26 +125,26 @@ describe("UserDetails", () => {
 
     await vi.waitFor(() => expect(dialogText()).toContain("Pessoa de Teste"));
 
-    await clickExpansion("Papéis do usuário");
+    await clickExpansion("Perfis do usuário");
     expect(
-      expansionHeader("Papéis do usuário").getAttribute("aria-expanded"),
+      expansionHeader("Perfis do usuário").getAttribute("aria-expanded"),
     ).toBe("false");
 
     expect(dialogText()).toContain("admin");
 
-    await activateExpansionByKeyboard("Papéis do usuário", 13);
+    await activateExpansionByKeyboard("Perfis do usuário", 13);
     expect(
-      expansionHeader("Papéis do usuário").getAttribute("aria-expanded"),
+      expansionHeader("Perfis do usuário").getAttribute("aria-expanded"),
     ).toBe("true");
 
-    await activateExpansionByKeyboard("Papéis do usuário", 32);
+    await activateExpansionByKeyboard("Perfis do usuário", 32);
     expect(
-      expansionHeader("Papéis do usuário").getAttribute("aria-expanded"),
+      expansionHeader("Perfis do usuário").getAttribute("aria-expanded"),
     ).toBe("false");
 
-    await clickExpansion("Papéis do usuário");
+    await clickExpansion("Perfis do usuário");
     expect(
-      expansionHeader("Papéis do usuário").getAttribute("aria-expanded"),
+      expansionHeader("Perfis do usuário").getAttribute("aria-expanded"),
     ).toBe("true");
     expect(dialogText()).toContain("admin");
   });
@@ -161,7 +161,7 @@ describe("UserDetails", () => {
     ).toBeNull();
 
     await clickExpansion("Informações da conta");
-    await clickExpansion("Papéis do usuário");
+    await clickExpansion("Perfis do usuário");
 
     expect(dialogText()).not.toContain("000.000.000-00");
     expect(dialogText()).not.toContain("***");

@@ -42,27 +42,29 @@ const mountPage = async () => {
 describe("DashboardPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("expõe o atalho de papéis para quem tem roles.view, sem papel admin", async () => {
+  it("expõe o atalho de perfis para quem tem roles.view, sem perfil admin", async () => {
     useSessionStore().user = makeUser({
       permissions: ["roles.view", "logs.view"],
     });
     const wrapper = await mountPage();
 
     const links = wrapper.findAll(".dashboard-action-btn");
-    expect(links.map((link) => link.text())).toContain("Gerenciar Papéis");
+    expect(links.map((link) => link.text())).toContain("Gerenciar Perfis");
     expect(wrapper.text()).not.toContain("Gerenciar Usuários");
+    expect(wrapper.text()).toContain("Ver perfis");
+    expect(wrapper.text()).not.toContain("roles.view");
   });
 
-  it("não expõe o atalho de papéis sem roles.view e sem papel admin", async () => {
+  it("não expõe o atalho de perfis sem roles.view e sem perfil admin", async () => {
     useSessionStore().user = makeUser({ permissions: ["logs.view"] });
     const wrapper = await mountPage();
 
     const links = wrapper.findAll(".dashboard-action-btn");
-    expect(links.map((link) => link.text())).not.toContain("Gerenciar Papéis");
+    expect(links.map((link) => link.text())).not.toContain("Gerenciar Perfis");
     expect(links.map((link) => link.text())).toContain("Ver Logs de Auditoria");
   });
 
-  it("mantém o atalho de papéis para o admin", async () => {
+  it("mantém o atalho de perfis para o admin", async () => {
     useSessionStore().user = makeUser({
       roles: ["admin"],
       permissions: ["users.view", "roles.view", "logs.view"],
@@ -76,7 +78,7 @@ describe("DashboardPage", () => {
     expect(links).toEqual(
       expect.arrayContaining([
         { text: "Gerenciar Usuários", href: "/users" },
-        { text: "Gerenciar Papéis", href: "/roles" },
+        { text: "Gerenciar Perfis", href: "/roles" },
         { text: "Ver Logs de Auditoria", href: "/logs" },
       ]),
     );

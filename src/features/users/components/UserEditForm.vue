@@ -59,12 +59,12 @@
 
       <section class="user-edit__roles" aria-labelledby="user-edit-roles-title">
         <h3 id="user-edit-roles-title" class="user-edit__block-title">
-          Papéis
+          Perfis
         </h3>
         <template v-if="can('users.assign-roles')">
           <RoleMultiSelect
             :model-value="rolesSelection"
-            :aria-label="`Papéis de ${user.name}`"
+            :aria-label="`Perfis de ${user.name}`"
             :disabled="rolesPending"
             @update:model-value="rolesSelection = $event"
           />
@@ -72,15 +72,17 @@
           <button
             type="button"
             class="ui-control"
-            :aria-label="`Salvar papéis de ${user.name}`"
+            :aria-label="`Salvar perfis de ${user.name}`"
             :disabled="!canSaveRoles"
             @click="saveRoles"
           >
-            {{ rolesPending ? "Salvando..." : "Salvar papéis" }}
+            {{ rolesPending ? "Salvando..." : "Salvar perfis" }}
           </button>
         </template>
         <p v-else class="user-edit__readonly" data-testid="roles-readonly">
-          {{ user.roles.length === 0 ? "Nenhum papel" : user.roles.join(", ") }}
+          {{
+            user.roles.length === 0 ? "Nenhum perfil" : user.roles.join(", ")
+          }}
         </p>
       </section>
     </template>
