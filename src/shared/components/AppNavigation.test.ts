@@ -100,6 +100,7 @@ describe("AppNavigation.vue", () => {
     expect(labels).toEqual([
       "Início",
       "Painel",
+      "Minha Conta",
       "Usuários",
       "Papéis",
       "Auditoria",
@@ -108,6 +109,7 @@ describe("AppNavigation.vue", () => {
     expect(links.map((link) => link.attributes("href"))).toEqual([
       "/",
       "/dashboard",
+      "/profile",
       "/users",
       "/roles",
       "/logs",
