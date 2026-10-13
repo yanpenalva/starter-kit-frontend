@@ -21,6 +21,11 @@
 - `python3 -m unittest discover -s tests -v` — PASS, 18 tests, exit 0.
 - `npx @owlcodium/context-spec-develop@1.2.1 doctor --scope project` — PASS, CSD healthy.
 
+## Git delivery
+
+- Commit: `8d16aa9f50b18766b6a6b0f6adf680ff92563b64` (`feat(auth): add account self-service`).
+- Push: PASS to `origin/feat/account-self-service`; no PR or merge created.
+
 ## Limitations
 
 - An earlier parallel `npm test` attempt exited 1 due one unhandled network rejection reported from `UsersPage.test.ts`; that file passed in isolation and subsequent full runs passed without code changes.

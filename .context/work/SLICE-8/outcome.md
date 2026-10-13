@@ -3,7 +3,7 @@
 ## Result
 
 - Minha Conta page, authenticated route, typed central-transport operations and deterministic MSW coverage are implemented.
-- Branch push: pending.
+- Branch `feat/account-self-service` pushed to `origin` at `8d16aa9f50b18766b6a6b0f6adf680ff92563b64`.
 - Production release or merge: not requested; not performed.
 
 ## Observation

@@ -20,7 +20,8 @@
 - Startup authorization: `.context/work/SLICE-8/work-item.json` and `preflight.md`.
 - Validation summary: `.context/work/SLICE-8/verification.md`.
 - Proposed commit message: `feat(auth): add account self-service`.
-- Commit hash: pending.
+- Commit hash: `8d16aa9f50b18766b6a6b0f6adf680ff92563b64`.
+- Commit result: PASS; commit created under the repository-owner's direct request and EXC-0001.
 - Push target: `origin feat/account-self-service`.
-- Push result: pending.
+- Push result: PASS; remote branch created and local tracking set to `origin/feat/account-self-service`.
 - PR, merge and tag: not authorized/requested; none will be created.
