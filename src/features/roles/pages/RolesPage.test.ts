@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { VueQueryPlugin } from "@tanstack/vue-query";
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
@@ -134,27 +135,51 @@ afterEach(() => {
 describe("RolesPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("shows the disabled admin action tooltip on hover and keyboard focus in the scrollable action row", async () => {
+  it("keeps the disabled admin tooltip outside row clipping on hover and keyboard focus", async () => {
     server.use(...makeRolesRouteMocks(roles).handlers);
     const wrapper = mountPage();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("admin"));
     const actionsCell = wrapper.get("tbody tr .actions-cell--nowrap");
+    const scrollContainer = wrapper.get(".table-wrap");
     const shell = wrapper
       .get('[aria-label="Editar permissões do perfil admin"]')
       .element.closest(".action-button-shell");
     const tooltip = shell?.querySelector('[role="tooltip"]');
+    const stylesheet = readFileSync(
+      "src/features/roles/pages/RolesPage.vue",
+      "utf8",
+    );
+    const actionsCellStyles = stylesheet.match(
+      /\.actions-cell--nowrap\s*\{([^}]*)\}/,
+    )?.[1];
+    const tableWrapStyles = stylesheet.match(/\.table-wrap\s*\{([^}]*)\}/)?.[1];
 
-    expect(actionsCell.classes()).toContain("actions-cell--nowrap");
+    expect(scrollContainer.element.contains(actionsCell.element)).toBe(true);
+    expect(tableWrapStyles).toMatch(/overflow-x:\s*auto/);
+    expect(actionsCellStyles).toBeDefined();
+    expect(actionsCellStyles).not.toMatch(/overflow(?:-[xy])?\s*:/);
+    expect(actionsCellStyles).not.toMatch(/padding-bottom\s*:/);
+
+    const assertNoClippingBetweenTooltipAndScrollContainer = () => {
+      let ancestor = tooltip?.parentElement ?? null;
+      while (ancestor !== null && ancestor !== scrollContainer.element) {
+        ancestor = ancestor.parentElement;
+      }
+      expect(ancestor).toBe(scrollContainer.element);
+    };
+
     shell?.dispatchEvent(new Event("mouseenter"));
     await vi.waitFor(() =>
       expect(tooltip?.classList).toContain("action-button-tooltip--visible"),
     );
+    assertNoClippingBetweenTooltipAndScrollContainer();
     shell?.dispatchEvent(new Event("mouseleave"));
     shell?.dispatchEvent(new Event("focusin"));
     await vi.waitFor(() =>
       expect(tooltip?.classList).toContain("action-button-tooltip--visible"),
     );
+    assertNoClippingBetweenTooltipAndScrollContainer();
   });
 
   it("lists roles and saves editable permissions while protecting admin", async () => {

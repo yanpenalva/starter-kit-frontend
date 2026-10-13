@@ -374,8 +374,6 @@ tbody tr:hover {
 .actions-cell--nowrap {
   flex-wrap: nowrap;
   align-items: center;
-  overflow-x: auto;
-  padding-bottom: 2.5rem;
 }
 
 .actions-cell--nowrap > * {
