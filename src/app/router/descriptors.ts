@@ -16,6 +16,7 @@ export interface NavigationDescriptor {
   nav?: {
     label: string;
     allowLimited?: boolean;
+    limitedOnly?: boolean;
   };
 }
 
@@ -30,8 +31,7 @@ export const routeDescriptors: readonly NavigationDescriptor[] = [
   {
     name: "home",
     path: "/",
-    redirect: { name: "login" },
-    nav: { label: "Início" },
+    redirect: { name: "dashboard" },
   },
   {
     name: "login",
@@ -73,7 +73,7 @@ export const routeDescriptors: readonly NavigationDescriptor[] = [
     path: "/dashboard",
     component: () => import("@features/auth/pages/DashboardPage.vue"),
     meta: { requiresAuth: true },
-    nav: { label: "Painel" },
+    nav: { label: "Início" },
   },
   {
     name: "sessions",
@@ -121,14 +121,14 @@ export const routeDescriptors: readonly NavigationDescriptor[] = [
     path: "/manual",
     component: () => import("@features/manual/pages/ManualPage.vue"),
     meta: { requiresAuth: true, allowLimited: true },
-    nav: { label: "Manual" },
+    nav: { label: "Manual", allowLimited: true },
   },
   {
     name: "limited",
     path: "/limited",
     component: () => import("@features/auth/pages/LimitedPage.vue"),
     meta: { requiresAuth: true, allowLimited: true },
-    nav: { label: "Verificação", allowLimited: true },
+    nav: { label: "Verificação", allowLimited: true, limitedOnly: true },
   },
   {
     name: "forbidden",

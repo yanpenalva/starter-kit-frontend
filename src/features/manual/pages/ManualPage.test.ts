@@ -19,82 +19,94 @@ const REQUIRED_SECTION_IDS = [
   "auditoria",
   "filtros-e-paginacao",
 ];
+const REQUIRED_ANCHOR_IDS = [...REQUIRED_SECTION_IDS, "perguntas-frequentes"];
+const REQUIRED_EXPANSIONS = REQUIRED_SECTION_IDS.length + 7;
 
 describe("ManualPage.vue", () => {
-  it("documents every required topic with its own anchor", () => {
+  it("documents every required topic with a matching anchor", () => {
     const wrapper = mountManual();
 
-    REQUIRED_SECTION_IDS.forEach((id) => {
+    REQUIRED_ANCHOR_IDS.forEach((id) => {
       expect(wrapper.find(`#${id}`).exists()).toBe(true);
     });
     expect(wrapper.find("#duvidas-title").exists()).toBe(true);
   });
 
-  it("links the summary to the anchors so the page is navigable", () => {
+  it("links the summary only to anchors present on the page", () => {
     const wrapper = mountManual();
     const links = wrapper.findAll(".manual__toc-list a");
 
-    expect(links).toHaveLength(REQUIRED_SECTION_IDS.length);
+    expect(links).toHaveLength(REQUIRED_ANCHOR_IDS.length);
     links.forEach((link) => {
-      expect(REQUIRED_SECTION_IDS).toContain(
-        link.attributes("href")?.replace("#", ""),
-      );
+      const id = link.attributes("href")?.replace("#", "");
+      expect(REQUIRED_ANCHOR_IDS).toContain(id);
+      expect(wrapper.find(`#${id}`).exists()).toBe(true);
     });
   });
 
-  it("labels each section so assistive technology announces its heading", () => {
+  it("renders each section and FAQ as a collapsed Quasar expansion item", async () => {
     const wrapper = mountManual();
 
-    REQUIRED_SECTION_IDS.forEach((id) => {
-      const section = wrapper.get(`#${id}`);
-      expect(section.attributes("aria-labelledby")).toBe(`${id}-title`);
-      expect(wrapper.find(`#${id}-title`).exists()).toBe(true);
-    });
+    expect(wrapper.findAll(".q-expansion-item")).toHaveLength(
+      REQUIRED_EXPANSIONS,
+    );
+    expect(wrapper.findAll(".q-expansion-item__toggle-icon")).toHaveLength(
+      REQUIRED_EXPANSIONS,
+    );
+    const usersHeader = wrapper.get('#usuarios [role="button"]');
+    expect(usersHeader.attributes("aria-expanded")).toBe("false");
+    await usersHeader.trigger("click");
+    expect(usersHeader.attributes("aria-expanded")).toBe("true");
+    expect(wrapper.text()).toContain("Usuários");
+    expect(wrapper.text()).toContain("Quanto tempo dura a sessão?");
   });
 
-  it("answers the recurring questions about access and protected data", () => {
+  it("describes current dialogs, multi-select, search, pagination and icons", () => {
+    const wrapper = mountManual();
+    const text = wrapper.text();
+
+    expect(text).toContain("janelas");
+    expect(text).toContain("seletor múltiplo");
+    expect(text).toContain("nome ou e-mail");
+    expect(text).toContain("Itens por página");
+    expect(text).toContain("ícones");
+    expect(text).toContain("último administrador ativo");
+    expect(text).not.toMatch(/buscar por nome, e-mail ou CPF/i);
+    expect(text).not.toMatch(/separados por vírgula/i);
+    expect(text).not.toMatch(/Salvar nome/i);
+  });
+
+  it("answers current questions about access, sessions and protections", () => {
     const wrapper = mountManual();
     const text = wrapper.text();
 
     expect(text).toContain("Perguntas frequentes");
     expect(text).toContain("Por que não vejo o menu");
-    expect(text).toContain("Por que o CPF aparece mascarado?");
-    expect(text).toContain("sessão expirou");
-    expect(wrapper.findAll(".manual__faq-question").length).toBe(
-      wrapper.findAll(".manual__faq-answer").length,
+    expect(text).toContain("Como encontro uma conta de usuário?");
+    expect(text).toContain("A sessão terminou");
+    expect(wrapper.findAll(".manual__faq-answer")).toHaveLength(7);
+  });
+
+  it("distinguishes real server expiration from the corrected five-minute cache cleanup", async () => {
+    const data = await import("../data/manual-content");
+    const sessionEntry = data.MANUAL_FAQ.find((faq) =>
+      faq.question.includes("Quanto tempo dura a sessão?"),
     );
+
+    expect(sessionEntry?.answer).toContain("120 minutos");
+    expect(sessionEntry?.answer).toContain("cinco minutos");
+    expect(sessionEntry?.answer).toContain("foi corrigida");
+    expect(mountManual().text()).toContain(sessionEntry?.answer ?? "");
   });
 
-  it("explains the administrative flows end to end", () => {
-    const text = mountManual().text();
-
-    expect(text).toContain("users.view");
-    expect(text).toContain("roles.update-permissions");
-    expect(text).toContain("logs.view");
-    expect(text).toContain("último administrador ativo");
-  });
-
-  it("explains the session lifetime without hardcoding backend values", () => {
-    const text = mountManual().text();
-
-    expect(text).toContain("Quanto tempo dura a sessão?");
-    expect(text).toContain("inatividade");
-    expect(text).toContain("servidor");
-    expect(text).toContain("login");
-    expect(text).toMatch(/renovar/i);
-  });
-
-  it("keeps the manual content in a separate data module", async () => {
+  it("keeps manual content in the data module and preserves section anchors", async () => {
     const data = await import("../data/manual-content");
 
     expect(data.MANUAL_SECTIONS.map((section) => section.id)).toEqual(
       REQUIRED_SECTION_IDS,
     );
-    const sessionEntry = data.MANUAL_FAQ.find((faq) =>
-      faq.question.includes("Quanto tempo dura a sessão?"),
+    expect(mountManual().findAll(".q-expansion-item")).toHaveLength(
+      REQUIRED_EXPANSIONS,
     );
-    expect(sessionEntry).toBeDefined();
-    expect(sessionEntry?.answer).not.toMatch(/\d/);
-    expect(mountManual().text()).toContain(sessionEntry?.answer ?? "");
   });
 });

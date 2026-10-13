@@ -45,7 +45,7 @@ describe("useAuthorization", () => {
     expect(auth.isAuthenticated.value).toBe(false);
 
     const visibleKeys = auth.visibleNavItems.value.map((i) => i.key);
-    expect(visibleKeys).toEqual(["home"]);
+    expect(visibleKeys).toEqual([]);
   });
 
   it("filters menu items for limited (unverified) user", () => {
@@ -58,7 +58,7 @@ describe("useAuthorization", () => {
     expect(auth.isLimited.value).toBe(true);
 
     const visibleKeys = auth.visibleNavItems.value.map((i) => i.key);
-    expect(visibleKeys).toEqual(["home", "limited"]);
+    expect(visibleKeys).toEqual(["manual", "limited"]);
 
     expect(auth.can("users.view")).toBe(false);
     expect(auth.hasRole("admin")).toBe(false);
@@ -75,7 +75,6 @@ describe("useAuthorization", () => {
 
     const visibleKeys = auth.visibleNavItems.value.map((i) => i.key);
     expect(visibleKeys).toEqual([
-      "home",
       "dashboard",
       "sessions",
       "profile",
@@ -99,13 +98,7 @@ describe("useAuthorization", () => {
     const auth = useAuthorization();
 
     const visibleKeys = auth.visibleNavItems.value.map((i) => i.key);
-    expect(visibleKeys).toEqual([
-      "home",
-      "dashboard",
-      "sessions",
-      "profile",
-      "manual",
-    ]);
+    expect(visibleKeys).toEqual(["dashboard", "sessions", "profile", "manual"]);
     expect(auth.can("users.view")).toBe(false);
     expect(auth.hasRole("admin")).toBe(false);
     expect(auth.hasRole("member")).toBe(true);
@@ -120,7 +113,37 @@ describe("useAuthorization", () => {
     const manual = auth.visibleNavItems.value.find((i) => i.key === "manual");
 
     expect(manual?.to).toBe("/manual");
+    expect(manual?.label).toBe("Manual");
     expect(auth.permissions.value).toEqual([]);
+  });
+
+  it("shows the same welcome destination to verified users without permissions", () => {
+    const session = useSessionStore();
+    session.status = "authenticated";
+    session.user = standardUser;
+
+    const auth = useAuthorization();
+
+    expect(
+      auth.visibleNavItems.value.map(({ key, label, to }) => ({
+        key,
+        label,
+        to,
+      })),
+    ).toEqual([
+      { key: "dashboard", label: "Início", to: "/dashboard" },
+      { key: "sessions", label: "Sessões", to: "/sessions" },
+      { key: "profile", label: "Minha Conta", to: "/profile" },
+      { key: "manual", label: "Manual", to: "/manual" },
+    ]);
+  });
+
+  it("does not show application navigation while an MFA challenge is pending", () => {
+    const session = useSessionStore();
+    session.status = "mfa_required";
+    session.user = null;
+
+    expect(useAuthorization().visibleNavItems.value).toEqual([]);
   });
 
   it("hides all navigation items when session is blocked (403)", () => {

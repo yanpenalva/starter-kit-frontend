@@ -35,7 +35,16 @@ const limitedUser: MyProfileResource = {
 
 const mountPage = () => {
   return mount(ProfilePage, {
-    global: { stubs: { AppLayout: { template: "<main><slot /></main>" } } },
+    global: {
+      stubs: {
+        AppLayout: { template: "<main><slot /></main>" },
+        RouterLink: {
+          name: "RouterLink",
+          props: ["to"],
+          template: '<a :href="to"><slot /></a>',
+        },
+      },
+    },
   });
 };
 
@@ -68,7 +77,7 @@ describe("ProfilePage.vue", () => {
     document.cookie = `${CSRF_COOKIE_NAME}=; Max-Age=0; path=/`;
   });
 
-  it("exibe os dados da conta e permite editar o nome", () => {
+  it("exibe a identidade, abre detalhes traduzidos e preserva a navegação da conta", async () => {
     const session = useSessionStore();
     session.user = verifiedUser;
     session.status = "authenticated";
@@ -81,9 +90,54 @@ describe("ProfilePage.vue", () => {
     );
     expect(wrapper.text()).toContain("ana@example.com");
     expect(wrapper.text()).toContain("Verificado");
-    expect(wrapper.text()).toContain("member");
-    expect(wrapper.text()).toContain("Ver auditoria");
+    expect(wrapper.text()).toContain("Ver perfis (1)");
+    expect(wrapper.text()).toContain("Ver permissões (1)");
     expect(wrapper.find("input[type=email]").exists()).toBe(false);
+    expect(wrapper.get('a[href="/sessions"]').text()).toBe(
+      "Ver sessões ativas",
+    );
+
+    await wrapper.get("button.profile-page__detail-link").trigger("click");
+    await flushPromises();
+    expect(document.body.textContent).toContain("member");
+    expect(
+      document.body.querySelector('[aria-labelledby="roles-dialog-title"]'),
+    ).not.toBeNull();
+
+    await document.body
+      .querySelector<HTMLButtonElement>(".profile-page__dialog-close")
+      ?.click();
+    await wrapper
+      .findAll("button.profile-page__detail-link")[1]
+      ?.trigger("click");
+    await flushPromises();
+    expect(document.body.textContent).toContain("Ver auditoria");
+    expect(
+      document.body.querySelector(
+        '[aria-labelledby="permissions-dialog-title"]',
+      ),
+    ).not.toBeNull();
+    wrapper.unmount();
+  });
+
+  it("traduz nomes dos perfis reservados sem mudar os identificadores da conta", async () => {
+    useSessionStore().user = {
+      ...verifiedUser,
+      roles: ["admin", "user"],
+      permissions: [],
+    };
+
+    const wrapper = mountPage();
+    await wrapper.get("button.profile-page__detail-link").trigger("click");
+    await flushPromises();
+
+    const dialog = document.body.querySelector(
+      '[aria-labelledby="roles-dialog-title"]',
+    );
+    expect(dialog?.textContent).toContain("Administrador");
+    expect(dialog?.textContent).toContain("Usuário");
+    expect(dialog?.textContent).not.toContain("admin");
+    wrapper.unmount();
   });
 
   it("informa quando o e-mail ainda não foi verificado", () => {

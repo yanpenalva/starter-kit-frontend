@@ -15,118 +15,117 @@ export const MANUAL_SECTIONS: readonly ManualSection[] = [
     id: "primeiros-passos",
     title: "Primeiros passos",
     summary:
-      "O Starter Kit é o painel administrativo com contas, papéis, permissões e trilha de auditoria. O caminho inicial é sempre o mesmo:",
+      "Use o Início para acessar as áreas disponíveis para sua conta, sua página Minha Conta e este Manual.",
     items: [
-      "Crie sua conta em “Criar conta”, informando nome, e-mail e uma senha de pelo menos 12 caracteres. O CPF é opcional.",
-      "Abra o e-mail de confirmação e clique no link para ativar a conta. Enquanto isso, o painel mostra a tela de verificação e o selo “Pendente”.",
-      "Entre com e-mail e senha. Depois da confirmação, você passa a ver os menus liberados pelas suas permissões.",
-      "Se algum menu não aparecer, sua conta ainda não recebeu a permissão correspondente. Peça a um administrador para atribuí-la em “Papéis”.",
+      "Crie sua conta em “Criar conta”, informando nome, e-mail e uma senha de pelo menos 12 caracteres. O CPF é opcional no cadastro.",
+      "Confirme o endereço pelo link enviado por e-mail. Enquanto a confirmação estiver pendente, a sessão fica limitada e permite acessar a verificação e o Manual.",
+      "Entre com e-mail e senha. Se a tela solicitar uma verificação adicional, siga as instruções apresentadas para concluir o acesso.",
+      "Os atalhos administrativos aparecem conforme as permissões da sua conta. Se uma área não estiver disponível, peça acesso a um administrador.",
     ],
   },
   {
     id: "login-e-perfis",
-    title: "Login e perfis",
+    title: "Acesso, conta e perfis",
     summary:
-      "O acesso é feito por sessão autenticada, com cookies de segurança. Toda ação administrativa só é liberada para contas confirmadas e autorizadas.",
+      "A autenticação usa uma sessão segura. As permissões da sua conta determinam quais áreas administrativas você pode abrir.",
     items: [
-      "Entrar: informe e-mail e senha. Após cinco tentativas incorretas seguidas, o serviço bloqueia novas tentativas por alguns instantes.",
-      "Esqueci a senha: em “Recuperar senha”, informe o e-mail cadastrado. Por segurança, a resposta é sempre a mesma, exista ou não a conta, para não revelar quem está registrado.",
-      "Redefinir senha: abra o link recebido por e-mail e defina uma nova senha. Depois você volta ao login com uma confirmação na tela.",
-      "Confirmar e-mail: o link de verificação ativa a conta. Se o prazo expirar, use “Reenviar confirmação” na tela de verificação.",
-      "Papéis: “admin” administra contas, papéis e permissões; “user” usa o painel com as permissões concedidas.",
-      "Permissões: cada tela administrativa exige uma permissão própria, como users.view, roles.view ou logs.view. Um usuário pode ter roles.view sem ser administrador.",
-      "Sessão expirada: quando o serviço responde que a sessão não é mais válida, você volta ao login e precisa entrar de novo. Nenhuma alteração pendente é reaplicada automaticamente.",
+      "Em Minha Conta, consulte seu e-mail, situação de verificação, perfis atribuídos e permissões. Os detalhes de perfis e permissões abrem em janelas próprias.",
+      "A página Minha Conta permite atualizar o nome e alterar a senha. A senha atual é solicitada para a troca.",
+      "Em “Ver sessões ativas”, confira os dispositivos conectados e encerre sessões que não reconhece.",
+      "Perfis agrupam permissões. Uma conta pode ter mais de um perfil, e as permissões disponíveis são a união dos acessos concedidos.",
+      "Se o acesso solicitar código de autenticação, use o código do aplicativo ou um código de recuperação. A página Minha Conta não configura esse recurso.",
+      "Use “Esqueci a senha” na tela de login para solicitar a redefinição. A mensagem não revela se um endereço está cadastrado.",
     ],
   },
   {
     id: "usuarios",
-    title: "Gestão de usuários",
+    title: "Usuários",
     summary:
-      "A tela “Usuários” lista as contas da plataforma e permite ajustar nome, papéis e status. Ela exige a permissão users.view.",
+      "A área Usuários permite consultar contas e, conforme as permissões disponíveis, criar, editar ou alterar seu estado.",
     items: [
-      "Busca: filtra por nome, e-mail ou CPF. A busca reinicia a listagem na primeira página.",
-      "Filtros de status e papel: “Ativos” mostra contas em uso; “Desativados” mostra contas bloqueadas. O filtro de papel separa administradores de usuários comuns.",
-      "Editar nome: altere o campo na linha e clique em “Salvar nome”. Requer users.update.",
-      "Atribuir papéis: informe os papéis separados por vírgula, por exemplo “admin, user”, e clique em “Salvar papéis”. Requer users.assign-roles.",
-      "Ativar e desativar: o botão alterna o status da conta. Requer users.set-status.",
-      "Proteções: você não pode desativar a própria conta nem remover o último administrador ativo; o serviço recusa a operação e explica o motivo na tela.",
-      "CPF: aparece mascarado para quem tem users.read-cpf e fica oculto para os demais. Ao editar, informe os 11 dígitos com dígitos verificadores válidos.",
+      "Use a busca para localizar pelo nome ou e-mail. A busca não pesquisa CPF.",
+      "Os filtros permitem restringir a lista por situação e perfil. Alterar busca ou filtro volta à primeira página.",
+      "Criar e editar usuários acontece em janelas. Na edição, selecione perfis pelo seletor múltiplo; a seleção pode incluir mais de um perfil.",
+      "A criação da conta e a atribuição de perfis podem ser etapas separadas. Depois, abra a edição do usuário para ajustar os perfis disponíveis para sua autorização.",
+      "A lista é paginada. “Itens por página” altera quantos registros são exibidos em cada página.",
+      "Ações nas linhas usam ícones; cada botão tem um nome acessível que identifica a ação e a conta correspondente.",
+      "O serviço impede desativar a própria conta e remover o último administrador ativo. A interface mostra a resposta quando uma regra bloqueia a ação.",
     ],
   },
   {
     id: "papeis-permissoes",
-    title: "Gestão de papéis e permissões",
+    title: "Perfis e permissões",
     summary:
-      "A tela “Papéis” mostra a matriz de permissões de cada papel. Ela exige a permissão roles.view e a edição exige roles.update-permissions.",
+      "A área Perfis exibe os perfis disponíveis e suas permissões em português, organizadas por assunto.",
     items: [
-      "Marque ou desmarque as permissões do papel e clique em “Salvar permissões”.",
-      "O papel “admin” é imutável: os campos ficam desabilitados para impedir que o painel perca o acesso de administração.",
-      "As permissões disponíveis cobrem contas, papéis, auditoria e leitura de CPF; cada uma é aplicada também pelo servidor, não apenas pela interface.",
-      "Depois de salvar, os usuários com aquele papel passam a ver os menus correspondentes no próximo login ou recarregamento da sessão.",
+      "Use a busca para localizar um perfil pelo nome. A lista permite escolher quantos itens aparecem por página.",
+      "Criar perfil e consultar detalhes abrem janelas. A edição de permissões também abre uma janela com as permissões agrupadas por assunto.",
+      "Alguns perfis protegidos não podem ser alterados. A interface identifica os protegidos e desabilita as ações que não se aplicam.",
+      "A disponibilidade de cada ação depende da autorização da sua conta. A interface e o servidor aplicam essas restrições.",
+      "Os ícones das ações têm nomes acessíveis para que seja possível identificar a operação antes de selecioná-la.",
     ],
   },
   {
     id: "auditoria",
     title: "Auditoria",
     summary:
-      "A tela “Auditoria” registra quem alterou o quê. Ela exige a permissão logs.view e é somente leitura.",
+      "A área Auditoria permite consultar eventos registrados e é somente leitura.",
     items: [
-      "Evento: mostra o tipo da ação, como criação, atualização ou exclusão lógica.",
-      "Descrição: resume a alteração registrada, com os campos afetados.",
-      "Entidade: identifica o tipo e o número do registro alterado.",
-      "Data: exibida no formato brasileiro, com dia, mês, ano, hora e minuto.",
-      "Os registros não podem ser editados nem apagados pela interface.",
+      "Use os filtros de busca, ação, evento e tipo de entidade para localizar registros. A busca e os filtros podem ser combinados.",
+      "A descrição resume o evento registrado. Abra os detalhes para consultar as informações disponíveis daquele registro.",
+      "As datas são exibidas no formato brasileiro. Os registros não podem ser editados ou apagados pela interface.",
+      "A lista é paginada; use os controles ao final para mudar de página e, quando disponível, escolher itens por página.",
+      "Os botões de detalhes usam ícones com nomes acessíveis.",
     ],
   },
   {
     id: "filtros-e-paginacao",
-    title: "Filtros e paginação",
+    title: "Busca e paginação",
     summary:
-      "As telas administrativas usam o mesmo padrão de filtros e paginação, para você saber sempre onde está e o que está vendo.",
+      "As listas mantêm seus resultados durante atualizações e oferecem controles para navegar pelos registros.",
     items: [
-      "A listagem é paginada; o rodapé mostra “Página X de Y” e os botões “Anterior” e “Próxima”.",
-      "Ao mudar qualquer filtro, a listagem volta para a primeira página.",
-      "Filtros vazios são ignorados pelo servidor, então “Todos” sempre traz o conjunto completo.",
-      "“Nenhum registro encontrado” significa que os filtros atuais não têm resultado; limpe os filtros para ver a listagem completa.",
+      "Na lista de usuários, a busca combina nome ou e-mail; ela não pesquisa CPF. Na lista de perfis, a busca considera o nome do perfil.",
+      "Ao alterar busca ou filtro, a lista volta à primeira página. Use “Itens por página” para ajustar o tamanho da página quando esse controle estiver disponível.",
+      "“Nenhum registro encontrado” significa que não há resultado para os filtros atuais. Limpe a busca ou os filtros para consultar a lista novamente.",
+      "Ações representadas por ícones têm nomes acessíveis, disponíveis para leitores de tela e como identificação do botão.",
     ],
   },
 ];
 
 export const MANUAL_FAQ: readonly ManualFaq[] = [
   {
-    question: "Por que não vejo o menu “Usuários”?",
+    question: "Por que não vejo o menu “Usuários” ou “Perfis”?",
     answer:
-      "A sua conta não tem a permissão users.view. Peça a um administrador para conceder essa permissão na tela “Papéis”.",
+      "Os menus administrativos aparecem conforme as permissões da conta. Peça a um administrador para verificar se o acesso necessário foi atribuído ao seu perfil.",
   },
   {
-    question: "Por que a minha conta aparece como “Pendente”?",
+    question: "Por que minha conta aparece como “Pendente”?",
     answer:
-      "O e-mail ainda não foi confirmado. Abra o link enviado no cadastro ou use “Reenviar confirmação” na tela de verificação.",
+      "O e-mail ainda não foi confirmado. Abra o link enviado no cadastro ou use “Reenviar e-mail” na tela de verificação.",
   },
   {
-    question: "Quanto tempo dura a sessão? Por que ela expira?",
+    question: "Quanto tempo dura a sessão?",
     answer:
-      "A sessão tem duração limitada e pode expirar por inatividade, conforme a configuração do servidor. O encerramento automático existe por segurança, para que uma sessão esquecida aberta não permaneça válida por tempo indeterminado. Ao expirar, as proteções de rota redirecionam para o login e as alterações que ainda não foram enviadas não são reenviadas automaticamente. Para renovar, entre novamente com e-mail e senha; depois do login, você retorna à tela solicitada quando houver redirecionamento.",
+      "A sessão real é mantida pelo servidor e seu prazo depende da configuração do ambiente. No projeto, o padrão do servidor é de 120 minutos, mas o ambiente pode definir outro valor. A antiga limpeza do perfil no cache do navegador após cinco minutos sem observadores foi corrigida; ela não media inatividade nem encerrava a sessão do servidor.",
   },
   {
-    question: "A sessão expirou. Perdi o que estava fazendo?",
+    question: "A sessão terminou. O que faço com alterações não enviadas?",
     answer:
-      "Entre novamente para continuar. Alterações que não foram enviadas não são reenviadas automaticamente, então revise os dados antes de repetir a operação.",
+      "Entre novamente e revise o que estava preenchendo. Alterações que não chegaram a ser enviadas ao serviço não são reaplicadas automaticamente.",
   },
   {
-    question:
-      "Por que não consigo desativar um usuário ou retirar os papéis dele?",
+    question: "Como encontro uma conta de usuário?",
     answer:
-      "O serviço impede desativar a própria conta e remover o último administrador ativo, para o painel não ficar sem acesso. A tela mostra o motivo retornado pelo servidor.",
+      "Na lista de usuários, busque pelo nome ou e-mail. A busca não inclui CPF; você também pode combinar a busca com os filtros disponíveis.",
   },
   {
-    question: "Por que o CPF aparece mascarado?",
+    question: "Por que uma alteração em usuário ou perfil foi recusada?",
     answer:
-      "O CPF é dado pessoal. Ele só é exibido para contas com a permissão users.read-cpf; as demais veem a listagem sem esse campo.",
+      "A operação pode exigir uma permissão que sua conta não tem ou ser bloqueada por uma proteção, como impedir a desativação da própria conta ou a remoção do último administrador ativo. A mensagem na tela informa o motivo retornado pelo serviço.",
   },
   {
-    question: "Muitas tentativas aparecem como erro. O que fazer?",
+    question: "O que fazer se muitas tentativas forem limitadas?",
     answer:
-      "O serviço limita tentativas repetidas em pouco tempo. Aguarde o tempo indicado na mensagem e tente novamente.",
+      "O serviço limita tentativas dentro de uma janela de tempo. Aguarde o intervalo indicado na mensagem e tente novamente.",
   },
 ];

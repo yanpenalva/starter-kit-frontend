@@ -94,8 +94,9 @@ withDefaults(
 );
 
 const NAV_ICONS: Readonly<Record<string, string>> = {
-  home: "home",
-  dashboard: "dashboard",
+  dashboard: "home",
+  sessions: "devices",
+  profile: "account_circle",
   users: "group",
   roles: "badge",
   logs: "history",
