@@ -1,4 +1,4 @@
-# Product Discovery — FEAT-21 frontend batch 2 polish
+# Product Discovery — FEAT-92 frontend batch 2 polish
 
 ## Problem
 
@@ -14,4 +14,4 @@ Removing misleading controls and making destructive actions, role selection and 
 
 ## Constraints
 
-No API changes, no changes to can/RBAC guards or existing handlers, preserve accessible labels/tooltips and loading/error feedback, no native confirm/alert in production source. No PR or merge. Separate GitHub issue: NOT FOUND; gh is unavailable in this environment.
+No API changes, no changes to can/RBAC guards or existing handlers, preserve accessible labels/tooltips and loading/error feedback, no native confirm/alert in production source. Builder delivery is limited to commit/push. The user explicitly authorizes the orchestrator to open a PR, merge after independent review and green checks, and clean the delivery branch. GitHub issue: https://github.com/yanpenalva/starter-kit-frontend/issues/92.

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "id": "FEAT-21",
+  "id": "FEAT-92",
   "title": "Polish frontend batch 2 user, role and account workflows",
   "track": "product",
   "type": "feature",
@@ -8,27 +8,47 @@
   "status": "active",
   "risk": "high",
   "owner": "yanpenalva",
-  "conversation_profile": "senior-software-engineer",
+  "conversation_profile": "delivery-orchestrator",
   "git_finalization_mode": "automatic",
   "implementation_required": true,
-  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify"],
+  "phase_history": [
+    "discover",
+    "specify",
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
+  ],
   "classification": {
     "complexity": "high",
     "impact": "cross-module",
     "security": "relevant",
     "confidence": "high"
   },
-  "routing": {"derived": "extended", "effective": "extended"},
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
   "context": {
     "budget": "extended",
-    "required": ["core", "project", "architecture", "security", "testing"],
-    "deferred": ["incident"],
+    "required": [
+      "core",
+      "project",
+      "architecture",
+      "security",
+      "testing"
+    ],
+    "deferred": [
+      "incident"
+    ],
     "triggers": [
       "The requested changes span user, role, session, shared UI and account navigation workflows.",
       "Existing can/RBAC guards, API contracts, and destructive confirmation flows must remain intact.",
       "User explicitly requires tests and all configured frontend quality gates."
     ]
   },
-  "policy_exceptions": ["EXC-0001"],
+  "policy_exceptions": [
+    "EXC-0001"
+  ],
   "last_updated": "2026-10-13"
 }

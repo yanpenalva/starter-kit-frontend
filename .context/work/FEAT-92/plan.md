@@ -1,4 +1,4 @@
-# Plan — FEAT-21 frontend batch 2 polish
+# Plan — FEAT-92 frontend batch 2 polish
 
 ## Approach
 
@@ -30,4 +30,4 @@ Role permission payload and selector pagination can be misunderstood; inspect ex
 
 ## Delivery
 
-Branch `feat/ux-batch2-polish`, target `main`, remote `origin`. Commit with Conventional Commits and push the branch with upstream tracking. No PR or merge.
+Branch `feat/ux-batch2-polish`, target `main`, remote `origin`. Commit with Conventional Commits and push the branch with upstream tracking. Builder does not create PRs or merge. Orchestrator owns independent SOL low review, consolidated Luna fixes if needed, PR, green CI, normal merge and branch cleanup.

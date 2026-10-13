@@ -1,4 +1,4 @@
-# Specification — FEAT-21 frontend batch 2 polish
+# Specification — FEAT-92 frontend batch 2 polish
 
 ## Objective
 
@@ -17,15 +17,15 @@ Complete the eight frontend UX improvements supplied by the user while preservin
 
 ## Out of scope
 
-API/schema changes, authorization changes, bulk actions, PR creation, merge, deployment, dependency additions.
+API/schema changes, authorization changes, bulk actions, deployment and dependency additions. Builders may not create PRs or merge; the orchestrator owns integration.
 
 ## Decisions and contracts
 
 - “Selecionar todos” clears selector search, fetches the catalog from its first page through its last page, then selects all returned profiles. The test verifies a second page is fetched.
 - Existing session, user and role delete handlers remain the owners of deletion; confirmation UI only gates invocation.
 - Toast helper centralizes semantic colors and preserves caller timeout/position and `role="status"` semantics.
-- Delivery branch `feat/ux-batch2-polish`, target `main`, remote `origin`; user explicitly forbids PR, merge and checkout/switch. Commit and push are requested.
-- GitHub issue: NOT FOUND.
+- Delivery branch `feat/ux-batch2-polish`, target `main`, remote `origin`; builder restrictions exclude PR, merge and checkout/switch. The latest user instruction authorizes the orchestrator to create the PR, merge after independent review and green CI, update main and delete the delivery branches.
+- GitHub issue: https://github.com/yanpenalva/starter-kit-frontend/issues/92.
 
 ## Unknowns
 
