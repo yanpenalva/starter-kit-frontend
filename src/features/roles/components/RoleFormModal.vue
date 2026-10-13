@@ -27,7 +27,7 @@
       </form>
     </template>
 
-    <template v-else-if="role">
+    <template v-if="mode === 'edit' && role">
       <p class="role-form__name" data-testid="role-form-name">
         {{ role.name }}
       </p>
@@ -35,8 +35,20 @@
         {{ selection.length }} de {{ CATALOGUE_PERMISSIONS.length }} concedidas
       </p>
       <p v-if="isRoleImmutable(role)" role="note" class="role-form__notice">
-        Perfil protegido: permissões não podem ser alteradas.
+        Perfil Administrador protegido: permissões não podem ser alteradas.
       </p>
+
+      <label class="role-form__permission role-form__select-all">
+        <input
+          type="checkbox"
+          :checked="isAllSelected"
+          :indeterminate.prop="isSelectionIndeterminate"
+          :disabled="isLocked"
+          aria-label="Selecionar todas as permissões"
+          @change="togglePermissions(CATALOGUE_PERMISSIONS, checked($event))"
+        />
+        Selecionar todas as permissões
+      </label>
 
       <q-expansion-item
         v-for="group in PERMISSION_GROUPS"
@@ -48,6 +60,17 @@
         :toggle-aria-label="`Permissões do grupo ${group.label}`"
       >
         <div class="role-form__permissions">
+          <label class="role-form__permission role-form__select-all">
+            <input
+              type="checkbox"
+              :checked="isGroupSelected(group)"
+              :indeterminate.prop="isGroupIndeterminate(group)"
+              :disabled="isLocked"
+              :aria-label="`Selecionar todas as permissões de ${group.label}`"
+              @change="togglePermissions(group.permissions, checked($event))"
+            />
+            Selecionar todas de {{ group.label }}
+          </label>
           <label
             v-for="permission in group.permissions"
             :key="permission"
@@ -89,7 +112,7 @@
         {{ isPending ? "Criando..." : "Criar perfil" }}
       </button>
       <button
-        v-else
+        v-if="mode === 'edit'"
         type="button"
         class="ui-control ui-control--primary"
         data-testid="submit-role-permissions"
@@ -173,6 +196,13 @@ const isDirty = computed(() => {
   );
 });
 
+const isAllSelected = computed(
+  () => selection.value.length === CATALOGUE_PERMISSIONS.length,
+);
+const isSelectionIndeterminate = computed(
+  () => selection.value.length > 0 && !isAllSelected.value,
+);
+
 const { canDismiss } = useFormDismissGuard({
   isDirty: () => isDirty.value,
   isPending: () => isPending.value,
@@ -209,6 +239,31 @@ const handleDialogVisibility = (value: boolean): void => {
 const grantedCount = (group: PermissionGroup): number =>
   group.permissions.filter((permission) => selection.value.includes(permission))
     .length;
+
+const isGroupSelected = (group: PermissionGroup): boolean =>
+  group.permissions.every((permission) => selection.value.includes(permission));
+
+const isGroupIndeterminate = (group: PermissionGroup): boolean => {
+  const granted = grantedCount(group);
+  return granted > 0 && granted < group.permissions.length;
+};
+
+const togglePermissions = (
+  permissions: readonly CataloguePermission[],
+  selected: boolean,
+): void => {
+  const next = new Set(selection.value);
+  for (const permission of permissions) {
+    if (selected) next.add(permission);
+    if (!selected) next.delete(permission);
+  }
+  selection.value = CATALOGUE_PERMISSIONS.filter((permission) =>
+    next.has(permission),
+  );
+};
+
+const checked = (event: Event): boolean =>
+  (event.target as HTMLInputElement).checked;
 
 const submitCreate = async (): Promise<void> => {
   if (isPending.value || !can("roles.manage")) return;
@@ -287,6 +342,12 @@ const submitPermissions = async (): Promise<void> => {
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: 0.375rem 1rem;
   padding: 0.5rem 0;
+}
+
+.role-form__select-all {
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid rgb(58 77 60 / 10%);
+  font-weight: 600;
 }
 
 .role-form__permission {

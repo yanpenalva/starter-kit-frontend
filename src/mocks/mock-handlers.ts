@@ -7,7 +7,10 @@ import {
   matchesAuditSearch,
 } from "@/features/logs/api/audit-search";
 import type { AdminRole } from "@/features/roles/api/roles.types";
-import { isRoleImmutable } from "@/features/roles/api/roles.types";
+import {
+  isRoleImmutable,
+  isRoleNameReserved,
+} from "@/features/roles/api/roles.types";
 import type { AdminUser } from "@/features/users/api/users.types";
 import type { MockDatabase } from "./mock-data";
 import type { MockScenario } from "./mock-scenario";
@@ -386,17 +389,61 @@ const rolesHandlers = (
     const url = new URL(request.url);
     const search = (url.searchParams.get("search") ?? "").toLowerCase();
     const filtered = source.filter(
-      (role) =>
-        search === "" ||
-        role.name.toLowerCase().includes(search) ||
-        role.permissions.some((permission) =>
-          permission.toLowerCase().includes(search),
-        ),
+      (role) => search === "" || role.name.toLowerCase().includes(search),
     );
     return json(request, paginateQuery(resource, url, filtered));
   };
   return [
     http.get(resource, listResolver),
+    http.patch(`${resource}/:roleId`, async ({ request, params }) => {
+      const role = database.roles.find(
+        (candidate) => String(candidate.id) === String(params.roleId),
+      );
+      if (role === undefined) {
+        return json(request, { message: "Não encontrado." }, 404);
+      }
+      if (isRoleNameReserved(role)) {
+        return json(
+          request,
+          { message: "Este perfil não pode ser renomeado." },
+          403,
+        );
+      }
+      const payload = await readJsonBody(request);
+      if (typeof payload.name !== "string" || payload.name === "") {
+        return json(
+          request,
+          {
+            message: "Dados inválidos.",
+            errors: { name: ["Informe um nome de perfil válido."] },
+          },
+          422,
+        );
+      }
+      if (
+        database.roles.some(
+          (candidate) =>
+            candidate.id !== role.id && candidate.name === payload.name,
+        )
+      ) {
+        return json(
+          request,
+          {
+            message: "Dados inválidos.",
+            errors: { name: ["Já existe um perfil com este nome."] },
+          },
+          422,
+        );
+      }
+      const updated = { ...role, name: payload.name };
+      database.roles.splice(database.roles.indexOf(role), 1, updated);
+      for (const user of database.users) {
+        user.roles = user.roles.map((assignedName) =>
+          assignedName === role.name ? updated.name : assignedName,
+        );
+      }
+      return json(request, { data: updated });
+    }),
     http.put(`${resource}/:roleId/permissions`, async ({ request, params }) => {
       const role = database.roles.find(
         (candidate) => String(candidate.id) === String(params.roleId),
@@ -427,7 +474,24 @@ const rolesHandlers = (
     http.post(resource, async ({ request }) => {
       const payload = await readJsonBody(request);
       if (typeof payload.name !== "string" || payload.name === "") {
-        return json(request, { message: "Dados inválidos." }, 422);
+        return json(
+          request,
+          {
+            message: "Dados inválidos.",
+            errors: { name: ["Informe um nome de perfil válido."] },
+          },
+          422,
+        );
+      }
+      if (database.roles.some((role) => role.name === payload.name)) {
+        return json(
+          request,
+          {
+            message: "Dados inválidos.",
+            errors: { name: ["Já existe um perfil com este nome."] },
+          },
+          422,
+        );
       }
       const created: AdminRole = {
         id: Math.max(0, ...database.roles.map((role) => role.id)) + 1,
@@ -444,6 +508,31 @@ const rolesHandlers = (
       );
       if (index === -1) {
         return json(request, { message: "Não encontrado." }, 404);
+      }
+      const role = database.roles[index];
+      if (role !== undefined && isRoleImmutable(role)) {
+        return json(
+          request,
+          { message: "Este perfil protegido não pode ser excluído." },
+          403,
+        );
+      }
+      if (
+        role !== undefined &&
+        database.users.some((user) => user.roles.includes(role.name))
+      ) {
+        return json(
+          request,
+          {
+            message: "Dados inválidos.",
+            errors: {
+              role: [
+                "Este perfil está atribuído a usuários e não pode ser excluído.",
+              ],
+            },
+          },
+          422,
+        );
       }
       database.roles.splice(index, 1);
       return new HttpResponse(null, {

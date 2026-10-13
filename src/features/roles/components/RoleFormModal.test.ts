@@ -184,7 +184,7 @@ describe("RoleFormModal — edição de permissões", () => {
     const wrapper = await mountModal({ mode: "edit", role: adminRole });
 
     expect(document.body.textContent).toContain(
-      "Perfil protegido: permissões não podem ser alteradas.",
+      "Perfil Administrador protegido: permissões não podem ser alteradas.",
     );
     expect(
       dialogGet<HTMLInputElement>(
@@ -232,5 +232,85 @@ describe("RoleFormModal — edição de permissões", () => {
     } finally {
       confirmSpy.mockRestore();
     }
+  });
+
+  it("seleciona e limpa todas as permissões de uma seção sem afetar as outras", async () => {
+    const mocks = makeRolesRouteMocks([adminRole, userRole]);
+    server.use(...mocks.handlers);
+    await mountModal({ mode: "edit", role: userRole });
+
+    await setValue(
+      '[aria-label="Selecionar todas as permissões de Auditoria"]',
+      true,
+    );
+    await setValue(
+      '[aria-label="Selecionar todas as permissões de Usuários"]',
+      true,
+    );
+    expect(
+      dialogGet<HTMLInputElement>(
+        '[aria-label="Permissão Ver auditoria para user"]',
+      ).checked,
+    ).toBe(true);
+    expect(
+      dialogGet<HTMLInputElement>(
+        '[aria-label="Selecionar todas as permissões"]',
+      ).indeterminate,
+    ).toBe(true);
+
+    await setValue(
+      '[aria-label="Selecionar todas as permissões de Usuários"]',
+      false,
+    );
+    expect(
+      dialogGet<HTMLInputElement>(
+        '[aria-label="Permissão Ver usuários para user"]',
+      ).checked,
+    ).toBe(false);
+    expect(
+      dialogGet<HTMLInputElement>(
+        '[aria-label="Permissão Ver auditoria para user"]',
+      ).checked,
+    ).toBe(true);
+  });
+
+  it("seleciona globalmente os slugs do catálogo e mantém o scroll no diálogo", async () => {
+    const mocks = makeRolesRouteMocks([adminRole, userRole]);
+    server.use(...mocks.handlers);
+    await mountModal({ mode: "edit", role: userRole });
+
+    const dialog = dialogGet<HTMLElement>(".ui-dialog");
+    const body = dialogGet<HTMLElement>(".ui-dialog__body");
+    expect(dialog.style.maxHeight).toContain("48rem");
+    expect(getComputedStyle(body).overflowY).toBe("auto");
+
+    await setValue('[aria-label="Selecionar todas as permissões"]', true);
+    expect(
+      dialogGet<HTMLInputElement>(
+        '[aria-label="Selecionar todas as permissões"]',
+      ).checked,
+    ).toBe(true);
+    const permissionCheckboxes = [
+      ...document.body.querySelectorAll<HTMLInputElement>(
+        '[role="dialog"] input[type="checkbox"][aria-label^="Permissão"]',
+      ),
+    ];
+    expect(permissionCheckboxes).toHaveLength(CATALOGUE_PERMISSIONS.length);
+    expect(permissionCheckboxes.every((checkbox) => checkbox.checked)).toBe(
+      true,
+    );
+
+    dialogGet('[data-testid="submit-role-permissions"]').click();
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.method === "PUT" &&
+            call.path === "/api/v1/roles/2/permissions" &&
+            JSON.stringify(call.body) ===
+              JSON.stringify({ permissions: [...CATALOGUE_PERMISSIONS] }),
+        ),
+      ).toBe(true),
+    );
   });
 });

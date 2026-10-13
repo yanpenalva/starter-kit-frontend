@@ -42,6 +42,20 @@ export const deleteRole = (roleId: number): Promise<void> => {
     method: "DELETE",
   });
 };
+export const renameRole = (
+  roleId: number,
+  payload: { name: string },
+): Promise<{
+  data: AdminRole;
+}> => {
+  return transportApi<{
+    data: AdminRole;
+  }>({
+    url: `/api/v1/roles/${roleId}`,
+    method: "PATCH",
+    data: payload,
+  });
+};
 export const updateRolePermissions = (
   roleId: number,
   payload: UpdateRolePermissionsPayload,

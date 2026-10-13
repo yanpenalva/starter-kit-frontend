@@ -140,6 +140,10 @@ describe("RolesPage", () => {
     const wrapper = mountPage();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("admin"));
+    expect(wrapper.text()).toContain("Gerenciamento de Perfis");
+    expect(wrapper.get('input[type="search"]').attributes("placeholder")).toBe(
+      "Nome do perfil",
+    );
     expect(wrapper.text()).toContain("user");
     expect(
       wrapper
@@ -342,6 +346,69 @@ describe("RolesPage", () => {
     ).toMatchObject({ name: "auditor" });
     await waitDialogClosed();
     expect(wrapper.text()).toContain("Perfil criado com sucesso.");
+  });
+
+  it("renames a custom role and invalidates user lists and profile chips", async () => {
+    const localRoles = [
+      ...makeMinimalRoles(),
+      makeAdminRole({ id: 3, name: "manager", permissions: ["users.view"] }),
+    ];
+    const mocks = makeRolesRouteMocks(localRoles);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain("manager"));
+    queryClient.setQueryData(["users", { page: 1 }], {
+      data: [{ id: 7, roles: ["manager"] }],
+    });
+    queryClient.setQueryData(["user", 7], {
+      data: { id: 7, roles: ["manager"] },
+    });
+
+    await openDialog('[aria-label="Ver detalhes do perfil manager"]', wrapper);
+    await setDialogValue('[aria-label="Novo nome do perfil"]', "operador");
+    dialogGet('[data-testid="rename-role"]').click();
+
+    await vi.waitFor(() =>
+      expect(wrapper.get("tbody").text()).toContain("operador"),
+    );
+    expect(mocks.calls.find((call) => call.method === "PATCH")?.body).toEqual({
+      name: "operador",
+    });
+    expect(dialogGet('[data-testid="role-detail-name"]').textContent).toContain(
+      "operador",
+    );
+    expect(
+      queryClient.getQueryState(["users", { page: 1 }])?.isInvalidated,
+    ).toBe(true);
+    expect(queryClient.getQueryState(["user", 7])?.isInvalidated).toBe(true);
+  });
+
+  it("explica a recusa do servidor quando um perfil atribuído não pode ser excluído", async () => {
+    const mocks = makeRolesRouteMocks(makeMinimalRoles(), {
+      assignedRoleNames: ["user"],
+    });
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
+
+    try {
+      await vi.waitFor(() => expect(wrapper.text()).toContain("user"));
+      await wrapper.get('[aria-label="Excluir perfil user"]').trigger("click");
+
+      await vi.waitFor(() =>
+        expect(wrapper.get('[role="alert"]').text()).toContain(
+          "O perfil user está atribuído a usuários e não pode ser excluído.",
+        ),
+      );
+      expect(
+        mocks.calls.some(
+          (call) => call.method === "DELETE" && call.path === "/api/v1/roles/2",
+        ),
+      ).toBe(true);
+    } finally {
+      confirmSpy.mockRestore();
+    }
   });
 
   it("applies the creation guard to cancel, Escape and backdrop", async () => {

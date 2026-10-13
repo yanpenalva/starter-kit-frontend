@@ -1,24 +1,25 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { server } from "@/test/server";
-import { listRoles, updateRolePermissions } from "./roles.api";
+import { listRoles, renameRole, updateRolePermissions } from "./roles.api";
 import { makeAdminRole, makeRolesRouteMocks } from "@/test/admin-handlers";
 
-const roles = [
+const makeRoles = () => [
   makeAdminRole({ id: 1, name: "admin" }),
   makeAdminRole({ id: 2, name: "user", permissions: [] }),
+  makeAdminRole({ id: 3, name: "manager", permissions: [] }),
 ];
 
 describe("roles.api", () => {
   let calls: ReturnType<typeof makeRolesRouteMocks>["calls"];
 
   beforeEach(() => {
-    const mocks = makeRolesRouteMocks(roles);
+    const mocks = makeRolesRouteMocks(makeRoles());
     server.use(...mocks.handlers);
     calls = mocks.calls;
   });
 
   it("lists roles with pagination and optional search", async () => {
-    const page = await listRoles({ page: 1, per_page: 15, search: "perm" });
+    const page = await listRoles({ page: 1, per_page: 15, search: "admin" });
 
     expect(page.data).toHaveLength(1);
     expect(page.data[0]?.name).toBe("admin");
@@ -33,7 +34,28 @@ describe("roles.api", () => {
     expect(call?.path).toBe("/api/v1/roles");
     expect(call?.query.get("page")).toBe("1");
     expect(call?.query.get("per_page")).toBe("15");
-    expect(call?.query.get("search")).toBe("perm");
+    expect(call?.query.get("search")).toBe("admin");
+
+    const permissionSearch = await listRoles({ search: "logs.view" });
+    expect(permissionSearch.data).toHaveLength(0);
+  });
+
+  it("renames a custom role with PATCH and propagates server validation", async () => {
+    const response = await renameRole(3, { name: "operador" });
+
+    expect(response.data.name).toBe("operador");
+    expect(calls[0]?.method).toBe("PATCH");
+    expect(calls[0]?.path).toBe("/api/v1/roles/3");
+    expect(calls[0]?.body).toEqual({ name: "operador" });
+
+    await expect(renameRole(3, { name: "admin" })).rejects.toMatchObject({
+      kind: "validation",
+      fieldErrors: { name: ["Já existe um perfil com este nome."] },
+    });
+    await expect(renameRole(1, { name: "novo-admin" })).rejects.toMatchObject({
+      kind: "forbidden",
+      status: 403,
+    });
   });
 
   it("replaces role permissions via PUT", async () => {

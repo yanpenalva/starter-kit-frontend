@@ -30,6 +30,17 @@ describe("descritores de rota tipados", () => {
     expect(profile?.nav?.label).toBe("Minha Conta");
   });
 
+  it("apresenta a administração de roles como Perfis sem mudar a rota", () => {
+    const descriptor = routeDescriptors.find((item) => item.name === "roles");
+    const navigationItem = APP_NAV_ITEMS.find((item) => item.key === "roles");
+    const shortcut = shortcutDescriptors.find((item) => item.name === "roles");
+
+    expect(descriptor?.path).toBe("/roles");
+    expect(descriptor?.nav?.label).toBe("Perfis");
+    expect(navigationItem?.label).toBe("Perfis");
+    expect(shortcut?.label).toBe("Gerenciar Perfis");
+  });
+
   it("usa o dashboard como destino único de Início e mantém / compatível", () => {
     const home = routeDescriptors.find(
       (descriptor) => descriptor.name === "home",
