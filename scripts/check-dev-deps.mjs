@@ -4,6 +4,7 @@ import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const DEV_MOCK_DEPENDENCIES = [
+  { specifier: "@mswjs/interceptors", importedBy: "src/mocks/in-page-mock.ts" },
   { specifier: "axios", importedBy: "src/lib/http/client.ts" },
   { specifier: "msw", importedBy: "src/mocks/browser.ts" },
   { specifier: "vue", importedBy: "src/main.ts" },

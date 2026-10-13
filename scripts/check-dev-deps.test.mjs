@@ -28,6 +28,11 @@ const createResolver =
 
 const unresolvedProblems = [
   {
+    specifier: "@mswjs/interceptors",
+    importedBy: "src/mocks/in-page-mock.ts",
+    reason: "unresolved",
+  },
+  {
     specifier: "axios",
     importedBy: "src/lib/http/client.ts",
     reason: "unresolved",
@@ -70,8 +75,9 @@ describe("checkDevMockDependencies", () => {
 
     expect(
       DEV_MOCK_DEPENDENCIES.map((dependency) => dependency.specifier),
-    ).toEqual(["axios", "msw", "vue"]);
+    ).toEqual(["@mswjs/interceptors", "axios", "msw", "vue"]);
     expect(resolve.mock.calls.map(([specifier]) => specifier)).toEqual([
+      "@mswjs/interceptors",
       "axios",
       "msw",
       "vue",
@@ -80,7 +86,7 @@ describe("checkDevMockDependencies", () => {
 
   it("reports specifier, importing file and reason per dependency", () => {
     const problems = checkDevMockDependencies({
-      resolve: createResolver(["axios", "msw", "vue"]),
+      resolve: createResolver(["@mswjs/interceptors", "axios", "msw", "vue"]),
       fileExists: () => true,
     });
 
@@ -93,7 +99,7 @@ describe("checkDevMockDependencies", () => {
       fileExists: () => true,
     });
 
-    expect(problems).toEqual([unresolvedProblems[0], unresolvedProblems[2]]);
+    expect(problems).toEqual([unresolvedProblems[1], unresolvedProblems[3]]);
   });
 
   it("reports a missing file when the package resolves to an absent path", () => {
@@ -172,12 +178,12 @@ describe("formatDevMockDependencyReport", () => {
     ]);
 
     expect(report).toContain(
-      'Failed to resolve import "axios" from "src/lib/http/client.ts"',
+      'Failed to resolve import "@mswjs/interceptors" from "src/mocks/in-page-mock.ts"',
     );
   });
 
   it("quotes the first problem even when only another dependency is broken", () => {
-    const report = formatDevMockDependencyReport([unresolvedProblems[2]]);
+    const report = formatDevMockDependencyReport([unresolvedProblems[3]]);
 
     expect(report).toContain(
       'Failed to resolve import "vue" from "src/main.ts"',

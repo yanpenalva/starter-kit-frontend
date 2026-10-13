@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@mswjs/interceptors": "0.45.6",
     "@quasar/vite-plugin": "2.0.2",
     "@tailwindcss/vite": "4.3.3",
     "@vitejs/plugin-vue": "6.0.9",

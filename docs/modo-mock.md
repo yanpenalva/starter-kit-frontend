@@ -15,14 +15,15 @@ a API de verdade (`npm run dev` + API local).
   Com `nvm`, `nvm use` é suficiente; sem `nvm`, use o Node pinado direto:
   `PATH=/opt/data/node24/bin:$PATH`.
 - Dependências instaladas com `npm ci` na raiz do projeto. O mock resolve
-  `axios`, `msw` e `vue` do `node_modules` local; `npm install` não serve
+  `axios`, `msw`, `vue` e `@mswjs/interceptors` do `node_modules` local;
+  `npm install` não serve
   para instalação limpa, porque ignora o que o `package-lock.json` trava.
 - `.env` criado a partir de `.env.development.example` (o mock lê
   `VITE_API_URL` do mesmo arquivo; nenhuma API precisa responder).
 
 O `npm run dev:mock` roda antes do Vite o script `predev:mock`
 (`node scripts/check-dev-deps.mjs`), que confirma a resolução de `axios`,
-`msw` e `vue` em `node_modules`. Com instalação ausente ou parcial o passo
+`msw`, `vue` e `@mswjs/interceptors` em `node_modules`. Com instalação ausente ou parcial o passo
 falha em pt-BR, sem subir servidor nenhum, listando o pacote, o arquivo que
 o importa e o comando de correção (`nvm use` + `npm ci`, ou o Node pinado).
 O script também roda sozinho, sem o Vite, para diagnosticar:
@@ -126,16 +127,49 @@ Application → Service Workers, marque “Update on reload”, clique em
 “Unregister” para a origem `localhost:5173` e recarregue. Em navegação
 normal (sem `VITE_MOCK_API=1`) o worker nunca é registrado.
 
+## Service Worker indisponível na página
+
+Existem contextos em que a página não pode usar Service Workers: previews
+embutidos (o Simple Browser do VS Code, por exemplo), webviews de IDE, iframes
+restritos e navegadores ou perfis com cookies/dados do site bloqueados para a
+origem. Neles o Chromium recusa a primeira chamada do MSW com
+`Failed to get ServiceWorkerRegistration objects: The document is in an invalid
+state.`
+
+O modo mock trata esse caso em dois passos:
+
+1. Tenta registrar o worker MSW, como sempre. Documentos em pré-render esperam
+   o evento `prerenderingchange` antes da tentativa.
+2. Se a página não puder usar Service Worker nenhum, a interceptação passa a
+   acontecer na própria página (`fetch` e `XMLHttpRequest`), com os mesmos
+   handlers e os mesmos cenários `?mock=`. Um aviso no console —
+   `[mock] este documento não pode usar Service Workers (...)` — indica o modo
+   ativo, e nesse caminho nada é registrado no navegador.
+
+A garantia continua a mesma nos dois caminhos: chamadas à base da API sem
+handler falham alto (`defaults.error()`) em vez de sair para a API real, e a
+aplicação só monta depois que a interceptação está de pé. Aplicação que exibe
+`Modo mock indisponível` significa que nem o worker nem a interceptação na
+página iniciaram; a mensagem traz a causa, e a receita é abrir a URL em uma aba
+normal do navegador, fora de previews, webviews ou iframes, conferindo que
+cookies e dados do site não estão bloqueados para a origem.
+
 ## Onde mexer
 
 - `src/mocks/mock-env.ts` — condição de ativação (pura, testada).
 - `src/mocks/mock-scenario.ts` — cenários e leitura de `?mock=`.
 - `src/mocks/mock-data.ts` — `createMockDatabase()`: fixtures sintéticas.
 - `src/mocks/mock-handlers.ts` — `createMockHandlers({ apiBaseUrl, database,
-  scenario })`: handlers MSW espelhando os contratos reais.
-- `src/mocks/browser.ts` — `startMockWorker()`: registra o worker; chamadas
+scenario })`: handlers MSW espelhando os contratos reais.
+- `src/mocks/browser.ts` — `startMockWorker()`: registra o worker; quando o
+  documento não pode usar Service Workers, cai para `in-page-mock.ts`. Chamadas
   à base da API sem handler falham alto (`defaults.error()`), enquanto
   o resto (chunks do Vite, HMR) passa direto.
+- `src/mocks/mock-worker.ts` — classificação do erro de documento (Service
+  Worker indisponível) e espera da ativação do pré-render (puros, testados).
+- `src/mocks/in-page-mock.ts` — interceptação na própria página (`fetch` e
+  `XMLHttpRequest`) usada como saída quando o documento não pode usar Service
+  Workers.
 - `src/main.ts` — importa o worker dinamicamente antes do bootstrap de
   sessão; se ele não inicializar, a aplicação nem monta e mostra erro claro.
 - Testes em `src/mocks/*.test.ts`, no padrão MSW já usado em `src/test/`.
