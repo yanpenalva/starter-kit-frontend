@@ -37,7 +37,7 @@ const setupListRoles = (
 };
 
 describe("useRoleOptions", () => {
-  it("carrega a primeira página e expõe as opções", async () => {
+  it("loads the first page and exposes the options", async () => {
     const listRoles = setupListRoles([
       {
         data: [makeRole(1, "admin"), makeRole(2, "user")],
@@ -55,7 +55,7 @@ describe("useRoleOptions", () => {
     expect(hasMore.value).toBe(false);
   });
 
-  it("busca pelo termo e reinicia a paginação", async () => {
+  it("searches by term and resets pagination", async () => {
     let receivedSearch = "";
     const listRoles = vi.fn(
       async (filters: { page?: number; search?: string }) => {
@@ -86,7 +86,7 @@ describe("useRoleOptions", () => {
     expect(receivedSearch).toBe("edi");
   });
 
-  it("carrega a página seguinte acumulando opções", async () => {
+  it("loads the next page accumulating options", async () => {
     const listRoles = vi.fn(async (filters: { page?: number }) => {
       const page = filters.page ?? 1;
       return {
@@ -116,7 +116,7 @@ describe("useRoleOptions", () => {
     ]);
   });
 
-  it("encerra loadAll quando a autorização cancela uma página pendente", async () => {
+  it("stops loadAll when authorization cancels a pending page", async () => {
     const enabled = ref(true);
     let releasePage: (() => void) | undefined;
     const pagePending = new Promise<void>((resolve) => {
@@ -145,7 +145,7 @@ describe("useRoleOptions", () => {
     expect(calls).toEqual([1, 1, 2]);
   });
 
-  it("ignora loadMore sem página seguinte", async () => {
+  it("ignores loadMore without a next page", async () => {
     const listRoles = setupListRoles([
       {
         data: [makeRole(1, "admin")],
@@ -160,7 +160,7 @@ describe("useRoleOptions", () => {
     expect(options.value).toHaveLength(1);
   });
 
-  it("deduplica papéis repetidos entre páginas", async () => {
+  it("deduplicates repeated roles across pages", async () => {
     const listRoles = vi.fn(async (filters: { page?: number }) => {
       const page = filters.page ?? 1;
       return {
@@ -185,7 +185,7 @@ describe("useRoleOptions", () => {
     expect(options.value).toHaveLength(1);
   });
 
-  it("não consulta catálogo enquanto roles.view está ausente", async () => {
+  it("does not query the catalog while roles.view is missing", async () => {
     const enabled = ref(false);
     const listRoles = setupListRoles([
       {
@@ -206,7 +206,7 @@ describe("useRoleOptions", () => {
     expect(listRoles).toHaveBeenCalledTimes(1);
   });
 
-  it("mantém opções após erro e permite tentar novamente", async () => {
+  it("keeps options after an error and allows retrying", async () => {
     let shouldFail = false;
     const listRoles = vi.fn(async (filters: { search?: string }) => {
       if (shouldFail) throw new Error("catalog unavailable");

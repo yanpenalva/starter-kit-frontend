@@ -125,7 +125,7 @@ afterEach(() => {
 describe("UserFormModal", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("cria o usuário e avisa o caller; form limpo cancela sem confirmação", async () => {
+  it("creates the user and notifies the caller; clean form cancels without confirmation", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     const roles = roleMocks();
     server.use(...mocks.handlers, ...roles.handlers);
@@ -158,7 +158,7 @@ describe("UserFormModal", () => {
     expect(document.body.querySelectorAll(".required-mark")).toHaveLength(5);
   });
 
-  it("exige pelo menos um perfil antes de enviar", async () => {
+  it("requires at least one role before submitting", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     const roles = roleMocks();
     server.use(...mocks.handlers, ...roles.handlers);
@@ -177,7 +177,7 @@ describe("UserFormModal", () => {
     );
   });
 
-  it("valida CPF e senha localmente antes de chamar a API", async () => {
+  it("validates CPF and password locally before calling the API", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     server.use(...mocks.handlers);
     await mountModal();
@@ -209,7 +209,7 @@ describe("UserFormModal", () => {
     );
   });
 
-  it("preserva os dados e o modal quando a API rejeita com 422", async () => {
+  it("preserves data and modal when the API rejects with 422", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     const roles = roleMocks();
     server.use(...mocks.handlers, ...roles.handlers);
@@ -252,7 +252,7 @@ describe("UserFormModal", () => {
     expect(wrapper.emitted("created")).toBeUndefined();
   });
 
-  it("bloqueia submit duplo e o fechamento enquanto a gravação está pendente", async () => {
+  it("blocks double submit and closing while save is pending", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     const roles = roleMocks();
     server.use(...mocks.handlers, ...roles.handlers);
@@ -284,7 +284,7 @@ describe("UserFormModal", () => {
     expect(posted).toHaveLength(1);
   });
 
-  it("pede descarte para form sujo e não grava nada", async () => {
+  it("asks for discard on dirty form and saves nothing", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     server.use(...mocks.handlers);
     const wrapper = await mountModal();
@@ -300,7 +300,7 @@ describe("UserFormModal", () => {
     );
   });
 
-  it("não grava sem users.manage", async () => {
+  it("does not save without users.manage", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     server.use(...mocks.handlers);
     await mountModal(["users.view"]);
@@ -317,7 +317,7 @@ describe("UserFormModal", () => {
     );
   });
 
-  it("não consulta nem grava sem users.assign-roles", async () => {
+  it("neither fetches nor saves without users.assign-roles", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     const roles = roleMocks();
     server.use(...mocks.handlers, ...roles.handlers);
@@ -333,7 +333,7 @@ describe("UserFormModal", () => {
     );
   });
 
-  it("não consulta o catálogo sem roles.view e impede criação sem perfil", async () => {
+  it("skips catalog fetch without roles.view and blocks creation without a role", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     const roles = roleMocks();
     server.use(...mocks.handlers, ...roles.handlers);
@@ -356,7 +356,7 @@ describe("UserFormModal", () => {
     );
   });
 
-  it("explica uma recusa 403 sem descartar os dados nem o perfil", async () => {
+  it("explains a 403 rejection without discarding data or role", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     const roles = roleMocks();
     server.use(...mocks.handlers, ...roles.handlers);
@@ -387,7 +387,7 @@ describe("UserFormModal", () => {
     ).toContain("Gerente");
   });
 
-  it("renderiza o rótulo Nome com asterisco inline", async () => {
+  it("renders the Name label with inline asterisk", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     server.use(...mocks.handlers, ...roleMocks().handlers);
     await mountModal();
@@ -398,7 +398,7 @@ describe("UserFormModal", () => {
     expect(label.nextElementSibling?.tagName).toBe("INPUT");
   });
 
-  it("exibe Senha com asterisco inline e dica curta abaixo do campo", async () => {
+  it("shows Password with inline asterisk and short hint below the field", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     server.use(...mocks.handlers, ...roleMocks().handlers);
     await mountModal();

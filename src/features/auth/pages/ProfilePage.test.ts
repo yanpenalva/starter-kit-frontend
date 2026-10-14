@@ -77,7 +77,7 @@ describe("ProfilePage.vue", () => {
     document.cookie = `${CSRF_COOKIE_NAME}=; Max-Age=0; path=/`;
   });
 
-  it("exibe a identidade, abre detalhes traduzidos e preserva a navegação da conta", async () => {
+  it("shows identity, opens translated details, and preserves account navigation", async () => {
     const session = useSessionStore();
     session.user = verifiedUser;
     session.status = "authenticated";
@@ -120,7 +120,7 @@ describe("ProfilePage.vue", () => {
     wrapper.unmount();
   });
 
-  it("traduz nomes dos perfis reservados sem mudar os identificadores da conta", async () => {
+  it("translates reserved profile names without changing account identifiers", async () => {
     useSessionStore().user = {
       ...verifiedUser,
       roles: ["admin", "user"],
@@ -140,7 +140,7 @@ describe("ProfilePage.vue", () => {
     wrapper.unmount();
   });
 
-  it("informa quando o e-mail ainda não foi verificado", () => {
+  it("reports when the email is still unverified", () => {
     const session = useSessionStore();
     session.user = limitedUser;
     session.status = "limited";
@@ -151,7 +151,7 @@ describe("ProfilePage.vue", () => {
     expect(wrapper.text()).toContain("Nenhum");
   });
 
-  it("atualiza o nome da sessão com a resposta de PATCH", async () => {
+  it("updates the session name with the PATCH response", async () => {
     let requestBody: unknown;
     let requestMethod = "";
     server.use(
@@ -182,7 +182,7 @@ describe("ProfilePage.vue", () => {
     expect(wrapper.text()).toContain("Nome atualizado com sucesso.");
   });
 
-  it("mostra erros 422 do nome no campo correspondente", async () => {
+  it("shows 422 name errors in the matching field", async () => {
     server.use(
       http.patch(PROFILE_URL, ({ request }) =>
         HttpResponse.json(
@@ -211,7 +211,7 @@ describe("ProfilePage.vue", () => {
     );
   });
 
-  it("altera a senha com os três campos e limpa os valores após sucesso", async () => {
+  it("changes the password with all three fields and clears values after success", async () => {
     let requestBody: unknown;
     let requestMethod = "";
     server.use(
@@ -256,7 +256,7 @@ describe("ProfilePage.vue", () => {
     expect(wrapper.text()).toContain("Sua senha foi alterada com sucesso.");
   });
 
-  it("mostra erros 422 da senha nos campos correspondentes", async () => {
+  it("shows 422 password errors in the matching fields", async () => {
     server.use(
       http.put(PASSWORD_URL, ({ request }) =>
         HttpResponse.json(
@@ -304,7 +304,7 @@ describe("ProfilePage.vue", () => {
     ).toBe("true");
   });
 
-  it("reenvia os campos da senha submetida ao repetir uma falha temporária", async () => {
+  it("resubmits the submitted password fields when retrying a temporary failure", async () => {
     let attempt = 0;
     const requestBodies: unknown[] = [];
     server.use(

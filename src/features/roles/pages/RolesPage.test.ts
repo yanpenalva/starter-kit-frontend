@@ -439,7 +439,7 @@ describe("RolesPage", () => {
     expect(queryClient.getQueryState(["user", 7])?.isInvalidated).toBe(true);
   });
 
-  it("explica a recusa do servidor quando um perfil atribuído não pode ser excluído", async () => {
+  it("explains the server refusal when an assigned role cannot be deleted", async () => {
     const mocks = makeRolesRouteMocks(makeMinimalRoles(), {
       assignedRoleNames: ["user"],
     });
@@ -508,7 +508,7 @@ describe("RolesPage", () => {
     );
   });
 
-  it("mostra erros por campo quando a criação recebe 422", async () => {
+  it("shows field errors when creation returns 422", async () => {
     const mocks = makeRolesRouteMocks(makeMinimalRoles());
     server.use(...mocks.handlers);
     server.use(
@@ -542,7 +542,7 @@ describe("RolesPage", () => {
     expect(wrapper.find(".page-card [role=alert]").exists()).toBe(false);
   });
 
-  it("mostra contagem regressiva quando a listagem recebe 429", async () => {
+  it("shows a countdown when the listing returns 429", async () => {
     const mocks = makeRolesRouteMocks(roles);
     server.use(...mocks.handlers);
     server.use(
@@ -565,7 +565,7 @@ describe("RolesPage", () => {
     );
   });
 
-  it("edita as permissões em modal com grupos expansíveis sem selecionar a linha", async () => {
+  it("edits permissions in a modal with expandable groups without selecting the row", async () => {
     const mocks = makeRolesRouteMocks(makeMinimalRoles());
     server.use(...mocks.handlers);
     const wrapper = mountPage();
@@ -612,10 +612,10 @@ describe("RolesPage", () => {
   });
 });
 
-describe("RolesPage — forms em modal", () => {
+describe("RolesPage modal forms", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("não abre edição de permissões para o perfil protegido nem grava nada", async () => {
+  it("does not open permission editing for the protected role and writes nothing", async () => {
     const mocks = makeRolesRouteMocks(makeMinimalRoles());
     server.use(...mocks.handlers);
     const wrapper = mountPage();
@@ -638,7 +638,7 @@ describe("RolesPage — forms em modal", () => {
     ).toHaveLength(0);
   });
 
-  it("pede descarte para permissões sujas e reabre sem herdar draft", async () => {
+  it("asks for discard on dirty permissions and reopens without inheriting the draft", async () => {
     const mocks = makeRolesRouteMocks(makeMinimalRoles());
     server.use(...mocks.handlers);
     const wrapper = mountPage();
@@ -679,7 +679,7 @@ describe("RolesPage — forms em modal", () => {
     ).toBe(false);
   });
 
-  it("esconde as ações sem permissão de perfis", async () => {
+  it("hides actions without roles permission", async () => {
     const mocks = makeRolesRouteMocks(makeMinimalRoles());
     server.use(...mocks.handlers);
     const wrapper = mountPage(["roles.view"]);
@@ -699,7 +699,7 @@ describe("RolesPage — forms em modal", () => {
   });
 });
 
-describe("RolesPage — seleção", () => {
+describe("RolesPage selection", () => {
   it("renders the roles list without selection checkboxes", async () => {
     server.use(...makeRolesRouteMocks(makeMinimalRoles()).handlers);
     const wrapper = await mountPage();
@@ -710,8 +710,8 @@ describe("RolesPage — seleção", () => {
   });
 });
 
-describe("RolesPage — paginação e consulta", () => {
-  it("volta à primeira página ao alterar itens por página", async () => {
+describe("RolesPage pagination and querying", () => {
+  it("returns to the first page when changing page size", async () => {
     const roles = Array.from({ length: 20 }, (_, index) =>
       makeAdminRole({
         id: index + 1,
@@ -748,7 +748,7 @@ describe("RolesPage — paginação e consulta", () => {
     expect(wrapper.text()).toContain("perfil-1");
   });
 
-  it("abre e fecha a consulta do perfil em modo somente leitura", async () => {
+  it("opens and closes the role details in read-only mode", async () => {
     server.use(...makeRolesRouteMocks(makeMinimalRoles()).handlers);
     const wrapper = mountPage();
 

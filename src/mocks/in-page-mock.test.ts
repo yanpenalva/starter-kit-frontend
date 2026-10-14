@@ -8,7 +8,7 @@ const pingHandler = () =>
   http.get("http://localhost:8000/api/v1/ping", () => HttpResponse.json({}));
 
 describe("createInPageMockNetwork", () => {
-  it("monta a interceptação em página sem ativá-la", () => {
+  it("sets up in-page interception without enabling it", () => {
     const network = createInPageMockNetwork({
       handlers: [pingHandler()],
       onUnhandledFrame: () => {},
@@ -31,7 +31,7 @@ describe("startInPageMock", () => {
     return { createNetwork, enable };
   };
 
-  it("entrega handlers e tratamento de frame à rede e ativa a interceptação", async () => {
+  it("passes handlers and frame handling to the network and enables interception", async () => {
     const { createNetwork, enable } = createNetworkMock();
     const handlers = [pingHandler()];
     const onUnhandledFrame = vi.fn();
@@ -44,7 +44,7 @@ describe("startInPageMock", () => {
     expect(inPageOptions?.onUnhandledFrame).toBe(onUnhandledFrame);
   });
 
-  it("propaga falha ao ativar a interceptação em página", async () => {
+  it("propagates failure when enabling in-page interception", async () => {
     const createNetwork = vi.fn<
       (options: InPageMockOptions) => InPageMockNetwork
     >(() => ({

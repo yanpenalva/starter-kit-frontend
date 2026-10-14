@@ -57,7 +57,7 @@ const makeRolesHandler = (roles: RoleRecord[]) =>
 describe("RoleMultiSelect", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("carrega as opções paginadas da API", async () => {
+  it("loads paginated options from the API", async () => {
     const calls: string[] = [];
     server.use(
       http.get(`${TEST_API_BASE}/api/v1/roles`, async ({ request }) => {
@@ -103,7 +103,7 @@ describe("RoleMultiSelect", () => {
     expect(calls).toContain("1");
   });
 
-  it("seleciona todos os perfis após carregar todas as páginas do catálogo", async () => {
+  it("selects all roles after loading every catalog page", async () => {
     const roles = Array.from({ length: 51 }, (_, index) =>
       makeAdminRole({ id: index + 1, name: `role-${index + 1}` }),
     );
@@ -150,7 +150,7 @@ describe("RoleMultiSelect", () => {
     );
   });
 
-  it("filtra opções pelo termo pesquisado", async () => {
+  it("filters options by the searched term", async () => {
     server.use(
       makeRolesHandler([
         makeAdminRole({ id: 1, name: "admin" }),
@@ -185,7 +185,7 @@ describe("RoleMultiSelect", () => {
     ).toBe(true);
   });
 
-  it("emite seleção e remoção de perfis", async () => {
+  it("emits role selection and removal", async () => {
     server.use(
       makeRolesHandler([
         makeAdminRole({ id: 1, name: "admin" }),
@@ -216,7 +216,7 @@ describe("RoleMultiSelect", () => {
     expect(emittedAgain?.at(-1)).toEqual([["admin"]]);
   });
 
-  it("desabilita os controles quando disabled", async () => {
+  it("disables controls when disabled", async () => {
     server.use(makeRolesHandler([makeAdminRole({ id: 1, name: "admin" })]));
     const wrapper = mountSelect(["admin"], true);
 
@@ -244,7 +244,7 @@ describe("RoleMultiSelect", () => {
     ).toBeDefined();
   });
 
-  it("expõe a seleção como obrigatória quando solicitada", async () => {
+  it("exposes selection as required when requested", async () => {
     server.use(makeRolesHandler([]));
     const wrapper = mountSelect([], false, true, true);
 
@@ -257,7 +257,7 @@ describe("RoleMultiSelect", () => {
     wrapper.unmount();
   });
 
-  it("preserva os perfis selecionados e não consulta sem roles.view", async () => {
+  it("keeps selected roles and skips fetching without roles.view", async () => {
     let calls = 0;
     server.use(
       http.get(`${TEST_API_BASE}/api/v1/roles`, ({ request }) => {
@@ -282,7 +282,7 @@ describe("RoleMultiSelect", () => {
     expect(calls).toBe(0);
   });
 
-  it("permite retry após erro de catálogo sem apagar os chips", async () => {
+  it("allows retry after catalog error without clearing chips", async () => {
     let calls = 0;
     server.use(
       http.get(`${TEST_API_BASE}/api/v1/roles`, ({ request }) => {
@@ -340,7 +340,7 @@ describe("RoleMultiSelect", () => {
     expect(calls).toBe(2);
   });
 
-  it("alterna selecionar todos e desmarcar todos com rótulo dinâmico", async () => {
+  it("toggles select all and clear all with dynamic label", async () => {
     server.use(
       makeRolesHandler([
         makeAdminRole({ id: 1, name: "admin" }),

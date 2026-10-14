@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { roleDescription } from "./role-descriptions";
 
 describe("roleDescription", () => {
-  it("descreve perfis conhecidos em pt-BR", () => {
+  it("describes known roles in pt-BR", () => {
     expect(roleDescription("admin", [])).toBe(
       "Acesso administrativo ao sistema",
     );
@@ -20,7 +20,7 @@ describe("roleDescription", () => {
     );
   });
 
-  it("descreve perfis personalizados pela quantidade de permissões", () => {
+  it("describes custom roles by permission count", () => {
     expect(roleDescription("custom", ["users.view", "roles.view"])).toBe(
       "Perfil personalizado — 2 permissões",
     );

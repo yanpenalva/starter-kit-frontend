@@ -80,7 +80,7 @@ const createOptions = (
 });
 
 describe("startMockWorker", () => {
-  it("inicia o worker MSW sem interceptar na página", async () => {
+  it("starts the MSW worker without in-page interception", async () => {
     const start = createWorkerStart();
     const { createInPageNetwork, enable } = createInPageNetworkMock();
     const warn = vi.fn();
@@ -94,7 +94,7 @@ describe("startMockWorker", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("espera a ativação do pré-render antes de iniciar", async () => {
+  it("waits for prerender activation before starting", async () => {
     const start = createWorkerStart();
     const documentLike = createDocumentLike(true);
 
@@ -109,7 +109,7 @@ describe("startMockWorker", () => {
     expect(start).toHaveBeenCalledTimes(1);
   });
 
-  it("intercepta na página quando o documento não pode usar Service Workers", async () => {
+  it("intercepts in-page when the document cannot use Service Workers", async () => {
     const start = createWorkerStart();
     start.mockRejectedValue(serviceWorkerUnavailableError());
     const { createInPageNetwork, enable } = createInPageNetworkMock();
@@ -128,7 +128,7 @@ describe("startMockWorker", () => {
     expect(inPageOptions?.onUnhandledFrame).toBe(unhandledFrameOf(start));
   });
 
-  it("explica em pt-BR quando a interceptação na página também falha", async () => {
+  it("explains in pt-BR when in-page interception also fails", async () => {
     const start = createWorkerStart();
     start.mockRejectedValue(serviceWorkerUnavailableError());
     const { createInPageNetwork, enable } = createInPageNetworkMock();
@@ -148,7 +148,7 @@ describe("startMockWorker", () => {
     );
   });
 
-  it("não intercepta na página quando a falha não é do documento", async () => {
+  it("does not intercept in-page when the failure is not from the document", async () => {
     const start = createWorkerStart();
     start.mockRejectedValue(
       new Error(
@@ -173,7 +173,7 @@ describe("startMockWorker", () => {
     expect(enable).not.toHaveBeenCalled();
   });
 
-  it("falha alto para chamadas à API sem handler", async () => {
+  it("fails loudly for API calls without a handler", async () => {
     const start = createWorkerStart();
 
     await startMockWorker(createOptions(start));

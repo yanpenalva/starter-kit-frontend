@@ -12,7 +12,7 @@ describe("ActionButton.vue", () => {
     document.body.innerHTML = "";
   });
 
-  it("renderiza o rótulo como botão comum por padrão", () => {
+  it("renders the label as a plain button by default", () => {
     const wrapper = mountButton();
 
     expect(wrapper.get("button").text()).toBe("Criar usuário");
@@ -20,7 +20,7 @@ describe("ActionButton.vue", () => {
     expect(wrapper.get("button").attributes("disabled")).toBeUndefined();
   });
 
-  it("repassa type, disabled e loading", () => {
+  it("passes type, disabled and loading", () => {
     const wrapper = mountButton({ type: "submit", loading: true });
 
     expect(wrapper.get("button").attributes("type")).toBe("submit");
@@ -32,7 +32,7 @@ describe("ActionButton.vue", () => {
     expect(disabled.get("button").attributes("aria-busy")).toBeUndefined();
   });
 
-  it("renderiza ações por ícone com nome acessível e tooltip", () => {
+  it("renders icon actions with accessible name and tooltip", () => {
     const wrapper = mountButton({
       icon: "visibility",
       label: "Ver detalhes de Maria",
@@ -48,7 +48,7 @@ describe("ActionButton.vue", () => {
     expect(button.classes()).toContain("action-button--icon");
   });
 
-  it("mantém cor e disponibiliza explicação no hover e no foco quando bloqueado", async () => {
+  it("keeps color and provides explanation on hover and focus when disabled", async () => {
     const wrapper = mountButton({
       icon: "edit",
       color: "warning",
@@ -89,7 +89,7 @@ describe("ActionButton.vue", () => {
     );
   });
 
-  it("emite click com o evento nativo quando está habilitado", async () => {
+  it("emits click with the native event when enabled", async () => {
     const wrapper = mountButton();
 
     await wrapper.get("button").trigger("click");
@@ -98,7 +98,7 @@ describe("ActionButton.vue", () => {
     expect(wrapper.emitted("click")?.[0]?.[0]).toBeInstanceOf(MouseEvent);
   });
 
-  it("não emite click enquanto carrega ou está desabilitado", async () => {
+  it("does not emit click while loading or disabled", async () => {
     const loading = mountButton({ loading: true });
     const disabled = mountButton({ disabled: true });
 

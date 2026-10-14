@@ -28,7 +28,7 @@ const setup = (ids: readonly number[] = [1, 2, 3]): Harness => {
 };
 
 describe("usePageSelection", () => {
-  it("seleciona apenas IDs visíveis e conta as linhas marcadas", () => {
+  it("selects only visible IDs and counts checked rows", () => {
     const { selection } = setup([1, 2, 3]);
 
     expect(selection.selectedCount.value).toBe(0);
@@ -46,7 +46,7 @@ describe("usePageSelection", () => {
     expect(selection.selectedIds.value).toEqual([1]);
   });
 
-  it("marca o header como indeterminado na seleção parcial e completo com todos", () => {
+  it("marks the header as indeterminate on partial selection and complete when all are selected", () => {
     const { selection } = setup([1, 2, 3]);
 
     selection.setSelected(1, true);
@@ -64,7 +64,7 @@ describe("usePageSelection", () => {
     expect(selection.isIndeterminate.value).toBe(false);
   });
 
-  it("remove um ID ao desmarcar a linha", () => {
+  it("removes an ID when unchecking the row", () => {
     const { selection } = setup([1, 2, 3]);
 
     selection.setSelected(2, true);
@@ -75,7 +75,7 @@ describe("usePageSelection", () => {
     expect(selection.isIndeterminate.value).toBe(true);
   });
 
-  it("toggleAll seleciona todos os IDs da página e clicar de novo limpa", () => {
+  it("toggleAll selects all page IDs and clicking again clears", () => {
     const { selection } = setup([1, 2, 3]);
 
     selection.toggleAll(true);
@@ -95,7 +95,7 @@ describe("usePageSelection", () => {
     expect(selection.selectedCount.value).toBe(0);
   });
 
-  it("limpa a seleção quando busca, filtros, página ou per_page mudam", async () => {
+  it("clears the selection when search, filters, page, or per_page change", async () => {
     const { selection, scopeKey } = setup([1, 2, 3]);
 
     selection.setSelected(1, true);
@@ -109,7 +109,7 @@ describe("usePageSelection", () => {
     expect(selection.isSelected(1)).toBe(false);
   });
 
-  it("reconcilia após refetch mantendo somente IDs presentes", async () => {
+  it("reconciles after refetch keeping only present IDs", async () => {
     const { selection, visible } = setup([1, 2, 3]);
 
     selection.setSelected(1, true);
@@ -125,7 +125,7 @@ describe("usePageSelection", () => {
     expect(selection.isAllSelected.value).toBe(false);
   });
 
-  it("desabilita o header sem registros, em loading e em erro", async () => {
+  it("disables the header with no records, while loading, and on error", async () => {
     const empty = setup([]);
     expect(empty.selection.isSelectable.value).toBe(false);
     empty.selection.toggleAll(true);
@@ -144,7 +144,7 @@ describe("usePageSelection", () => {
     expect(selection.selectedCount.value).toBe(0);
   });
 
-  it("permite desmarcar e limpar explicitamente", async () => {
+  it("allows unchecking and explicit clearing", async () => {
     const { selection, enabled } = setup([1, 2]);
 
     selection.setSelected(1, true);
@@ -163,7 +163,7 @@ describe("usePageSelection", () => {
     expect(selection.isIndeterminate.value).toBe(false);
   });
 
-  it("zera a seleção ao sair da view", async () => {
+  it("resets the selection when leaving the view", async () => {
     const { selection, scope } = setup([1, 2, 3]);
 
     selection.toggleAll(true);

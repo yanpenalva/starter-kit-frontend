@@ -25,14 +25,14 @@ const mountLayout = async (props: Record<string, unknown> = {}) =>
   });
 
 describe("AdminPageLayout", () => {
-  it("não renderiza voltar sem back-fallback", async () => {
+  it("does not render back button without back-fallback", async () => {
     const wrapper = await mountLayout();
 
     expect(wrapper.find(".back-button").exists()).toBe(false);
     expect(wrapper.find('[data-test="slot-content"]').exists()).toBe(true);
   });
 
-  it("renderiza o voltar acima do cabeçalho com o fallback informado", async () => {
+  it("renders the back button above the header with the given fallback", async () => {
     const wrapper = await mountLayout({ backFallback: "/users" });
     const backButton = wrapper.findComponent(BackButton);
 

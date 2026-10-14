@@ -100,7 +100,7 @@ afterEach(() => {
 describe("UserDetails", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("mostra os grupos Conta e Perfis em expansões anunciadas", async () => {
+  it("shows the Account and Profiles groups in announced expansions", async () => {
     mountDetails(user);
 
     await vi.waitFor(() =>
@@ -123,7 +123,7 @@ describe("UserDetails", () => {
     expect(dialogText()).toContain("Usuário");
   });
 
-  it("recolhe o conteúdo denso sem perder dados e reabre por mouse e teclado", async () => {
+  it("collapses dense content without losing data and reopens via mouse and keyboard", async () => {
     mountDetails(user);
 
     await vi.waitFor(() => expect(dialogText()).toContain("Pessoa de Teste"));
@@ -152,7 +152,7 @@ describe("UserDetails", () => {
     expect(dialogText()).toContain("Administrador");
   });
 
-  it("mostra o CPF somente com users.read-cpf", async () => {
+  it("shows CPF only with users.read-cpf", async () => {
     mountDetails(user, {
       permissions: permissionsWithout("users.read-cpf"),
     });
@@ -173,7 +173,7 @@ describe("UserDetails", () => {
     ).toBeNull();
   });
 
-  it("mostra o CPF formatado quando a permissão existe", async () => {
+  it("shows formatted CPF when the permission exists", async () => {
     mountDetails(user);
 
     await vi.waitFor(() =>
@@ -184,7 +184,7 @@ describe("UserDetails", () => {
     );
   });
 
-  it("consulta sem edição: nenhum controle de escrita no diálogo", async () => {
+  it("read-only query: no write controls in the dialog", async () => {
     mountDetails(
       makeAdminUser({
         id: 1,
@@ -208,7 +208,7 @@ describe("UserDetails", () => {
     ).toEqual(["Fechar"]);
   });
 
-  it("avisa loading e falha da consulta", async () => {
+  it("reports loading and query failure", async () => {
     mountDetails(null, { isPending: true });
 
     await vi.waitFor(() =>

@@ -94,10 +94,10 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("RoleFormModal — criação", () => {
+describe("RoleFormModal creation", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("cria o perfil com o payload atual de nome", async () => {
+  it("creates the role with the current name payload", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
     const wrapper = await mountModal({ mode: "create" });
@@ -113,7 +113,7 @@ describe("RoleFormModal — criação", () => {
     ).toEqual({ name: "auditor" });
   });
 
-  it("cria primeiro o perfil e depois atribui as permissões selecionadas", async () => {
+  it("creates the role first and then assigns the selected permissions", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
     const wrapper = await mountModal({ mode: "create" });
@@ -224,7 +224,7 @@ describe("RoleFormModal — criação", () => {
     expect(submittedPermissions).toEqual(["users.view"]);
   });
 
-  it("preserva a criação parcial e tenta novamente só a atribuição após um 422", async () => {
+  it("keeps the partial creation and retries only the assignment after a 422", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
     let permissionAttempts = 0;
@@ -300,13 +300,13 @@ describe("RoleFormModal — criação", () => {
     expect(mocks.calls.filter((call) => call.method === "PUT")).toHaveLength(0);
   });
 
-  it("mantém o marcador de campo obrigatório no nome", async () => {
+  it("keeps the required-field marker on the name", async () => {
     await mountModal({ mode: "create" });
     expect(document.body.querySelectorAll(".required-mark")).toHaveLength(1);
     expect(document.body.textContent).not.toContain("(obrigatório)");
   });
 
-  it("pede descarte para nome sujo e não grava sem roles.manage", async () => {
+  it("asks for discard on a dirty name and does not save without roles.manage", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
     const wrapper = await mountModal({ mode: "create" }, ["roles.view"]);
@@ -325,7 +325,7 @@ describe("RoleFormModal — criação", () => {
     );
   });
 
-  it("preserva o nome digitado quando a API responde 422", async () => {
+  it("keeps the typed name when the API returns 422", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
     server.use(
@@ -356,10 +356,10 @@ describe("RoleFormModal — criação", () => {
   });
 });
 
-describe("RoleFormModal — edição de permissões", () => {
+describe("RoleFormModal permission editing", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("salva as permissões por grupo do catálogo vigente", async () => {
+  it("saves permissions by group from the current catalog", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole]);
     server.use(...mocks.handlers);
     const wrapper = await mountModal({ mode: "edit", role: userRole });
@@ -379,7 +379,7 @@ describe("RoleFormModal — edição de permissões", () => {
     ).toEqual({ permissions: ["users.view", "logs.view"] });
   });
 
-  it("não grava nada para o perfil admin nem sem roles.update-permissions", async () => {
+  it("writes nothing for the admin role or without roles.update-permissions", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
     const wrapper = await mountModal({ mode: "edit", role: adminRole });
@@ -415,7 +415,7 @@ describe("RoleFormModal — edição de permissões", () => {
     ).toBe(true);
   });
 
-  it("pede confirmação de descarte para permissões sujas", async () => {
+  it("asks for discard confirmation for dirty permissions", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole]);
     server.use(...mocks.handlers);
     const wrapper = await mountModal({ mode: "edit", role: userRole });
@@ -429,7 +429,7 @@ describe("RoleFormModal — edição de permissões", () => {
     expect(mocks.calls.filter((call) => call.method === "PUT")).toHaveLength(0);
   });
 
-  it("seleciona e limpa todas as permissões de uma seção sem afetar as outras", async () => {
+  it("selects and clears all permissions in one section without affecting the others", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole]);
     server.use(...mocks.handlers);
     await mountModal({ mode: "edit", role: userRole });
@@ -469,7 +469,7 @@ describe("RoleFormModal — edição de permissões", () => {
     ).toBe(true);
   });
 
-  it("seleciona globalmente os slugs do catálogo e mantém o scroll no diálogo", async () => {
+  it("selects all catalog slugs globally and keeps the dialog scroll", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole]);
     server.use(...mocks.handlers);
     await mountModal({ mode: "edit", role: userRole });
@@ -509,7 +509,7 @@ describe("RoleFormModal — edição de permissões", () => {
     );
   });
 
-  it("renderiza o rótulo Nome do perfil com asterisco inline", async () => {
+  it("renders the Nome do perfil label with an inline asterisk", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
     await mountModal({ mode: "create" });

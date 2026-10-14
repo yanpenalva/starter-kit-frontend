@@ -47,7 +47,7 @@ const mountPage = async () => {
 describe("DashboardPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("acolhe a pessoa e apresenta o valor do projeto sem uma matriz de permissões", async () => {
+  it("welcomes the user and presents the project value without a permission matrix", async () => {
     useSessionStore().user = makeUser();
     const wrapper = await mountPage();
 
@@ -60,7 +60,7 @@ describe("DashboardPage", () => {
     expect(wrapper.text()).not.toContain("users.view");
   });
 
-  it("expõe o atalho de perfis para quem tem roles.view, sem perfil admin", async () => {
+  it("exposes the profiles shortcut to holders of roles.view without an admin profile", async () => {
     useSessionStore().user = makeUser({
       permissions: ["roles.view", "logs.view"],
     });
@@ -73,7 +73,7 @@ describe("DashboardPage", () => {
     expect(wrapper.text()).not.toContain("roles.view");
   });
 
-  it("não expõe o atalho de perfis sem roles.view e sem perfil admin", async () => {
+  it("hides the profiles shortcut without roles.view and without an admin profile", async () => {
     useSessionStore().user = makeUser({ permissions: ["logs.view"] });
     const wrapper = await mountPage();
 
@@ -82,7 +82,7 @@ describe("DashboardPage", () => {
     expect(links.map((link) => link.text())).toContain("Ver Logs de Auditoria");
   });
 
-  it("mantém o atalho de perfis para o admin", async () => {
+  it("keeps the profiles shortcut for admins", async () => {
     useSessionStore().user = makeUser({
       roles: ["admin"],
       permissions: ["users.view", "roles.view", "logs.view"],
@@ -104,7 +104,7 @@ describe("DashboardPage", () => {
     );
   });
 
-  it("mantém os atalhos de conta e Manual sem atalhos administrativos", async () => {
+  it("keeps the account and Manual shortcuts without admin shortcuts", async () => {
     useSessionStore().user = makeUser({});
     const wrapper = await mountPage();
 

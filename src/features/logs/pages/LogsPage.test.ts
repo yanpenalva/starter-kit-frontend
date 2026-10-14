@@ -91,7 +91,7 @@ afterEach(() => {
 describe("LogsPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("não consulta a auditoria sem logs.view", async () => {
+  it("does not query audit without logs.view", async () => {
     const mocks = makeAuditRouteMocks([makeAdminActivity()]);
     server.use(...mocks.handlers);
     const page = mountPage(
@@ -139,7 +139,7 @@ describe("LogsPage", () => {
     );
   });
 
-  it("mostra contagem regressiva quando a listagem recebe 429", async () => {
+  it("shows countdown when listing returns 429", async () => {
     const mocks = makeAuditRouteMocks([]);
     server.use(...mocks.handlers);
     server.use(
@@ -162,7 +162,7 @@ describe("LogsPage", () => {
     );
   });
 
-  it("busca por nome do ator a cada letra e combina com os filtros", async () => {
+  it("searches by actor name on each keystroke and combines with filters", async () => {
     const mocks = makeAuditRouteMocks(
       [
         makeAdminActivity({
@@ -279,7 +279,7 @@ describe("LogsPage", () => {
     expect(page.get("tbody").text()).not.toContain("lento");
   });
 
-  it("pagina pela meta da API e volta para a primeira página", async () => {
+  it("paginates via API meta and returns to the first page", async () => {
     const activities = Array.from({ length: 16 }, (_, index) =>
       makeAdminActivity({
         id: index + 1,
@@ -316,7 +316,7 @@ describe("LogsPage", () => {
     );
   });
 
-  it("abre o registro em modal teleportado com metadados e payload, e fecha", async () => {
+  it("opens the record in a teleported modal with metadata and payload, then closes", async () => {
     const mocks = makeAuditRouteMocks([
       makeAdminActivity({
         id: 7,
@@ -362,7 +362,7 @@ describe("LogsPage", () => {
     await vi.waitFor(() => expect(dialogElement()).toBeNull());
   });
 
-  it("formata o payload do modal como JSON legível", async () => {
+  it("formats the modal payload as readable JSON", async () => {
     const mocks = makeAuditRouteMocks([
       makeAdminActivity({
         id: 9,
@@ -387,7 +387,7 @@ describe("LogsPage", () => {
     });
   });
 
-  it("recolhe e reexibe metadados e payload sem perder o JSON original", async () => {
+  it("collapses and re-expands metadata and payload without losing the original JSON", async () => {
     const mocks = makeAuditRouteMocks([
       makeAdminActivity({
         id: 11,
@@ -466,7 +466,7 @@ describe("LogsPage", () => {
   });
 });
 
-describe("LogsPage — seleção", () => {
+describe("LogsPage — selection", () => {
   it("renders audit rows without unused selection checkboxes", async () => {
     server.use(...makeAuditRouteMocks([makeAdminActivity()]).handlers);
     const wrapper = await mountPage();
@@ -477,8 +477,8 @@ describe("LogsPage — seleção", () => {
   });
 });
 
-describe("LogsPage — paginação", () => {
-  it("altera itens por página e retorna à primeira página", async () => {
+describe("LogsPage — pagination", () => {
+  it("changes items per page and returns to the first page", async () => {
     const activities = Array.from({ length: 16 }, (_, index) =>
       makeAdminActivity({ id: index + 1 }),
     );

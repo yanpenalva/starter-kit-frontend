@@ -50,7 +50,7 @@ const countMounts = (mounts: string[], name: string): number =>
   mounts.filter((entry) => entry === name).length;
 
 describe("App.vue", () => {
-  it("renderiza a página dentro de uma raiz estável de transição", async () => {
+  it("renders the page inside a stable transition root", async () => {
     const { router } = createHarness();
     const wrapper = await mountApp(router);
 
@@ -60,7 +60,7 @@ describe("App.vue", () => {
     expect(root.find(".page-dashboard").exists()).toBe(true);
   });
 
-  it("não remonta a página quando só a query ou o hash mudam", async () => {
+  it("keeps the page mounted when only the query or hash change", async () => {
     const { router, mounts } = createHarness();
     const wrapper = await mountApp(router);
 
@@ -74,7 +74,7 @@ describe("App.vue", () => {
     expect(wrapper.find(".page-dashboard").exists()).toBe(true);
   });
 
-  it("troca a página por path e desmonta a anterior, sem KeepAlive", async () => {
+  it("switches the page by path and unmounts the previous one, without KeepAlive", async () => {
     const { router, mounts, unmounts } = createHarness();
     const wrapper = await mountApp(router);
 

@@ -121,7 +121,7 @@ afterEach(() => {
 describe("UserEditForm", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("envia apenas os campos alterados no PATCH", async () => {
+  it("sends only changed fields in PATCH", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountModal();
@@ -139,7 +139,7 @@ describe("UserEditForm", () => {
     ).toEqual({ name: "Maria Editada" });
   });
 
-  it("salva perfis em chamada separada e não apaga o feedback do bloco de dados", async () => {
+  it("saves roles in a separate call and keeps data-block feedback", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     server.use(
@@ -179,7 +179,7 @@ describe("UserEditForm", () => {
     expect(wrapper.emitted("profile-saved")).toBeUndefined();
   });
 
-  it("bloqueia a saída com beforeunload sujo e libera depois de salvar", async () => {
+  it("blocks exit with dirty beforeunload and releases after save", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountModal();
@@ -197,7 +197,7 @@ describe("UserEditForm", () => {
     expect(beforeUnload().defaultPrevented).toBe(false);
   });
 
-  it("remove o listener de beforeunload ao desmontar", async () => {
+  it("removes the beforeunload listener on unmount", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountModal();
@@ -209,7 +209,7 @@ describe("UserEditForm", () => {
     expect(beforeUnload().defaultPrevented).toBe(false);
   });
 
-  it("respeita users.update e users.assign-roles", async () => {
+  it("respects users.update and users.assign-roles", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     await mountModal(["users.view", "users.assign-roles"]);
@@ -227,7 +227,7 @@ describe("UserEditForm", () => {
     );
   });
 
-  it("sem users.assign-roles mostra os perfis como leitura", async () => {
+  it("without users.assign-roles shows roles as read-only", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     await mountModal(["users.view", "users.update"]);
@@ -240,7 +240,7 @@ describe("UserEditForm", () => {
     );
   });
 
-  it("bloqueia atribuição vazia antes do PUT", async () => {
+  it("blocks empty assignment before PUT", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     await mountModal();
@@ -260,7 +260,7 @@ describe("UserEditForm", () => {
   });
 
   it.each([403, 422])(
-    "mantém o erro %i de atribuição dentro do bloco de perfis",
+    "keeps assignment error %i inside the roles block",
     async (status) => {
       const mocks = makeUsersRouteMocks([user]);
       let putCalls = 0;
@@ -307,7 +307,7 @@ describe("UserEditForm", () => {
     },
   );
 
-  it("preserva chips e não consulta catálogo sem roles.view", async () => {
+  it("preserves chips and skips catalog fetch without roles.view", async () => {
     const mocks = makeUsersRouteMocks([user]);
     let catalogCalls = 0;
     server.use(
@@ -331,7 +331,7 @@ describe("UserEditForm", () => {
     expect(catalogCalls).toBe(0);
   });
 
-  it("permite operador sem admin com roles.view e users.assign-roles", async () => {
+  it("allows non-admin operator with roles.view and users.assign-roles", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountModal(
@@ -356,7 +356,7 @@ describe("UserEditForm", () => {
     });
   });
 
-  it("renderiza o rótulo Nome com asterisco inline", async () => {
+  it("renders the Name label with inline asterisk", async () => {
     const mocks = makeUsersRouteMocks([user]);
     server.use(...mocks.handlers, rolesListHandler);
     await mountModal();

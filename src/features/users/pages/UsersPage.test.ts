@@ -462,7 +462,7 @@ describe("UsersPage", () => {
     expect(wrapper.get("tbody").text()).not.toContain("Lento");
   });
 
-  it("desabilita o salvar do modal e mostra loading enquanto grava", async () => {
+  it("disables the modal save button and shows loading while saving", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers, rolesListHandler);
     server.use(
@@ -631,7 +631,7 @@ describe("UsersPage", () => {
     );
   });
 
-  it("mostra erros por campo quando a API rejeita o formulário com 422", async () => {
+  it("shows field errors when the API rejects the form with 422", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers, rolesListHandler);
     server.use(
@@ -673,7 +673,7 @@ describe("UsersPage", () => {
     expect(wrapper.find(".page-card [role=alert]").exists()).toBe(false);
   });
 
-  it("inicia contagem regressiva quando a listagem recebe 429", async () => {
+  it("starts a countdown when the listing returns 429", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers, rolesListHandler);
     server.use(
@@ -699,7 +699,7 @@ describe("UsersPage", () => {
     );
   });
 
-  it("expõe atalho para o detalhe do usuário na listagem", async () => {
+  it("exposes a shortcut to the user detail in the listing", async () => {
     const mocks = makeUsersRouteMocks(users);
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage();
@@ -713,7 +713,7 @@ describe("UsersPage", () => {
     );
   });
 
-  it("atribui perfis via multi-select pesquisável no modal de edição", async () => {
+  it("assigns roles via searchable multi-select in the edit modal", async () => {
     const localUsers = Array.from({ length: 3 }, (_, index) =>
       makeAdminUser({
         id: index + 1,
@@ -776,10 +776,10 @@ describe("UsersPage", () => {
   });
 });
 
-describe("UsersPage — forms em modal", () => {
+describe("UsersPage modal forms", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("pede confirmação de descarte para form sujo em Cancelar, Escape e backdrop", async () => {
+  it("asks for discard confirmation for a dirty form on Cancel, Escape and backdrop", async () => {
     const mocks = makeUsersRouteMocks(makeUsers(3));
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage();
@@ -801,7 +801,7 @@ describe("UsersPage — forms em modal", () => {
     );
   });
 
-  it("reabre outro registro sem herdar draft nem erro anterior", async () => {
+  it("reopens another record without inheriting the draft or previous error", async () => {
     const mocks = makeUsersRouteMocks(makeUsers(3));
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage();
@@ -828,7 +828,7 @@ describe("UsersPage — forms em modal", () => {
     expect(dialogElement()?.querySelector('[role="alert"]')).toBeNull();
   });
 
-  it("fecha o modal limpo direto e mantém a mutação pendente visível", async () => {
+  it("closes the clean modal directly and keeps the pending mutation visible", async () => {
     const mocks = makeUsersRouteMocks(makeUsers(3));
     server.use(...mocks.handlers, rolesListHandler);
     server.use(
@@ -872,7 +872,7 @@ describe("UsersPage — forms em modal", () => {
     await waitDialogClosed();
   });
 
-  it("esconde as ações sem permissão e não grava sem ela", async () => {
+  it("hides actions without permission and writes nothing without it", async () => {
     const mocks = makeUsersRouteMocks(makeUsers(3));
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage(["users.view"]);
@@ -894,7 +894,7 @@ describe("UsersPage — forms em modal", () => {
   });
 });
 
-describe("UsersPage — seleção", () => {
+describe("UsersPage selection", () => {
   it("renders the users list without selection checkboxes", async () => {
     server.use(...makeUsersRouteMocks(users).handlers, rolesListHandler);
     const wrapper = await mountPage();
@@ -905,8 +905,8 @@ describe("UsersPage — seleção", () => {
   });
 });
 
-describe("UsersPage — paginação e consulta", () => {
-  it("volta à primeira página ao alterar itens por página", async () => {
+describe("UsersPage pagination and querying", () => {
+  it("returns to the first page when changing page size", async () => {
     const mocks = makeUsersRouteMocks(makeUsers(20));
     server.use(...mocks.handlers, rolesListHandler);
     const wrapper = await mountPage();
@@ -938,7 +938,7 @@ describe("UsersPage — paginação e consulta", () => {
     ).toBe(true);
   });
 
-  it("abre e fecha a consulta do usuário sem selecionar a linha", async () => {
+  it("opens and closes the user details without selecting the row", async () => {
     const localUsers = makeUsers(3);
     localUsers[0] = makeAdminUser({
       id: 1,

@@ -25,12 +25,12 @@ const sessions: ActiveSession[] = [
   },
 ];
 
-describe("API de sessões ativas", () => {
+describe("active sessions API", () => {
   beforeEach(() => {
     document.cookie = "XSRF-TOKEN=; Max-Age=0; path=/";
   });
 
-  it("lista as sessões da conta pelo contrato da API", async () => {
+  it("lists account sessions per the API contract", async () => {
     const mocks = createSessionMocks(sessions);
     server.use(...mocks.handlers);
 
@@ -40,7 +40,7 @@ describe("API de sessões ativas", () => {
     ]);
   });
 
-  it("revoga uma sessão pelo ID codificado no caminho", async () => {
+  it("revokes a session by the ID encoded in the path", async () => {
     const mocks = createSessionMocks(sessions);
     server.use(...mocks.handlers);
 
@@ -51,7 +51,7 @@ describe("API de sessões ativas", () => {
     ]);
   });
 
-  it("revoga as outras sessões sem encerrar a atual", async () => {
+  it("revokes other sessions without ending the current one", async () => {
     const mocks = createSessionMocks(sessions);
     server.use(...mocks.handlers);
 
