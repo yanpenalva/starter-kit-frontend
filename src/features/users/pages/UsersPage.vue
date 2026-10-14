@@ -15,8 +15,6 @@
         :status="filters.status ?? ''"
         :role="filters.role ?? ''"
         :roles="filterRoleOptions"
-        :selected-count="selection.selectedCount.value"
-        :visible-count="visibleUserIds.length"
         @update:search="searchTerm = $event"
         @update:status="filters.status = $event || undefined"
         @update:role="filters.role = $event || undefined"
@@ -39,7 +37,6 @@
       <table>
         <thead>
           <tr>
-            <th scope="col" class="selection-cell"></th>
             <th scope="col">Nome</th>
             <th scope="col">Email</th>
             <th scope="col">Status</th>
@@ -49,21 +46,6 @@
         </thead>
         <tbody>
           <tr v-for="user in query.data.value.data" :key="user.id">
-            <td class="selection-cell">
-              <input
-                type="checkbox"
-                class="selection-toggle"
-                :aria-label="`Selecionar ${user.name}`"
-                :checked="selection.isSelected(user.id)"
-                :disabled="!selection.isSelectable.value"
-                @change="
-                  selection.setSelected(
-                    user.id,
-                    ($event.target as HTMLInputElement).checked,
-                  )
-                "
-              />
-            </td>
             <td>
               <RouterLink
                 :to="{ name: 'user-detail', params: { userId: user.id } }"
@@ -136,12 +118,12 @@
                 :tooltip="UI_HELP_TEXT.rowDelete"
                 :disabled="isMutating"
                 :loading="isActionPending('delete', user.id)"
-                @click="removeUser(user.id, user.name)"
+                @click="requestRemoveUser(user.id, user.name)"
               />
             </td>
           </tr>
           <tr v-if="query.data.value.data.length === 0">
-            <td colspan="6">Nenhum usuário encontrado.</td>
+            <td colspan="5">Nenhum usuário encontrado.</td>
           </tr>
         </tbody>
       </table>
@@ -177,6 +159,16 @@
       @profile-saved="handleProfileSaved"
       @roles-saved="handleRolesSaved"
     />
+
+    <ConfirmDialog
+      :model-value="confirmUser !== null"
+      title="Excluir usuário"
+      :message="`Deseja excluir o usuário ${confirmUser?.name ?? ''}?`"
+      confirm-label="Excluir usuário"
+      :busy="pendingAction?.kind === 'delete'"
+      @update:model-value="confirmUser = null"
+      @confirm="removeUser"
+    />
   </AdminPageLayout>
 </template>
 
@@ -186,13 +178,13 @@ import { RouterLink } from "vue-router";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import ActionButton from "@/shared/components/ActionButton.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
-import { Notify } from "quasar";
 import Pagination from "@/shared/components/Pagination.vue";
 import UsersListToolbar from "@/features/users/components/UsersListToolbar.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import { useDebouncedSearch } from "@/shared/composables/useDebouncedSearch";
-import { usePageSelection } from "@/shared/composables/usePageSelection";
+import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
+import { notify } from "@/shared/utils/notify";
 import { useRoleOptions } from "@/features/roles/composables/useRoleOptions";
 import { listRoles } from "@/features/roles/api/roles.api";
 import {
@@ -256,21 +248,7 @@ const deleteAction = (user: AdminUser): RowActionPresentation => {
   return { icon: "delete", label: `Excluir ${user.name}` };
 };
 
-const visibleUserIds = computed<readonly number[]>(() =>
-  (query.data.value?.data ?? []).map((user) => user.id),
-);
-const selection = usePageSelection({
-  visibleIds: () => visibleUserIds.value,
-  enabled: () => !query.isFetching.value && !query.isError.value,
-  scopeKey: () =>
-    [
-      filters.page,
-      filters.per_page,
-      filters.search ?? "",
-      filters.status ?? "",
-      filters.role ?? "",
-    ].join("|"),
-});
+const confirmUser = ref<{ id: number; name: string } | null>(null);
 
 const detailUserId = ref<number | null>(null);
 const detailQuery = useUserDetail(() => detailUserId.value);
@@ -281,7 +259,6 @@ const closeDetail = (): void => {
   detailUserId.value = null;
 };
 const changePerPage = (perPage: number): void => {
-  selection.clear();
   filters.page = 1;
   filters.per_page = perPage;
 };
@@ -334,32 +311,27 @@ const toggleStatus = async (
     });
     const message = isActive ? "Usuário desativado." : "Usuário ativado.";
     feedback.clearFeedback();
-    Notify.create({
-      message,
-      timeout: 4000,
-      position: "bottom-right",
-      color: "dark",
-      textColor: "white",
-      attrs: { role: "status", "aria-live": "polite" },
-    });
+    notify("success", message);
   } catch (error: unknown) {
     feedback.handleFailure(error);
-    Notify.create({
-      message:
-        feedback.errorMessage.value ?? "Não foi possível atualizar o usuário.",
-      timeout: 4000,
-      position: "bottom-right",
-      color: "dark",
-      textColor: "white",
-      attrs: { role: "status", "aria-live": "polite" },
-    });
+    notify(
+      "error",
+      feedback.errorMessage.value ?? "Não foi possível atualizar o usuário.",
+    );
   } finally {
     pendingAction.value = null;
   }
 };
-const removeUser = async (userId: number, userName: string): Promise<void> => {
+const requestRemoveUser = (userId: number, userName: string): void => {
   if (pendingAction.value !== null || !can("users.manage")) return;
-  if (!globalThis.confirm(`Excluir o usuário ${userName}?`)) return;
+  confirmUser.value = { id: userId, name: userName };
+};
+const removeUser = async (): Promise<void> => {
+  const user = confirmUser.value;
+  if (user === null || pendingAction.value !== null || !can("users.manage"))
+    return;
+  confirmUser.value = null;
+  const userId = user.id;
   pendingAction.value = { kind: "delete", userId };
   try {
     await deleteMutation.mutateAsync(userId);
@@ -401,24 +373,6 @@ thead th {
 
 tbody tr:hover {
   background: rgb(58 77 60 / 3%);
-}
-
-.selection-cell {
-  width: 2.5rem;
-  padding-right: 0;
-  text-align: center;
-}
-
-.selection-toggle {
-  min-height: 0;
-  padding: 0;
-  width: 1rem;
-  height: 1rem;
-  cursor: pointer;
-}
-
-.selection-toggle:disabled {
-  cursor: not-allowed;
 }
 
 .actions-cell {

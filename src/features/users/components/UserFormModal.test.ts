@@ -58,6 +58,18 @@ const dialogGet = <T extends HTMLElement = HTMLElement>(
   return element;
 };
 
+const confirmDialogButton = (label: string): HTMLButtonElement => {
+  const dialog = [
+    ...document.body.querySelectorAll<HTMLElement>('[role="dialog"]'),
+  ].at(-1);
+  const button = [
+    ...(dialog?.querySelectorAll<HTMLButtonElement>("button") ?? []),
+  ].find((candidate) => candidate.textContent?.trim() === label);
+  if (button === undefined)
+    throw new Error(`Botão de confirmação não encontrado: ${label}`);
+  return button;
+};
+
 const setValue = async (
   selector: string,
   value: string | boolean,
@@ -118,39 +130,32 @@ describe("UserFormModal", () => {
     const roles = roleMocks();
     server.use(...mocks.handlers, ...roles.handlers);
     const wrapper = await mountModal();
-    const confirmSpy = vi.spyOn(globalThis, "confirm");
     expect(dialogGet(".user-form__roles--scroll")).toBeDefined();
+    expect(document.body.textContent).toContain(
+      "Selecione um ou mais perfis para a conta.",
+    );
+    dialogGet('[data-testid="cancel-create"]').click();
+    expect(wrapper.emitted("update:modelValue")).toContainEqual([false]);
 
-    try {
-      expect(document.body.textContent).toContain(
-        "Selecione um ou mais perfis. O usuário e os perfis serão criados em uma única operação.",
-      );
-      const cancel = dialogGet('[data-testid="cancel-create"]');
-      cancel.click();
-      expect(confirmSpy).not.toHaveBeenCalled();
-      expect(wrapper.emitted("update:modelValue")).toContainEqual([false]);
+    await wrapper.setProps({ modelValue: true });
+    await fillValidForm();
+    await selectProfile("admin");
+    await selectProfile("manager");
+    dialogGet('[data-testid="submit-create-user"]').click();
 
-      await wrapper.setProps({ modelValue: true });
-      await fillValidForm();
-      await selectProfile("admin");
-      await selectProfile("manager");
-      dialogGet('[data-testid="submit-create-user"]').click();
-
-      await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
-      const createCall = mocks.calls.find(
-        (call) => call.method === "POST" && call.path === "/api/v1/users",
-      );
-      expect(createCall?.body).toMatchObject({
-        name: "Novo Usuário",
-        email: "novo@example.test",
-        cpf: "12345678909",
-        password: "Alterar123!x",
-        active: false,
-        roles: ["admin", "manager"],
-      });
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
+    const createCall = mocks.calls.find(
+      (call) => call.method === "POST" && call.path === "/api/v1/users",
+    );
+    expect(createCall?.body).toMatchObject({
+      name: "Novo Usuário",
+      email: "novo@example.test",
+      cpf: "12345678909",
+      password: "Alterar123!x",
+      active: false,
+      roles: ["admin", "manager"],
+    });
+    expect(document.body.querySelectorAll(".required-mark")).toHaveLength(5);
   });
 
   it("exige pelo menos um perfil antes de enviar", async () => {
@@ -262,50 +267,37 @@ describe("UserFormModal", () => {
         );
       }),
     );
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
     const wrapper = await mountModal();
+    await fillValidForm();
+    await selectProfile("manager");
+    dialogGet('[data-testid="submit-create-user"]').click();
+    dialogGet('[data-testid="submit-create-user"]').click();
 
-    try {
-      await fillValidForm();
-      await selectProfile("manager");
-      dialogGet('[data-testid="submit-create-user"]').click();
-      dialogGet('[data-testid="submit-create-user"]').click();
-
-      await vi.waitFor(() =>
-        expect(
-          dialogGet<HTMLButtonElement>('[data-testid="cancel-create"]')
-            .disabled,
-        ).toBe(true),
-      );
-      pressEscape();
-      expect(confirmSpy).not.toHaveBeenCalled();
-      expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
-
-      await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
-      expect(posted).toHaveLength(1);
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    await vi.waitFor(() =>
+      expect(
+        dialogGet<HTMLButtonElement>('[data-testid="cancel-create"]').disabled,
+      ).toBe(true),
+    );
+    pressEscape();
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
+    await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
+    expect(posted).toHaveLength(1);
   });
 
   it("pede descarte para form sujo e não grava nada", async () => {
     const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
     server.use(...mocks.handlers);
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
     const wrapper = await mountModal();
-
-    try {
-      await setValue('[aria-label="Nome do novo usuário"]', "Rascunho");
-      dialogGet('[data-testid="cancel-create"]').click();
-
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
-      expect(wrapper.emitted("update:modelValue")).toBeUndefined();
-      expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
-        0,
-      );
-    } finally {
-      confirmSpy.mockRestore();
-    }
+    await setValue('[aria-label="Nome do novo usuário"]', "Rascunho");
+    dialogGet('[data-testid="cancel-create"]').click();
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Descartar o novo usuário?"),
+    );
+    confirmDialogButton("Cancelar").click();
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+    expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
+      0,
+    );
   });
 
   it("não grava sem users.manage", async () => {

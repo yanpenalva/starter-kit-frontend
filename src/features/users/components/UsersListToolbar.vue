@@ -8,8 +8,6 @@ defineProps<{
   status: UserStatus | "";
   role: string;
   roles: readonly RoleOption[];
-  selectedCount: number;
-  visibleCount: number;
 }>();
 
 const emit = defineEmits<{
@@ -60,10 +58,6 @@ const emit = defineEmits<{
       </select>
     </label>
   </div>
-
-  <p class="selection-counter" role="status">
-    {{ selectedCount }} de {{ visibleCount }} selecionados
-  </p>
 </template>
 
 <style scoped>
@@ -73,12 +67,6 @@ const emit = defineEmits<{
   flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 0;
-}
-
-.selection-counter {
-  margin: 0;
-  color: var(--color-muted, #73766e);
-  font-size: 0.875rem;
 }
 
 label {

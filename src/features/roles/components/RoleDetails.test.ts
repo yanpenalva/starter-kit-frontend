@@ -54,6 +54,18 @@ const dialogElement = (): HTMLElement | null =>
 
 const dialogText = (): string => dialogElement()?.textContent ?? "";
 
+const confirmDialogButton = (label: string): HTMLButtonElement => {
+  const dialog = [
+    ...document.body.querySelectorAll<HTMLElement>('[role="dialog"]'),
+  ].at(-1);
+  const button = [
+    ...(dialog?.querySelectorAll<HTMLButtonElement>("button") ?? []),
+  ].find((candidate) => candidate.textContent?.trim() === label);
+  if (button === undefined)
+    throw new Error(`Botão de confirmação não encontrado: ${label}`);
+  return button;
+};
+
 const expansionHeader = (label: string): HTMLElement => {
   const element = document.body.querySelector<HTMLElement>(
     `[aria-label="${label}"]`,
@@ -179,6 +191,22 @@ describe("RoleDetails", () => {
     expect(dialogText()).toContain("Perfil renomeado com sucesso.");
   });
 
+  it("marca o campo obrigatório ao renomear um perfil personalizado", async () => {
+    mountDetails(customRole);
+
+    await vi.waitFor(() =>
+      expect(dialogText()).toContain("Detalhes do perfil Gerente"),
+    );
+    const label = dialogElement()?.querySelector("label");
+    expect(label?.textContent).toContain("Nome do perfil");
+    expect(
+      label?.querySelector('[aria-label="Campo obrigatório"]')?.textContent,
+    ).toContain("*");
+    expect(label?.querySelector('[role="tooltip"]')?.textContent).toBe(
+      "Campo obrigatório",
+    );
+  });
+
   it("mostra o erro de nome duplicado no campo e conserva o texto", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole, customRole]);
     server.use(...mocks.handlers);
@@ -258,26 +286,18 @@ describe("RoleDetails", () => {
   });
 
   it("mantém Escape sob o guard enquanto o nome está sujo", async () => {
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
     const details = mountDetails(customRole);
-
-    try {
-      await setName("rascunho");
-      for (const type of ["keydown", "keyup"]) {
-        document.dispatchEvent(
-          new KeyboardEvent(type, {
-            key: "Escape",
-            keyCode: 27,
-            bubbles: true,
-          }),
-        );
-      }
-
-      await vi.waitFor(() => expect(confirmSpy).toHaveBeenCalledOnce());
-      expect(details.emitted("update:modelValue")).toBeUndefined();
-      expect(dialogElement()).not.toBeNull();
-    } finally {
-      confirmSpy.mockRestore();
+    await setName("rascunho");
+    for (const type of ["keydown", "keyup"]) {
+      document.dispatchEvent(
+        new KeyboardEvent(type, { key: "Escape", keyCode: 27, bubbles: true }),
+      );
     }
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Descartar as mudanças?"),
+    );
+    expect(details.emitted("update:modelValue")).toBeUndefined();
+    expect(dialogElement()).not.toBeNull();
+    confirmDialogButton("Cancelar").click();
   });
 });

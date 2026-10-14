@@ -199,7 +199,7 @@ const handleSubmit = async (): Promise<void> => {
 }
 
 .mfa-form__submit-btn:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.65;
 }
 

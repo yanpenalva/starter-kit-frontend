@@ -40,7 +40,7 @@
         @submit.prevent="submitRename"
       >
         <label>
-          Nome do perfil
+          Nome do perfil <RequiredMark />
           <input v-model="name" aria-label="Novo nome do perfil" required />
           <FieldErrors
             :errors="feedback.fieldErrors.value.name ?? []"
@@ -98,11 +98,22 @@
       </button>
     </template>
   </DialogComponent>
+  <ConfirmDialog
+    :model-value="confirmOpen"
+    title="Descartar alterações"
+    :message="dismissMessage"
+    confirm-label="Descartar alterações"
+    :busy="isPending"
+    @update:model-value="cancelDismiss"
+    @confirm="confirmDismiss"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
+import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
+import RequiredMark from "@/shared/components/RequiredMark.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
@@ -162,7 +173,13 @@ const reset = (): void => {
   feedback.clearFeedback();
 };
 
-const { canDismiss } = useFormDismissGuard({
+const {
+  confirmOpen,
+  message: dismissMessage,
+  requestDismiss,
+  confirmDismiss,
+  cancelDismiss,
+} = useFormDismissGuard({
   isDirty: () => isDirty.value,
   isPending: () => isPending.value,
   message: "Há alterações não salvas. Descartar as mudanças?",
@@ -177,9 +194,10 @@ watch(
 );
 
 const requestClose = (): void => {
-  if (!canDismiss()) return;
-  reset();
-  emit("update:modelValue", false);
+  requestDismiss(() => {
+    reset();
+    emit("update:modelValue", false);
+  });
 };
 
 const handleDialogVisibility = (value: boolean): void => {

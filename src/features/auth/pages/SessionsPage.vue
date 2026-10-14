@@ -11,6 +11,28 @@
     <p v-if="query.isPending.value" role="status">Carregando sessões...</p>
     <FormFeedback :feedback="feedback" @retry="feedback.retry" />
 
+    <ConfirmDialog
+      :model-value="confirmAction !== null"
+      :title="
+        confirmAction?.type === 'others'
+          ? 'Encerrar outras sessões'
+          : 'Encerrar sessão'
+      "
+      :message="
+        confirmAction?.type === 'others'
+          ? 'Deseja encerrar todas as sessões nos outros dispositivos?'
+          : 'Deseja encerrar esta sessão? Será necessário entrar novamente nesse dispositivo.'
+      "
+      :confirm-label="
+        confirmAction?.type === 'others'
+          ? 'Encerrar sessões'
+          : 'Encerrar sessão'
+      "
+      :busy="revokeMutation.isPending.value"
+      @update:model-value="confirmAction = null"
+      @confirm="confirmRevoke"
+    />
+
     <section
       v-if="query.data.value"
       aria-label="Sessões da conta"
@@ -105,6 +127,7 @@ import { computed, ref, watch } from "vue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
+import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
 import { useFormFeedback } from "@/shared/composables/useFormFeedback";
 import {
   listActiveSessions,
@@ -133,6 +156,7 @@ const otherSessions = computed(
   () => query.data.value?.filter((session) => !session.is_current) ?? [],
 );
 const pendingAction = ref<RevokeAction | null>(null);
+const confirmAction = ref<RevokeAction | null>(null);
 const revokeMutation = useMutation({
   mutationFn: (action: RevokeAction) =>
     action.type === "others" ? revokeOtherSessions() : revokeSession(action.id),
@@ -164,26 +188,20 @@ watch(query.error, (error) => {
 });
 
 const endSession = (session: ActiveSession): void => {
-  if (
-    session.is_current ||
-    !window.confirm(
-      "Deseja encerrar esta sessão? Será necessário entrar novamente nesse dispositivo.",
-    )
-  ) {
-    return;
-  }
-  pendingAction.value = { type: "session", id: session.id };
-  revokeMutation.mutate(pendingAction.value);
+  if (session.is_current || revokeMutation.isPending.value) return;
+  confirmAction.value = { type: "session", id: session.id };
 };
 
 const endOtherSessions = (): void => {
-  if (
-    otherSessions.value.length === 0 ||
-    !window.confirm("Deseja encerrar todas as sessões nos outros dispositivos?")
-  ) {
+  if (otherSessions.value.length === 0 || revokeMutation.isPending.value)
     return;
-  }
-  pendingAction.value = { type: "others" };
+  confirmAction.value = { type: "others" };
+};
+
+const confirmRevoke = (): void => {
+  if (confirmAction.value === null || revokeMutation.isPending.value) return;
+  pendingAction.value = confirmAction.value;
+  confirmAction.value = null;
   revokeMutation.mutate(pendingAction.value);
 };
 

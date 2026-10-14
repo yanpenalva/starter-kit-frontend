@@ -17,6 +17,7 @@
         <div class="user-edit__grid">
           <label>
             Nome
+            <RequiredMark />
             <input
               v-model="form.name"
               data-testid="edit-name"
@@ -27,6 +28,7 @@
           </label>
           <label>
             Email
+            <RequiredMark />
             <input
               v-model="form.email"
               data-testid="edit-email"
@@ -124,11 +126,22 @@
       </button>
     </template>
   </DialogComponent>
+  <ConfirmDialog
+    :model-value="confirmOpen"
+    title="Descartar alterações"
+    :message="dismissMessage"
+    confirm-label="Descartar alterações"
+    :busy="isPending"
+    @update:model-value="cancelDismiss"
+    @confirm="confirmDismiss"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
+import RequiredMark from "@/shared/components/RequiredMark.vue";
+import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import RoleMultiSelect from "@/shared/components/RoleMultiSelect.vue";
@@ -218,17 +231,23 @@ const canSaveRoles = computed(
     !rolesPending.value,
 );
 
-const { canDismiss } = useFormDismissGuard({
+const {
+  confirmOpen,
+  message: dismissMessage,
+  requestDismiss,
+  confirmDismiss,
+  cancelDismiss,
+} = useFormDismissGuard({
   isDirty: () => isDirty.value,
   isPending: () => isPending.value,
   message: "Há alterações não salvas. Descartar as mudanças?",
 });
 
 const requestClose = (): void => {
-  if (!canDismiss()) return;
-
-  seed();
-  emit("update:modelValue", false);
+  requestDismiss(() => {
+    seed();
+    emit("update:modelValue", false);
+  });
 };
 
 const handleDialogVisibility = (value: boolean): void => {

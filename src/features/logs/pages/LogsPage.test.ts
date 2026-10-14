@@ -56,11 +56,6 @@ const pressEscape = (): void => {
   }
 };
 
-const counter = (page: VueWrapper) => page.get(".selection-counter");
-
-const rowCheckbox = (page: VueWrapper, id: number) =>
-  page.get<HTMLInputElement>(`[aria-label="Selecionar registro ${id}"]`);
-
 const dialogExpansion = (label: string): HTMLElement => {
   const element = document.body.querySelector<HTMLElement>(
     `[aria-label="${label}"]`,
@@ -471,41 +466,19 @@ describe("LogsPage", () => {
   });
 });
 
-describe("LogsPage — seleção por página", () => {
-  beforeEach(() => setActivePinia(createPinia()));
-
-  it("seleciona registros individualmente sem seletor de todos", async () => {
-    const mocks = makeAuditRouteMocks([
-      makeAdminActivity({ id: 1, description: "Registro um" }),
-      makeAdminActivity({ id: 2, description: "Registro dois" }),
-      makeAdminActivity({ id: 3, description: "Registro três" }),
-    ]);
-    server.use(...mocks.handlers);
-    const page = mountPage();
-
+describe("LogsPage — seleção", () => {
+  it("renders audit rows without unused selection checkboxes", async () => {
+    server.use(...makeAuditRouteMocks([makeAdminActivity()]).handlers);
+    const wrapper = await mountPage();
     await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 3 selecionados"),
+      expect(wrapper.find("tbody tr").exists()).toBe(true),
     );
-    expect(
-      page
-        .find('[aria-label="Selecionar todos os registros desta página"]')
-        .exists(),
-    ).toBe(false);
-
-    await rowCheckbox(page, 1).setValue(true);
-    expect(counter(page).text()).toContain("1 de 3 selecionados");
-
-    await rowCheckbox(page, 3).setValue(true);
-    expect(counter(page).text()).toContain("2 de 3 selecionados");
-    expect(rowCheckbox(page, 3).element.checked).toBe(true);
-
-    await rowCheckbox(page, 1).setValue(false);
-    expect(counter(page).text()).toContain("1 de 3 selecionados");
-
-    expect(mocks.calls.filter((call) => call.method !== "GET")).toHaveLength(0);
+    expect(wrapper.find("input[type=checkbox]").exists()).toBe(false);
   });
+});
 
-  it("troca itens por página entre opções permitidas e limpa a seleção", async () => {
+describe("LogsPage — paginação", () => {
+  it("altera itens por página e retorna à primeira página", async () => {
     const activities = Array.from({ length: 16 }, (_, index) =>
       makeAdminActivity({ id: index + 1 }),
     );
@@ -513,142 +486,26 @@ describe("LogsPage — seleção por página", () => {
     server.use(...mocks.handlers);
     const page = mountPage();
 
+    await vi.waitFor(() => expect(page.find("tbody tr").exists()).toBe(true));
+    await page.get('button[aria-label="Próxima página"]').trigger("click");
     await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 10 selecionados"),
-    );
-    const perPage = page.get<HTMLSelectElement>(
-      'select[aria-label="Itens por página"]',
-    );
-    expect(perPage.element.value).toBe("10");
-    await rowCheckbox(page, 1).setValue(true);
-    expect(counter(page).text()).toContain("1 de 10 selecionados");
-
-    await perPage.setValue("5");
-
-    await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 5 selecionados"),
-    );
-    expect(page.get(".ui-pagination__range").text()).toBe("1–5 de 16");
-    expect(
-      mocks.calls.some(
-        (call) =>
-          call.query.get("per_page") === "5" && call.query.get("page") === "1",
+      expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
+        true,
       ),
-    ).toBe(true);
-  });
-
-  it("limpa a seleção ao buscar, filtrar e paginar", async () => {
-    const activities = Array.from({ length: 16 }, (_, index) =>
-      makeAdminActivity({
-        id: index + 1,
-        description: `Registro número ${index + 1}`,
-      }),
     );
-    const mocks = makeAuditRouteMocks(activities);
-    server.use(...mocks.handlers);
-    const page = mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 10 selecionados"),
-    );
-    await rowCheckbox(page, 1).setValue(true);
-    expect(counter(page).text()).toContain("1 de 10 selecionados");
-
-    await page.get('input[type="search"]').setValue("Registro número 2");
-    await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 1 selecionados"),
-    );
-
-    await page.get('input[type="search"]').setValue("");
-    await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 10 selecionados"),
-    );
-    await rowCheckbox(page, 3).setValue(true);
-    expect(counter(page).text()).toContain("1 de 10 selecionados");
-
     await page
-      .get('select[aria-label="Filtrar por evento"]')
-      .setValue("cli.bootstrap");
+      .get<HTMLSelectElement>('select[aria-label="Itens por página"]')
+      .setValue("5");
+
     await vi.waitFor(() =>
       expect(
-        mocks.calls.some((call) => call.query.get("event") === "cli.bootstrap"),
+        mocks.calls.some(
+          (call) =>
+            call.query.get("page") === "1" &&
+            call.query.get("per_page") === "5",
+        ),
       ).toBe(true),
     );
-    await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 0 selecionados"),
-    );
-
-    await page.get('select[aria-label="Filtrar por evento"]').setValue("");
-    await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 10 selecionados"),
-    );
-    await rowCheckbox(page, 4).setValue(true);
-    expect(counter(page).text()).toContain("1 de 10 selecionados");
-
-    await page.get('button[aria-label="Próxima página"]').trigger("click");
-
-    await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 6 selecionados"),
-    );
-    expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
-      true,
-    );
-    expect(page.text()).toContain("Registro número 16");
-  });
-
-  it("mantém após refetch somente os IDs ainda presentes", async () => {
-    const activities = Array.from({ length: 4 }, (_, index) =>
-      makeAdminActivity({
-        id: index + 1,
-        description: `Registro número ${index + 1}`,
-      }),
-    );
-    const mocks = makeAuditRouteMocks(activities);
-    server.use(...mocks.handlers);
-    const page = mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 4 selecionados"),
-    );
-    await rowCheckbox(page, 1).setValue(true);
-    await rowCheckbox(page, 3).setValue(true);
-    expect(counter(page).text()).toContain("2 de 4 selecionados");
-
-    activities.splice(
-      activities.findIndex((activity) => activity.id === 1),
-      1,
-    );
-    await queryClient.invalidateQueries({ queryKey: ["audit"] });
-
-    await vi.waitFor(() =>
-      expect(page.find('[aria-label="Selecionar registro 1"]').exists()).toBe(
-        false,
-      ),
-    );
-    expect(counter(page).text()).toContain("1 de 3 selecionados");
-    expect(rowCheckbox(page, 3).element.checked).toBe(true);
-  });
-
-  it("abre o detalhe sem selecionar o registro", async () => {
-    const mocks = makeAuditRouteMocks([
-      makeAdminActivity({ id: 5, description: "Registro cinco" }),
-      makeAdminActivity({ id: 6, description: "Registro seis" }),
-    ]);
-    server.use(...mocks.handlers);
-    const page = mountPage();
-
-    await vi.waitFor(() =>
-      expect(counter(page).text()).toContain("0 de 2 selecionados"),
-    );
-    await page
-      .get('button[aria-label="Ver detalhes do registro 5"]')
-      .trigger("click");
-
-    await vi.waitFor(() => expect(dialogElement()).not.toBeNull());
-    expect(counter(page).text()).toContain("0 de 2 selecionados");
-
-    dialogButton("Fechar")?.click();
-    await vi.waitFor(() => expect(dialogElement()).toBeNull());
-    expect(counter(page).text()).toContain("0 de 2 selecionados");
+    expect(page.get(".ui-pagination__range").text()).toBe("1–5 de 16");
   });
 });

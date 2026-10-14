@@ -73,6 +73,20 @@ describe("AppHeader.vue", () => {
     ).toBe("true");
   });
 
+  it("links to the authenticated user's account from the account menu", async () => {
+    const wrapper = mountHeader();
+
+    await wrapper.get(".app-header__account").trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.get('.account-menu a[href="/profile"]').text()).toContain(
+      "Minha Conta",
+    );
+    expect(
+      wrapper.get('.account-menu a[href="/profile"] .material-icons').text(),
+    ).toBe("person");
+  });
+
   it("completes logout and navigates to login on success", async () => {
     const session = useSessionStore();
     const logout = vi.spyOn(session, "logout").mockResolvedValue(undefined);
