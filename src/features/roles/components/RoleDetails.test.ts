@@ -191,6 +191,22 @@ describe("RoleDetails", () => {
     expect(dialogText()).toContain("Perfil renomeado com sucesso.");
   });
 
+  it("marca o campo obrigatório ao renomear um perfil personalizado", async () => {
+    mountDetails(customRole);
+
+    await vi.waitFor(() =>
+      expect(dialogText()).toContain("Detalhes do perfil Gerente"),
+    );
+    const label = dialogElement()?.querySelector("label");
+    expect(label?.textContent).toContain("Nome do perfil");
+    expect(
+      label?.querySelector('[aria-label="Campo obrigatório"]')?.textContent,
+    ).toContain("*");
+    expect(label?.querySelector('[role="tooltip"]')?.textContent).toBe(
+      "Campo obrigatório",
+    );
+  });
+
   it("mostra o erro de nome duplicado no campo e conserva o texto", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole, customRole]);
     server.use(...mocks.handlers);

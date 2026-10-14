@@ -18,11 +18,11 @@ Use existing Vue components, APIs and test conventions. Make the smallest shared
 
 ## Decision
 
-RoleMultiSelect select-all clears any search and fetches every catalog page (`per_page=50`) before selecting the returned profiles; a failed page load selects only the pages successfully fetched. The multi-page test documents the complete-catalog behavior.
+RoleMultiSelect select-all clears search and fetches every catalog page (`per_page=50`) according to response pagination before selecting returned profiles. Loading stops at the API's last page or a reported error; existing pending, cancellation, error, and retry states remain in place. Its multi-page test documents complete-catalog selection.
 
 ## Verification
 
-Run focused tests during TDD, then the exact requested full Vitest command, vue-tsc, eslint, and format check. Record short tails and exit codes. Run strict CSD validation if compatible with this work item.
+Run focused tests during TDD, then the exact requested full Vitest command, vue-tsc, eslint, format check, build, and strict CSD examples validation. Record command, exit code, and short log tail for each.
 
 ## Risks and rollback
 
@@ -30,4 +30,4 @@ Role permission payload and selector pagination can be misunderstood; inspect ex
 
 ## Delivery
 
-Branch `feat/ux-batch2-polish`, target `main`, remote `origin`. Commit with Conventional Commits and push the branch with upstream tracking. Builder does not create PRs or merge. Orchestrator owns independent SOL low review, consolidated Luna fixes if needed, PR, green CI, normal merge and branch cleanup.
+Branch `feat/ux-batch2-polish`, target `main`, remote `origin`. Commit with Conventional Commits and push the existing branch. Current orchestrator authorization covers PR creation and integration after independent review and green checks; this fixer does not open a PR or merge.

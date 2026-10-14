@@ -709,3 +709,68 @@ describe("RolesPage — seleção", () => {
     expect(wrapper.find("input[type=checkbox]").exists()).toBe(false);
   });
 });
+
+describe("RolesPage — paginação e consulta", () => {
+  it("volta à primeira página ao alterar itens por página", async () => {
+    const roles = Array.from({ length: 20 }, (_, index) =>
+      makeAdminRole({
+        id: index + 1,
+        name: `perfil-${index + 1}`,
+        permissions: [],
+      }),
+    );
+    const mocks = makeRolesRouteMocks(roles);
+    server.use(...mocks.handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find("tbody tr").exists()).toBe(true),
+    );
+    await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
+    await vi.waitFor(() =>
+      expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
+        true,
+      ),
+    );
+    await wrapper
+      .get<HTMLSelectElement>('select[aria-label="Itens por página"]')
+      .setValue("5");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.query.get("page") === "1" &&
+            call.query.get("per_page") === "5",
+        ),
+      ).toBe(true),
+    );
+    expect(wrapper.text()).toContain("perfil-1");
+  });
+
+  it("abre e fecha a consulta do perfil em modo somente leitura", async () => {
+    server.use(...makeRolesRouteMocks(makeMinimalRoles()).handlers);
+    const wrapper = mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find("tbody tr").exists()).toBe(true),
+    );
+    await wrapper
+      .get('[aria-label="Ver detalhes do perfil user"]')
+      .trigger("click");
+    await vi.waitFor(() =>
+      expect(dialogElement()?.textContent).toContain(
+        "Detalhes do perfil Usuário",
+      ),
+    );
+    expect(dialogElement()?.textContent).toContain("Ver usuários");
+    expect(dialogElement()?.querySelectorAll("input")).toHaveLength(0);
+    expect(
+      [...dialogElement()!.querySelectorAll("button")].map((button) =>
+        button.textContent?.trim(),
+      ),
+    ).toEqual(["Fechar"]);
+    dialogGet('[data-testid="close-role-details"]').click();
+    await waitDialogClosed();
+  });
+});

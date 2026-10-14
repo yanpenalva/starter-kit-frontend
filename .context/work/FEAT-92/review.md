@@ -1,16 +1,18 @@
-# Review — FEAT-92
+# Review and fixer response — FEAT-92
 
-## Scope and behavior
+## Scope clarification
 
-- Users, Roles and Logs no longer render unused table-selection checkboxes or counters; `usePageSelection.ts` remains untouched and RoleMultiSelect keeps its selectable profile checkboxes.
-- Select all clears search, fetches catalog pages through the last page, and merges all loaded profile names into the selection. The multi-page test verifies this behavior.
-- User and role deletion still check the same `can()` permission before opening confirmation and again before mutation. Session revocation still rejects the current session and empty bulk target. Existing mutation loading, feedback and server validation paths remain in place.
-- The create-role POST remains `{ name }`; selected permissions use the existing permission endpoint. The create form respects `roles.manage` and `roles.update-permissions`, preserves 422 feedback, and retries a failed permission assignment without posting a duplicate role.
-- Required markers, toast colors, account navigation and header logout styling are covered by component/page tests. The `/profile` route guard and logout implementation are unchanged.
-- Production source has no native `confirm()` or `alert()` calls; toast color selection is centralized and excludes `dark` as a toast color.
+The SOL review's first finding treated select-all as limited to already loaded options. The original builder brief explicitly allowed either loaded-only selection or fetching the remainder and required selecting all profiles. The orchestrator clarified that the implemented complete-catalog behavior is in scope and must remain. `RoleMultiSelect` still clears search and calls `loadAll`; `useRoleOptions` follows API `last_page` pagination. A canceled or non-advancing page now ends the loop, and an API error stops further requests. The multi-page test in `src/shared/components/RoleMultiSelect.test.ts` selects all 51 catalog profiles and verifies that page 2 is requested; `useRoleOptions.test.ts` verifies cancellation while page 2 is pending. This is a scope correction, not a finding against the implementation.
 
-## Findings and limits
+## Fixes made for the remaining findings
 
-- No remaining in-scope implementation finding was identified in the final diff review.
-- Independent reviewer: NOT FOUND; the available execution context did not permit delegation. The implementation author performed this review; it is not an independent approval.
-- A separate GitHub issue was not provided and `gh` is unavailable; issue linkage is NOT FOUND.
+- `RoleFormModal` now includes pending state in `isLocked`, disabling individual permissions, group select-all, catalog select-all, and name changes during POST/PUT. The delayed POST/PUT test verifies the controls remain locked and the submitted permission payload remains the original selection.
+- Restored focused behavioral coverage for per-page changes returning Users, Roles, and Logs to page 1, plus opening and closing the read-only user and role detail dialogs. Tests for removed table selection remain absent; no table checkboxes were restored.
+- The custom-role rename form now uses `RequiredMark`; `RoleDetails.test.ts` checks the asterisk and tooltip while existing Admin and reserved-name guards remain covered.
+- The disabled MFA submit button no longer sets `cursor: wait`; it inherits the global disabled `not-allowed` rule. Chromium computed `not-allowed` using both production CSS assets; this is a browser style check, not a CSS text assertion.
+
+## Independent review and delivery
+
+The SOL review returned `VEREDITO: AJUSTES`; this fixer response does not claim independent approval. GitHub issue #92 exists and is OPEN: https://github.com/yanpenalva/starter-kit-frontend/issues/92. Linkage is Issue #92 → `.context/work/FEAT-92` → orchestrator-owned PR.
+
+The current user authorization allows the orchestrator to open the PR and perform normal integration after independent review and green checks. This fixer is authorized to commit and push the recorded branch only and did not open a PR or merge.

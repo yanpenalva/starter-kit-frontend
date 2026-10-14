@@ -40,7 +40,7 @@
         @submit.prevent="submitRename"
       >
         <label>
-          Nome do perfil
+          Nome do perfil <RequiredMark />
           <input v-model="name" aria-label="Novo nome do perfil" required />
           <FieldErrors
             :errors="feedback.fieldErrors.value.name ?? []"
@@ -113,6 +113,7 @@
 import { computed, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
 import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
+import RequiredMark from "@/shared/components/RequiredMark.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";

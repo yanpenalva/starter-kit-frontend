@@ -476,3 +476,36 @@ describe("LogsPage — seleção", () => {
     expect(wrapper.find("input[type=checkbox]").exists()).toBe(false);
   });
 });
+
+describe("LogsPage — paginação", () => {
+  it("altera itens por página e retorna à primeira página", async () => {
+    const activities = Array.from({ length: 16 }, (_, index) =>
+      makeAdminActivity({ id: index + 1 }),
+    );
+    const mocks = makeAuditRouteMocks(activities);
+    server.use(...mocks.handlers);
+    const page = mountPage();
+
+    await vi.waitFor(() => expect(page.find("tbody tr").exists()).toBe(true));
+    await page.get('button[aria-label="Próxima página"]').trigger("click");
+    await vi.waitFor(() =>
+      expect(mocks.calls.some((call) => call.query.get("page") === "2")).toBe(
+        true,
+      ),
+    );
+    await page
+      .get<HTMLSelectElement>('select[aria-label="Itens por página"]')
+      .setValue("5");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.query.get("page") === "1" &&
+            call.query.get("per_page") === "5",
+        ),
+      ).toBe(true),
+    );
+    expect(page.get(".ui-pagination__range").text()).toBe("1–5 de 16");
+  });
+});

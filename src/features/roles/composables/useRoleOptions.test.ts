@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ref } from "vue";
+import { nextTick, ref } from "vue";
 import type { RoleOption } from "./useRoleOptions";
 import { useRoleOptions } from "./useRoleOptions";
 
@@ -114,6 +114,35 @@ describe("useRoleOptions", () => {
       "admin",
       "editor",
     ]);
+  });
+
+  it("encerra loadAll quando a autorização cancela uma página pendente", async () => {
+    const enabled = ref(true);
+    let releasePage: (() => void) | undefined;
+    const pagePending = new Promise<void>((resolve) => {
+      releasePage = resolve;
+    });
+    const calls: number[] = [];
+    const listRoles = vi.fn(async (filters: { page?: number }) => {
+      const page = filters.page ?? 1;
+      calls.push(page);
+      if (calls.length === 3) await pagePending;
+      return {
+        data: [makeRole(page, `role-${page}`)],
+        meta: { current_page: page, last_page: 2, total: 2 },
+      };
+    });
+    const { loadAll } = useRoleOptions(listRoles, () => enabled.value);
+
+    await vi.waitFor(() => expect(calls).toEqual([1]));
+    const loadingAll = loadAll();
+    await vi.waitFor(() => expect(calls).toEqual([1, 1, 2]));
+    enabled.value = false;
+    await nextTick();
+    releasePage?.();
+
+    await loadingAll;
+    expect(calls).toEqual([1, 1, 2]);
   });
 
   it("ignora loadMore sem página seguinte", async () => {

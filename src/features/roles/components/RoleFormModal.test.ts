@@ -134,6 +134,96 @@ describe("RoleFormModal — criação", () => {
     });
   });
 
+  it("locks permission selectors while assigning the submitted selection", async () => {
+    const mocks = makeRolesRouteMocks([adminRole]);
+    let releasePut: (() => void) | undefined;
+    let putStarted: (() => void) | undefined;
+    let releasePost: (() => void) | undefined;
+    let postStarted: (() => void) | undefined;
+    let submittedPermissions: string[] = [];
+    let submittedName = "";
+    const putPending = new Promise<void>((resolve) => {
+      releasePut = resolve;
+    });
+    const started = new Promise<void>((resolve) => {
+      putStarted = resolve;
+    });
+    const postPending = new Promise<void>((resolve) => {
+      releasePost = resolve;
+    });
+    const postStartedPromise = new Promise<void>((resolve) => {
+      postStarted = resolve;
+    });
+    server.use(...mocks.handlers);
+    server.use(
+      http.post(`${TEST_API_BASE}/api/v1/roles`, async ({ request }) => {
+        submittedName = ((await request.json()) as { name: string }).name;
+        postStarted?.();
+        await postPending;
+        return HttpResponse.json(
+          { data: makeAdminRole({ id: 3, name: "auditor", permissions: [] }) },
+          { status: 201, headers: makeCorsHeaders(request) },
+        );
+      }),
+      http.put(
+        `${TEST_API_BASE}/api/v1/roles/:roleId/permissions`,
+        async ({ request }) => {
+          putStarted?.();
+          submittedPermissions = (
+            (await request.clone().json()) as { permissions: string[] }
+          ).permissions;
+          await putPending;
+          return HttpResponse.json(
+            {
+              data: {
+                ...makeAdminRole({ id: 3, name: "auditor" }),
+                permissions: ["users.view"],
+              },
+            },
+            { headers: makeCorsHeaders(request) },
+          );
+        },
+      ),
+    );
+    const wrapper = await mountModal({ mode: "create" });
+
+    await setValue('[aria-label="Nome do novo perfil"]', "auditor");
+    await setValue(
+      '[aria-label="Permissão Ver usuários para novo perfil"]',
+      true,
+    );
+    dialogGet('[data-testid="submit-create-role"]').click();
+    await postStartedPromise;
+
+    for (const selector of [
+      '[aria-label="Selecionar todas as permissões"]',
+      '[aria-label="Selecionar todas as permissões de Usuários"]',
+      '[aria-label="Permissão Ver usuários para novo perfil"]',
+    ]) {
+      expect(dialogGet<HTMLInputElement>(selector).disabled).toBe(true);
+    }
+    expect(submittedName).toBe("auditor");
+    releasePost?.();
+    await started;
+
+    for (const selector of [
+      '[aria-label="Selecionar todas as permissões"]',
+      '[aria-label="Selecionar todas as permissões de Usuários"]',
+      '[aria-label="Permissão Ver usuários para novo perfil"]',
+    ]) {
+      expect(dialogGet<HTMLInputElement>(selector).disabled).toBe(true);
+    }
+    expect(
+      dialogGet<HTMLInputElement>('[aria-label="Nome do novo perfil"]')
+        .disabled,
+    ).toBe(true);
+    expect(submittedName).toBe("auditor");
+
+    releasePut?.();
+    await vi.waitFor(() => expect(wrapper.emitted("created")).toBeTruthy());
+    expect(submittedPermissions).toEqual(["users.view"]);
+  });
+
   it("preserva a criação parcial e tenta novamente só a atribuição após um 422", async () => {
     const mocks = makeRolesRouteMocks([adminRole]);
     server.use(...mocks.handlers);
@@ -174,6 +264,12 @@ describe("RoleFormModal — criação", () => {
       expect(mocks.calls.filter((call) => call.method === "POST")).toHaveLength(
         1,
       ),
+    );
+    await vi.waitFor(() =>
+      expect(
+        dialogGet<HTMLButtonElement>('[data-testid="submit-create-role"]')
+          .disabled,
+      ).toBe(false),
     );
 
     dialogGet('[data-testid="submit-create-role"]').click();

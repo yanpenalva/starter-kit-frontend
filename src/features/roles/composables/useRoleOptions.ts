@@ -122,7 +122,11 @@ export const useRoleOptions = (
     options.value = [];
     loadedIds.clear();
     await fetchPage(1);
-    while (hasMore.value && !hasError.value) await loadMore();
+    while (hasMore.value && !hasError.value && enabled()) {
+      const nextPage = currentPage.value + 1;
+      await loadMore();
+      if (currentPage.value < nextPage || !enabled()) break;
+    }
   };
 
   const retry = async (): Promise<void> => {

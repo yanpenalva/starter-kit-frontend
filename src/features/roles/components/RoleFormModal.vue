@@ -211,6 +211,7 @@ const isPending = computed(() =>
 );
 
 const isLocked = computed(() => {
+  if (isPending.value) return true;
   if (props.mode === "create")
     return !can("roles.manage") || !can("roles.update-permissions");
   return (

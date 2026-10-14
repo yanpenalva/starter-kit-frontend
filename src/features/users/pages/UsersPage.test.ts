@@ -904,3 +904,69 @@ describe("UsersPage — seleção", () => {
     expect(wrapper.find("input[type=checkbox]").exists()).toBe(false);
   });
 });
+
+describe("UsersPage — paginação e consulta", () => {
+  it("volta à primeira página ao alterar itens por página", async () => {
+    const mocks = makeUsersRouteMocks(makeUsers(20));
+    server.use(...mocks.handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find("tbody tr").exists()).toBe(true),
+    );
+    await wrapper.get('button[aria-label="Próxima página"]').trigger("click");
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find('[aria-label="Ver detalhe de Pessoa 11"]').exists(),
+      ).toBe(true),
+    );
+    await wrapper
+      .get<HTMLSelectElement>('select[aria-label="Itens por página"]')
+      .setValue("5");
+
+    await vi.waitFor(() =>
+      expect(
+        mocks.calls.some(
+          (call) =>
+            call.query.get("page") === "1" &&
+            call.query.get("per_page") === "5",
+        ),
+      ).toBe(true),
+    );
+    expect(
+      wrapper.find('[aria-label="Ver detalhe de Pessoa 1"]').exists(),
+    ).toBe(true);
+  });
+
+  it("abre e fecha a consulta do usuário sem selecionar a linha", async () => {
+    const localUsers = makeUsers(3);
+    localUsers[0] = makeAdminUser({
+      id: 1,
+      name: "Pessoa 1",
+      email: "pessoa1@example.test",
+      roles: ["admin"],
+      cpf: "12345678909",
+    });
+    server.use(...makeUsersRouteMocks(localUsers).handlers, rolesListHandler);
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find("tbody tr").exists()).toBe(true),
+    );
+    await wrapper
+      .get('[aria-label="Ver detalhes de Pessoa 1"]')
+      .trigger("click");
+    await vi.waitFor(() =>
+      expect(dialogElement()?.textContent).toContain("Detalhes de Pessoa 1"),
+    );
+    expect(dialogElement()?.textContent).toContain("123.456.789-09");
+    expect(dialogElement()?.querySelectorAll("input")).toHaveLength(0);
+    expect(
+      wrapper.get('[aria-label="Ver detalhe de Pessoa 1"]').attributes("href"),
+    ).toBe("/users/1");
+    [...(dialogElement()?.querySelectorAll<HTMLButtonElement>("button") ?? [])]
+      .find((button) => button.textContent?.trim() === "Fechar")
+      ?.click();
+    await waitDialogClosed();
+  });
+});
