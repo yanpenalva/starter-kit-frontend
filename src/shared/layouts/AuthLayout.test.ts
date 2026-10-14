@@ -28,4 +28,16 @@ describe("presentation-only auth layout", () => {
     expect(wrapper.get(".auth-layout__footer").text()).toBe("Rodapé de teste");
     expect(wrapper.find("form").exists()).toBe(false);
   });
+
+  it("does not render a global back button", () => {
+    const wrapper = mount(AuthLayout, {
+      props: {
+        title: "Uma etapa por vez",
+        description: "Conteúdo de teste, sem dados de conta.",
+      },
+    });
+
+    expect(wrapper.find(".back-button").exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Voltar"]').exists()).toBe(false);
+  });
 });

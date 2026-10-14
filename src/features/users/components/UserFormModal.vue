@@ -13,8 +13,7 @@
       <p class="user-form__hint">Selecione um ou mais perfis para a conta.</p>
       <div class="user-form__row">
         <label>
-          Nome
-          <RequiredMark />
+          <FormLabel required>Nome</FormLabel>
           <input
             v-model="form.name"
             aria-label="Nome do novo usuário"
@@ -23,8 +22,7 @@
           />
         </label>
         <label>
-          CPF
-          <RequiredMark />
+          <FormLabel required>CPF</FormLabel>
           <input
             v-model="form.cpf"
             aria-label="CPF do novo usuário"
@@ -38,8 +36,7 @@
         </label>
       </div>
       <label>
-        Email
-        <RequiredMark />
+        <FormLabel required>Email</FormLabel>
         <input
           v-model="form.email"
           aria-label="Email do novo usuário"
@@ -52,8 +49,7 @@
         />
       </label>
       <label>
-        Senha (mínimo 12 caracteres)
-        <RequiredMark />
+        <FormLabel required>Senha</FormLabel>
         <input
           v-model="form.password"
           aria-label="Senha do novo usuário"
@@ -61,6 +57,7 @@
           minlength="12"
           required
         />
+        <p class="user-form__hint">Mínimo 12 caracteres.</p>
         <FieldErrors
           :errors="feedback.fieldErrors.value.password ?? []"
           field-label="Senha do novo usuário"
@@ -147,6 +144,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
+import FormLabel from "@/shared/components/FormLabel.vue";
 import RequiredMark from "@/shared/components/RequiredMark.vue";
 import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
@@ -323,6 +321,10 @@ const submit = async (): Promise<void> => {
   display: grid;
   gap: 0.375rem;
   font-size: 0.875rem;
+}
+
+.user-form label > .form-label__text {
+  white-space: nowrap;
 }
 
 .user-form input {

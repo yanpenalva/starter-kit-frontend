@@ -16,8 +16,7 @@
         <h3 class="user-edit__block-title">Dados</h3>
         <div class="user-edit__grid">
           <label>
-            Nome
-            <RequiredMark />
+            <FormLabel required>Nome</FormLabel>
             <input
               v-model="form.name"
               data-testid="edit-name"
@@ -27,8 +26,7 @@
             />
           </label>
           <label>
-            Email
-            <RequiredMark />
+            <FormLabel required>Email</FormLabel>
             <input
               v-model="form.email"
               data-testid="edit-email"
@@ -140,7 +138,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
-import RequiredMark from "@/shared/components/RequiredMark.vue";
+import FormLabel from "@/shared/components/FormLabel.vue";
 import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
@@ -321,6 +319,10 @@ const saveRoles = async (): Promise<void> => {
   display: grid;
   gap: 0.375rem;
   font-size: 0.875rem;
+}
+
+.user-edit label > .form-label__text {
+  white-space: nowrap;
 }
 
 .user-edit input {

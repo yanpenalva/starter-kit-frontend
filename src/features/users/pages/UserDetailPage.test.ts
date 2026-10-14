@@ -16,6 +16,7 @@ import { makeCorsHeaders, TEST_API_BASE } from "@/test/http-handlers";
 import { server } from "@/test/server";
 import { useSessionStore } from "@/features/auth/stores/session";
 import { CATALOGUE_PERMISSIONS } from "@/shared/types/contract";
+import BackButton from "@/shared/components/BackButton.vue";
 import { queryClient } from "@/app/providers/query";
 import UserDetailPage from "./UserDetailPage.vue";
 
@@ -180,8 +181,26 @@ describe("UserDetailPage", () => {
     expect(wrapper.text()).toContain("Usuário");
     expect(wrapper.text()).toContain("Ver usuários");
     expect(wrapper.text()).not.toContain("users.view");
-    expect(wrapper.get('a[href="/users"]').text()).toBe(
-      "Voltar à lista de usuários",
+    const backButton = wrapper.findComponent(BackButton);
+    expect(backButton.exists()).toBe(true);
+    expect(backButton.props("fallback")).toBe("/users");
+    expect(wrapper.find('button[aria-label="Voltar"]').exists()).toBe(true);
+    expect(wrapper.find('a[href="/users"]').exists()).toBe(false);
+  });
+
+  it("posiciona o voltar acima do cabeçalho", async () => {
+    useUserHandlers();
+    const wrapper = await mountPage();
+
+    await vi.waitFor(() =>
+      expect(wrapper.find('[data-testid="user-email"]').exists()).toBe(true),
+    );
+    const html = wrapper.html();
+    expect(html.indexOf("back-button")).toBeLessThan(
+      html.indexOf("page-header"),
+    );
+    expect(html.indexOf("back-button")).toBeLessThan(
+      html.indexOf("user-email"),
     );
   });
 

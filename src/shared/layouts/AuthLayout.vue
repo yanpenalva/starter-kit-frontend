@@ -15,7 +15,6 @@
       class="auth-layout__main"
       :aria-labelledby="headingId"
     >
-      <BackButton />
       <section class="auth-layout__intro">
         <p class="auth-layout__eyebrow">{{ eyebrow }}</p>
         <h1 :id="headingId">{{ title }}</h1>
@@ -40,7 +39,6 @@
 
 <script setup lang="ts">
 import { useId } from "vue";
-import BackButton from "@/shared/components/BackButton.vue";
 import InfoTooltip from "@/shared/components/InfoTooltip.vue";
 
 withDefaults(

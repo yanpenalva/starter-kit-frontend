@@ -12,8 +12,7 @@
         @submit.prevent="submitCreate"
       >
         <label>
-          Nome do perfil
-          <RequiredMark />
+          <FormLabel required>Nome do perfil</FormLabel>
           <input
             v-model="name"
             aria-label="Nome do novo perfil"
@@ -161,7 +160,7 @@
 import { computed, ref, useId, watch } from "vue";
 import DialogComponent from "@/shared/components/DialogComponent.vue";
 import ConfirmDialog from "@/shared/components/ConfirmDialog.vue";
-import RequiredMark from "@/shared/components/RequiredMark.vue";
+import FormLabel from "@/shared/components/FormLabel.vue";
 import FieldErrors from "@/shared/components/FieldErrors.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";
@@ -361,6 +360,10 @@ const submitPermissions = async (): Promise<void> => {
   display: grid;
   gap: 0.375rem;
   font-size: 0.875rem;
+}
+
+.role-form label > .form-label__text {
+  white-space: nowrap;
 }
 
 .role-form input {

@@ -228,4 +228,11 @@ describe("AppLayout.vue", () => {
     );
     expect(wrapper.get(".app-header__context").text()).toBe("Usuários");
   });
+
+  it("does not render a global back button", async () => {
+    const { wrapper } = await mountLayout();
+
+    expect(wrapper.find(".back-button").exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Voltar"]').exists()).toBe(false);
+  });
 });

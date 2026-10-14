@@ -13,4 +13,15 @@ describe("public layout", () => {
     );
     expect(wrapper.get("main").text()).toBe("Conteúdo sintético");
   });
+
+  it("does not render a global back button", () => {
+    const wrapper = mount(PublicLayout, {
+      slots: {
+        default: '<main id="main-content">Conteúdo sintético</main>',
+      },
+    });
+
+    expect(wrapper.find(".back-button").exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Voltar"]').exists()).toBe(false);
+  });
 });

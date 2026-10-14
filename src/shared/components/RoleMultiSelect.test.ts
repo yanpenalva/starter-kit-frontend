@@ -339,4 +339,37 @@ describe("RoleMultiSelect", () => {
     );
     expect(calls).toBe(2);
   });
+
+  it("alterna selecionar todos e desmarcar todos com rótulo dinâmico", async () => {
+    server.use(
+      makeRolesHandler([
+        makeAdminRole({ id: 1, name: "admin" }),
+        makeAdminRole({ id: 2, name: "user" }),
+      ]),
+    );
+    const wrapper = mountSelect();
+    const toggleButton = () => wrapper.get("button.action-button");
+
+    await vi.waitFor(() =>
+      expect(wrapper.findAll(".role-option")).toHaveLength(2),
+    );
+    expect(toggleButton().text()).toContain("Selecionar todos os perfis");
+
+    await toggleButton().trigger("click");
+    await vi.waitFor(() =>
+      expect(wrapper.emitted("update:modelValue")).toHaveLength(1),
+    );
+    expect(wrapper.emitted("update:modelValue")?.[0]).toEqual([
+      ["admin", "user"],
+    ]);
+
+    await wrapper.setProps({ modelValue: ["admin", "user"] });
+    expect(toggleButton().text()).toContain("Desmarcar todos os perfis");
+
+    await toggleButton().trigger("click");
+    await vi.waitFor(() =>
+      expect(wrapper.emitted("update:modelValue")).toHaveLength(2),
+    );
+    expect(wrapper.emitted("update:modelValue")?.[1]).toEqual([[]]);
+  });
 });

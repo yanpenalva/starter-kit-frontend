@@ -71,4 +71,21 @@ describe("BackButton.vue", () => {
       value: 1,
     });
   });
+
+  it("uses a custom fallback when provided", async () => {
+    const router = createTestRouter();
+    Object.defineProperty(router.options.history, "state", {
+      configurable: true,
+      value: { position: 0 },
+    });
+    const push = vi.spyOn(router, "push");
+    const wrapper = mount(BackButton, {
+      props: { fallback: "/users" },
+      global: { plugins: [router] },
+    });
+
+    await wrapper.get("button").trigger("click");
+
+    expect(push).toHaveBeenCalledWith("/users");
+  });
 });

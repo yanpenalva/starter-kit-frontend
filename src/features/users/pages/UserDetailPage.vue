@@ -3,15 +3,12 @@
     eyebrow="ADMINISTRAÇÃO"
     title="Detalhe do Usuário"
     help-text="Confira os dados da conta e os perfis atribuídos. As ações de edição dependem das suas permissões."
+    back-fallback="/users"
   >
     <template #subtitle>
       Detalhe e edição de um usuário. Área restrita para usuários com permissão
       {{ cataloguePermissionLabel("users.view") }}.
     </template>
-
-    <RouterLink :to="{ name: 'users' }" class="ui-control">
-      Voltar à lista de usuários
-    </RouterLink>
 
     <p v-if="query.isPending.value" role="status">Carregando usuário...</p>
     <FormFeedback :feedback="feedback" />
@@ -95,7 +92,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { RouterLink, useRoute } from "vue-router";
+import { useRoute } from "vue-router";
 import AdminPageLayout from "@/shared/components/AdminPageLayout.vue";
 import FormFeedback from "@/shared/components/FormFeedback.vue";
 import { useAuthorization } from "@/features/auth/composables/useAuthorization";

@@ -508,4 +508,17 @@ describe("RoleFormModal — edição de permissões", () => {
       ).toBe(true),
     );
   });
+
+  it("renderiza o rótulo Nome do perfil com asterisco inline", async () => {
+    const mocks = makeRolesRouteMocks([adminRole]);
+    server.use(...mocks.handlers);
+    await mountModal({ mode: "create" });
+
+    const label = dialogGet(".role-form .form-label__text");
+    expect(label.textContent?.replace(/\s+/g, " ")).toContain(
+      "Nome do perfil *",
+    );
+    expect(label.querySelector(".required-mark")).not.toBeNull();
+    expect(label.nextElementSibling?.tagName).toBe("INPUT");
+  });
 });

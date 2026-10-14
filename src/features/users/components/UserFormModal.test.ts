@@ -386,4 +386,31 @@ describe("UserFormModal", () => {
       dialogGet('[aria-label="Perfis selecionados"]').textContent,
     ).toContain("Gerente");
   });
+
+  it("renderiza o rótulo Nome com asterisco inline", async () => {
+    const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
+    server.use(...mocks.handlers, ...roleMocks().handlers);
+    await mountModal();
+
+    const label = dialogGet(".user-form .form-label__text");
+    expect(label.textContent?.replace(/\s+/g, " ")).toContain("Nome *");
+    expect(label.querySelector(".required-mark")).not.toBeNull();
+    expect(label.nextElementSibling?.tagName).toBe("INPUT");
+  });
+
+  it("exibe Senha com asterisco inline e dica curta abaixo do campo", async () => {
+    const mocks = makeUsersRouteMocks([makeAdminUser({ id: 9 })]);
+    server.use(...mocks.handlers, ...roleMocks().handlers);
+    await mountModal();
+
+    const labels = [
+      ...dialogGet(".user-form").querySelectorAll(".form-label__text"),
+    ];
+    const password = labels.find((element) =>
+      element.textContent?.includes("Senha"),
+    );
+    expect(password?.textContent?.replace(/\s+/g, " ")).toContain("Senha *");
+    const hint = password?.closest("label")?.querySelector(".user-form__hint");
+    expect(hint?.textContent).toContain("Mínimo 12 caracteres.");
+  });
 });

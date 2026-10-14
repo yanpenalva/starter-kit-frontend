@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import ActionButton from "@/shared/components/ActionButton.vue";
 import { useRoleOptions } from "@/features/roles/composables/useRoleOptions";
 import { listRoles } from "@/features/roles/api/roles.api";
 import { roleLabel } from "@/shared/utils/role-labels";
@@ -54,8 +55,24 @@ const remove = (name: string): void => {
   );
 };
 
-const selectAll = async (): Promise<void> => {
+const allVisibleSelected = computed(
+  () =>
+    options.value.length > 0 &&
+    options.value.every((role) => selectedNames.value.has(role.name)),
+);
+
+const toggleLabel = computed(() =>
+  allVisibleSelected.value
+    ? "Desmarcar todos os perfis"
+    : "Selecionar todos os perfis",
+);
+
+const toggleSelectAll = async (): Promise<void> => {
   if (props.disabled || !props.canViewCatalog) return;
+  if (allVisibleSelected.value) {
+    emit("update:modelValue", []);
+    return;
+  }
   term.value = "";
   await loadAll();
   emit("update:modelValue", [
@@ -115,13 +132,12 @@ const onListScroll = (event: Event): void => {
         :disabled="props.disabled"
       />
 
-      <button
-        type="button"
+      <ActionButton
+        :label="toggleLabel"
+        color="secondary"
         :disabled="props.disabled || isLoading"
-        @click="selectAll"
-      >
-        Selecionar todos os perfis
-      </button>
+        @click="toggleSelectAll"
+      />
 
       <ul
         class="role-multi-select__list"

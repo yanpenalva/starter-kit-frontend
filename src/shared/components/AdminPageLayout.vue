@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
     <div class="admin-page">
+      <BackButton v-if="backFallback" :fallback="backFallback" />
       <header class="page-header">
         <p class="page-eyebrow">{{ eyebrow }}</p>
         <div class="page-title-row">
@@ -30,12 +31,14 @@
 
 <script setup lang="ts">
 import AppLayout from "@/shared/layouts/AppLayout.vue";
+import BackButton from "@/shared/components/BackButton.vue";
 import InfoTooltip from "@/shared/components/InfoTooltip.vue";
 
 defineProps<{
   eyebrow: string;
   title: string;
   helpText?: string;
+  backFallback?: string;
 }>();
 </script>
 

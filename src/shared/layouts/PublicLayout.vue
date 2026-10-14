@@ -3,14 +3,9 @@
     <a class="public-layout__skip" href="#main-content"
       >Pular para o conteúdo</a
     >
-    <BackButton />
     <slot />
   </div>
 </template>
-
-<script setup lang="ts">
-import BackButton from "@/shared/components/BackButton.vue";
-</script>
 
 <style scoped>
 .public-layout {

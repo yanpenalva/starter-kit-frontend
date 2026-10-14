@@ -355,4 +355,15 @@ describe("UserEditForm", () => {
       roles: ["user", "editor"],
     });
   });
+
+  it("renderiza o rótulo Nome com asterisco inline", async () => {
+    const mocks = makeUsersRouteMocks([user]);
+    server.use(...mocks.handlers, rolesListHandler);
+    await mountModal();
+
+    const label = dialogGet(".user-edit .form-label__text");
+    expect(label.textContent?.replace(/\s+/g, " ")).toContain("Nome *");
+    expect(label.querySelector(".required-mark")).not.toBeNull();
+    expect(label.nextElementSibling?.tagName).toBe("INPUT");
+  });
 });

@@ -8,6 +8,10 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router";
 
+const props = withDefaults(defineProps<{ fallback?: string }>(), {
+  fallback: "/",
+});
+
 const router = useRouter();
 const goBack = (): void => {
   const historyState = router.options.history.state;
@@ -15,7 +19,7 @@ const goBack = (): void => {
     router.back();
     return;
   }
-  void router.push("/");
+  void router.push(props.fallback);
 };
 </script>
 
