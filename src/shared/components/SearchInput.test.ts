@@ -8,7 +8,7 @@ const mountSearch = (props: Record<string, unknown> = {}) =>
   });
 
 describe("SearchInput.vue", () => {
-  it("mostra o valor recebido e mantém o rótulo acessível", () => {
+  it("shows the received value and keeps the label accessible", () => {
     const wrapper = mountSearch({ modelValue: "papel" });
     const input = wrapper.get('input[type="search"]');
 
@@ -16,7 +16,7 @@ describe("SearchInput.vue", () => {
     expect(wrapper.get("label").text()).toContain("Buscar na auditoria");
   });
 
-  it("emite update:modelValue a cada digitação, sem disparar busca sozinho", async () => {
+  it("emits update:modelValue on each keystroke without triggering search alone", async () => {
     const wrapper = mountSearch();
     const input = wrapper.get('input[type="search"]');
 
@@ -26,7 +26,7 @@ describe("SearchInput.vue", () => {
     expect(wrapper.emitted("search")).toBeUndefined();
   });
 
-  it("repassa placeholder e estado disabled", () => {
+  it("passes placeholder and disabled state", () => {
     const wrapper = mountSearch({
       modelValue: "",
       placeholder: "Nome ou email",

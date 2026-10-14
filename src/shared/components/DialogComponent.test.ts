@@ -64,7 +64,7 @@ afterEach(() => {
 });
 
 describe("DialogComponent.vue", () => {
-  it("teleporta o diálogo para o documento e usa o título como nome acessível", async () => {
+  it("teleports the dialog to the document and uses the title as accessible name", async () => {
     const wrapper = mountDialog();
 
     expect(dialogElement()).toBeNull();
@@ -82,7 +82,7 @@ describe("DialogComponent.vue", () => {
     expect(title?.textContent).toBe("Detalhes do registro 7");
   });
 
-  it("fecha pelo botão explícito, por Escape e pelo backdrop, avisando o caller", async () => {
+  it("closes via explicit button, Escape and backdrop, notifying the caller", async () => {
     const wrapper = mountDialog();
     await openDialog(wrapper);
 
@@ -109,7 +109,7 @@ describe("DialogComponent.vue", () => {
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([false]);
   });
 
-  it("mantém o diálogo aberto quando é persistente (política fica no form)", async () => {
+  it("keeps the dialog open when persistent (policy stays in the form)", async () => {
     const wrapper = mountDialog({ persistent: true });
     await openDialog(wrapper);
 
@@ -121,7 +121,7 @@ describe("DialogComponent.vue", () => {
     expect(dialogElement()).not.toBeNull();
   });
 
-  it("substitui o botão Fechar pelas ações do caller", async () => {
+  it("replaces the Close button with caller actions", async () => {
     const wrapper = mountDialog(
       {},
       {
@@ -136,7 +136,7 @@ describe("DialogComponent.vue", () => {
     expect(custom?.textContent).toBe("Cancelar");
   });
 
-  it("devolve o foco ao acionador depois de fechar", async () => {
+  it("returns focus to the trigger after closing", async () => {
     const trigger = document.createElement("button");
     trigger.type = "button";
     trigger.textContent = "Ver detalhes";

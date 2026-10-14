@@ -105,7 +105,7 @@ describe("RoleDetails", () => {
     queryClient.clear();
   });
 
-  it("mostra nome e permissões do catálogo agrupadas em português", async () => {
+  it("shows the catalog name and permissions grouped in Portuguese", async () => {
     mountDetails(userRole);
 
     await vi.waitFor(() =>
@@ -134,7 +134,7 @@ describe("RoleDetails", () => {
     expect(dialogElement()?.querySelectorAll("input")).toHaveLength(0);
   });
 
-  it("recolhe e reabre os grupos por mouse e teclado", async () => {
+  it("collapses and reopens the groups via mouse and keyboard", async () => {
     mountDetails(userRole);
 
     await vi.waitFor(() => expect(dialogText()).toContain("Ver usuários"));
@@ -166,7 +166,7 @@ describe("RoleDetails", () => {
     );
   });
 
-  it("renomeia perfis personalizados pela API sem alterar permissões", async () => {
+  it("renames custom roles via the API without changing permissions", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole, customRole]);
     server.use(...mocks.handlers);
     const details = mountDetails(customRole);
@@ -191,7 +191,7 @@ describe("RoleDetails", () => {
     expect(dialogText()).toContain("Perfil renomeado com sucesso.");
   });
 
-  it("marca o campo obrigatório ao renomear um perfil personalizado", async () => {
+  it("marks the required field when renaming a custom role", async () => {
     mountDetails(customRole);
 
     await vi.waitFor(() =>
@@ -207,7 +207,7 @@ describe("RoleDetails", () => {
     );
   });
 
-  it("mostra o erro de nome duplicado no campo e conserva o texto", async () => {
+  it("shows the duplicate-name error in the field and keeps the text", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole, customRole]);
     server.use(...mocks.handlers);
     await mountDetails(customRole);
@@ -228,7 +228,7 @@ describe("RoleDetails", () => {
     expect(mocks.calls.some((call) => call.method === "PATCH")).toBe(true);
   });
 
-  it("mostra a recusa 403 do servidor mesmo com autorização local antiga", async () => {
+  it("shows the server 403 refusal even with stale local authorization", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole, customRole]);
     server.use(...mocks.handlers);
     server.use(
@@ -254,7 +254,7 @@ describe("RoleDetails", () => {
     expect(details.emitted("renamed")).toBeUndefined();
   });
 
-  it("protege o perfil Administrador e respeita a reserva do nome Usuário", async () => {
+  it("protects the Administrador role and respects the Usuário name reservation", async () => {
     const mocks = makeRolesRouteMocks([adminRole, userRole]);
     server.use(...mocks.handlers);
     mountDetails(adminRole);
@@ -285,7 +285,7 @@ describe("RoleDetails", () => {
     expect(mocks.calls.some((call) => call.method === "PATCH")).toBe(false);
   });
 
-  it("mantém Escape sob o guard enquanto o nome está sujo", async () => {
+  it("keeps Escape under guard while the name is dirty", async () => {
     const details = mountDetails(customRole);
     await setName("rascunho");
     for (const type of ["keydown", "keyup"]) {

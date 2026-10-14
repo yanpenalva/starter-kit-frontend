@@ -166,7 +166,7 @@ afterEach(() => {
 describe("UserDetailPage", () => {
   beforeEach(() => setActivePinia(createPinia()));
 
-  it("exibe email, status de verificação e perfis do usuário", async () => {
+  it("shows the user email, verification status and roles", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
 
@@ -188,7 +188,7 @@ describe("UserDetailPage", () => {
     expect(wrapper.find('a[href="/users"]').exists()).toBe(false);
   });
 
-  it("posiciona o voltar acima do cabeçalho", async () => {
+  it("places the back button above the header", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
 
@@ -204,7 +204,7 @@ describe("UserDetailPage", () => {
     );
   });
 
-  it("oculta o CPF sem a permissão users.read-cpf", async () => {
+  it("hides the CPF without the users.read-cpf permission", async () => {
     useUserHandlers();
     const wrapper = await mountPage("7", ["users.view", "users.update"]);
 
@@ -219,7 +219,7 @@ describe("UserDetailPage", () => {
     ).toBeNull();
   });
 
-  it("exibe o CPF com a permissão users.read-cpf", async () => {
+  it("shows the CPF with the users.read-cpf permission", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
 
@@ -231,7 +231,7 @@ describe("UserDetailPage", () => {
     );
   });
 
-  it("salva edições de nome, email e cpf pelo mesmo modal da listagem", async () => {
+  it("saves name, email and CPF edits through the same modal as the listing", async () => {
     const mocks = useUserHandlers();
     const wrapper = await mountPage();
 
@@ -269,7 +269,7 @@ describe("UserDetailPage", () => {
     expect(wrapper.text()).toContain("Usuário atualizado com sucesso.");
   });
 
-  it("bloqueia a saída nativa enquanto o estado está sujo", async () => {
+  it("blocks native exit while the state is dirty", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
     await openEditModal(wrapper);
@@ -278,7 +278,7 @@ describe("UserDetailPage", () => {
     expect(beforeUnload().defaultPrevented).toBe(true);
   });
 
-  it("não bloqueia a saída com estado limpo", async () => {
+  it("does not block exit with a clean state", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
 
@@ -292,7 +292,7 @@ describe("UserDetailPage", () => {
     expect(beforeUnload().defaultPrevented).toBe(false);
   });
 
-  it("descarta as edições ao cancelar com confirmação e reabre limpo", async () => {
+  it("discards edits on cancel with confirmation and reopens clean", async () => {
     useUserHandlers();
     const wrapper = await mountPage();
     await openEditModal(wrapper);
@@ -311,7 +311,7 @@ describe("UserDetailPage", () => {
     );
   });
 
-  it("mostra erros por campo quando a edição recebe 422", async () => {
+  it("shows field errors when editing returns 422", async () => {
     useUserHandlers();
     server.use(
       http.patch(`${TEST_API_BASE}/api/v1/users/:userId`, async ({ request }) =>
@@ -339,7 +339,7 @@ describe("UserDetailPage", () => {
     expect(wrapper.find(".page-card [role=alert]").exists()).toBe(false);
   });
 
-  it("mostra estado de carregamento enquanto busca o usuário", async () => {
+  it("shows the loading state while fetching the user", async () => {
     useUserHandlers();
     server.use(
       http.get(`${TEST_API_BASE}/api/v1/users/:userId`, async ({ request }) => {
@@ -355,7 +355,7 @@ describe("UserDetailPage", () => {
     expect(wrapper.find('[role="status"]').exists()).toBe(true);
   });
 
-  it("mostra mensagem quando o usuário não existe", async () => {
+  it("shows a message when the user does not exist", async () => {
     useUserHandlers();
     const wrapper = await mountPage("999");
 

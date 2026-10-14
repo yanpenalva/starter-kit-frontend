@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import FormLabel from "./FormLabel.vue";
 
 describe("FormLabel", () => {
-  it("renderiza o asterisco ao lado do texto quando obrigatório", () => {
+  it("renders the asterisk next to the text when required", () => {
     const wrapper = mount(FormLabel, {
       props: { required: true },
       slots: { default: "Nome" },
@@ -14,7 +14,7 @@ describe("FormLabel", () => {
     expect(label.find(".required-mark").exists()).toBe(true);
   });
 
-  it("não renderiza asterisco quando não obrigatório", () => {
+  it("does not render asterisk when not required", () => {
     const wrapper = mount(FormLabel, { slots: { default: "CPF" } });
     expect(wrapper.find(".form-label__text").exists()).toBe(true);
     expect(wrapper.find(".required-mark").exists()).toBe(false);

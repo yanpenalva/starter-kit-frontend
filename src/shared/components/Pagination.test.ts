@@ -21,7 +21,7 @@ const button = (wrapper: ReturnType<typeof mountPagination>, label: string) =>
   wrapper.get(`button[aria-label="${label}"]`);
 
 describe("Pagination.vue", () => {
-  it("descreve o intervalo e a página atual a partir da meta", () => {
+  it("describes the range and current page from meta", () => {
     const wrapper = mountPagination({
       current_page: 2,
       last_page: 3,
@@ -35,7 +35,7 @@ describe("Pagination.vue", () => {
     );
   });
 
-  it("mostra 0–0 de 0 quando a listagem está vazia", () => {
+  it("shows 0–0 of 0 when the list is empty", () => {
     const wrapper = mountPagination({
       current_page: 1,
       last_page: 1,
@@ -55,7 +55,7 @@ describe("Pagination.vue", () => {
     ).toBeDefined();
   });
 
-  it("não destaca primeira/última página quando há duas páginas", () => {
+  it("does not highlight first/last page when there are two pages", () => {
     const wrapper = mountPagination({
       current_page: 1,
       last_page: 2,
@@ -71,7 +71,7 @@ describe("Pagination.vue", () => {
     );
   });
 
-  it("desabilita a navegação fora dos limites", async () => {
+  it("disables navigation outside the bounds", async () => {
     const first = mountPagination({ current_page: 1, last_page: 4, total: 60 });
     expect(
       button(first, "Página anterior").attributes("disabled"),
@@ -91,7 +91,7 @@ describe("Pagination.vue", () => {
     ).toBeUndefined();
   });
 
-  it("emite a troca de página pedida pelo usuário", async () => {
+  it("emits the page change requested by the user", async () => {
     const wrapper = mountPagination({
       current_page: 2,
       last_page: 4,
@@ -106,7 +106,7 @@ describe("Pagination.vue", () => {
     expect(wrapper.emitted("change")).toEqual([[3], [1], [1], [4]]);
   });
 
-  it("não emite quando o destino é a própria página atual", async () => {
+  it("does not emit when the target is the current page", async () => {
     const wrapper = mountPagination({
       current_page: 1,
       last_page: 1,
@@ -119,7 +119,7 @@ describe("Pagination.vue", () => {
     expect(wrapper.emitted("change")).toBeUndefined();
   });
 
-  it("bloqueia a navegação enquanto está desabilitada", async () => {
+  it("blocks navigation while disabled", async () => {
     const wrapper = mountPagination(
       { current_page: 1, last_page: 3 },
       {
@@ -133,7 +133,7 @@ describe("Pagination.vue", () => {
     expect(wrapper.emitted("change")).toBeUndefined();
   });
 
-  it("emite uma opção válida de itens por página", async () => {
+  it("emits a valid per-page option", async () => {
     const wrapper = mountPagination(
       { per_page: 10 },
       { perPageOptions: [5, 10, 15, 25, 50] },
@@ -144,7 +144,7 @@ describe("Pagination.vue", () => {
     expect(wrapper.emitted("per-page-change")).toEqual([[25]]);
   });
 
-  it("bloqueia a troca do tamanho da página durante uma busca", async () => {
+  it("blocks page-size change during a search", async () => {
     const wrapper = mountPagination(
       { per_page: 10 },
       { disabled: true, perPageOptions: [5, 10, 15, 25, 50] },

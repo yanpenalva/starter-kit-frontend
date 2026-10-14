@@ -50,7 +50,7 @@ describe("isUnusableDocumentError", () => {
       error: new Error("qualquer falha"),
       expected: false,
     },
-  ])("classifica $label", ({ error, expected }) => {
+  ])("classifies $label", ({ error, expected }) => {
     expect(isUnusableDocumentError(error)).toBe(expected);
   });
 
@@ -58,19 +58,19 @@ describe("isUnusableDocumentError", () => {
     null,
     undefined,
     "Failed to get ServiceWorkerRegistration objects.",
-  ])("ignora valor que não é erro (%s)", (error) => {
+  ])("ignores non-error values (%s)", (error) => {
     expect(isUnusableDocumentError(error)).toBe(false);
   });
 });
 
 describe("mockErrorDetail", () => {
-  it("usa a mensagem de um Error", () => {
+  it("uses the message from an Error", () => {
     expect(mockErrorDetail(new Error("falha detalhada"))).toBe(
       "falha detalhada",
     );
   });
 
-  it("usa a mensagem de um erro da plataforma sem ser Error", () => {
+  it("uses the message from a platform-like error without being an Error", () => {
     expect(
       mockErrorDetail({
         name: "InvalidStateError",
@@ -79,7 +79,7 @@ describe("mockErrorDetail", () => {
     ).toBe("The document is in an invalid state.");
   });
 
-  it("converte valores sem mensagem", () => {
+  it("converts values without a message", () => {
     expect(mockErrorDetail("falha")).toBe("falha");
   });
 });
@@ -88,13 +88,13 @@ describe("waitForActiveDocument", () => {
   const createDocumentLike = (prerendering: boolean): MockDocument =>
     Object.assign(new EventTarget(), { prerendering });
 
-  it("resolve de imediato quando não há pré-render", async () => {
+  it("resolves immediately when there is no prerender", async () => {
     await expect(
       waitForActiveDocument(createDocumentLike(false)),
     ).resolves.toBeUndefined();
   });
 
-  it("espera prerenderingchange durante o pré-render", async () => {
+  it("waits for prerenderingchange during prerender", async () => {
     const documentLike = createDocumentLike(true);
     let settled = false;
     const pending = waitForActiveDocument(documentLike).then(() => {

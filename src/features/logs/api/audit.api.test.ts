@@ -55,7 +55,7 @@ describe("audit.api", () => {
     expect(call?.query.get("subject_type")).toBeNull();
   });
 
-  it("envia busca textual e filtro de ação quando informados", async () => {
+  it("sends text search and action filter when provided", async () => {
     await listActivities({ search: "maria", action: "user.assign_roles" });
 
     const call = calls[0];

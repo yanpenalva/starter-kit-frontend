@@ -73,7 +73,7 @@ describe("SessionsPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("destaca a sessão atual e oferece ações apenas para as outras", async () => {
+  it("highlights the current session and offers actions only for the others", async () => {
     const mocks = createSessionMocks([currentSession, otherSession]);
     server.use(...mocks.handlers);
     wrapper = mountPage();
@@ -98,7 +98,7 @@ describe("SessionsPage", () => {
     expect(wrapper?.text()).toContain("Encerrar outras sessões");
   });
 
-  it("mostra estado vazio e campos opcionais sem falhar", async () => {
+  it("shows empty state and optional fields without failing", async () => {
     const mocks = createSessionMocks([]);
     server.use(...mocks.handlers);
     wrapper = mountPage();
@@ -111,7 +111,7 @@ describe("SessionsPage", () => {
     ).toBe(false);
   });
 
-  it("apresenta erro recuperável e carrega de novo em português", async () => {
+  it("shows a recoverable error and reloads in Portuguese", async () => {
     const mocks = createSessionMocks([currentSession]);
     server.use(...mocks.handlers);
     let calls = 0;
@@ -148,7 +148,7 @@ describe("SessionsPage", () => {
     expect(calls).toBe(2);
   });
 
-  it("confirma e revoga uma sessão específica com feedback", async () => {
+  it("confirms and revokes a specific session with feedback", async () => {
     const mocks = createSessionMocks([currentSession, otherSession]);
     server.use(...mocks.handlers);
     wrapper = mountPage();
@@ -183,7 +183,7 @@ describe("SessionsPage", () => {
     );
   });
 
-  it("cancela a revogação quando a confirmação é recusada", async () => {
+  it("cancels revocation when confirmation is dismissed", async () => {
     const mocks = createSessionMocks([currentSession, otherSession]);
     server.use(...mocks.handlers);
     wrapper = mountPage();
@@ -201,7 +201,7 @@ describe("SessionsPage", () => {
     expect(wrapper?.text()).toContain("Navegador remoto");
   });
 
-  it("encerra as outras sessões sem remover a atual", async () => {
+  it("ends other sessions without removing the current one", async () => {
     const mocks = createSessionMocks([currentSession, otherSession]);
     server.use(...mocks.handlers);
     wrapper = mountPage();
@@ -227,7 +227,7 @@ describe("SessionsPage", () => {
     expect(wrapper?.text()).not.toContain("Navegador remoto");
   });
 
-  it("mostra falha de revogação sem expor o corpo cru da API", async () => {
+  it("shows revocation failure without exposing the raw API body", async () => {
     const mocks = createSessionMocks([currentSession, otherSession]);
     server.use(...mocks.handlers);
     server.use(

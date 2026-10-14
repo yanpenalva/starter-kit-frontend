@@ -30,7 +30,7 @@ describe("useFormFeedback", () => {
     vi.useRealTimers();
   });
 
-  it("extrai erros por campo de um erro de validação", () => {
+  it("extracts per-field errors from a validation error", () => {
     const feedback = useFormFeedback();
 
     feedback.handleFailure(validationError());
@@ -43,7 +43,7 @@ describe("useFormFeedback", () => {
     expect(feedback.rateLimitSeconds.value).toBeNull();
   });
 
-  it("inicia e decrementa a contagem regressiva em 429", () => {
+  it("starts and decrements the countdown on 429", () => {
     const feedback = useFormFeedback();
 
     feedback.handleFailure(rateLimitedError(3));
@@ -55,7 +55,7 @@ describe("useFormFeedback", () => {
     expect(feedback.rateLimitSeconds.value).toBeNull();
   });
 
-  it("registra mensagem genérica para erro sem contagem", () => {
+  it("records a generic message for an error without a countdown", () => {
     const feedback = useFormFeedback();
 
     feedback.handleFailure(rateLimitedError(null));
@@ -64,7 +64,7 @@ describe("useFormFeedback", () => {
     expect(feedback.errorMessage.value).toContain("Muitas tentativas");
   });
 
-  it("registra mensagem para erros mapeados de status", () => {
+  it("records a message for mapped status errors", () => {
     const feedback = useFormFeedback();
 
     feedback.handleFailure(buildHttpError({ kind: "not_found", status: 404 }));
@@ -75,7 +75,7 @@ describe("useFormFeedback", () => {
     expect(feedback.fieldErrors.value).toEqual({});
   });
 
-  it("não oferece retry para erro de validação", () => {
+  it("does not offer retry for a validation error", () => {
     const feedback = useFormFeedback();
     const operation = vi.fn().mockResolvedValue(undefined);
 
@@ -84,7 +84,7 @@ describe("useFormFeedback", () => {
     expect(feedback.canRetry.value).toBe(false);
   });
 
-  it("notifica sucesso e libera o retry pendente", () => {
+  it("notifies success and releases the pending retry", () => {
     const feedback = useFormFeedback();
     const operation = vi.fn().mockRejectedValue(new Error("boom"));
 
@@ -101,7 +101,7 @@ describe("useFormFeedback", () => {
     expect(feedback.canRetry.value).toBe(false);
   });
 
-  it("reexecuta a operação que falhou via retry", async () => {
+  it("re-runs the failed operation via retry", async () => {
     const feedback = useFormFeedback();
     let attempts = 0;
     const operation = vi.fn(async () => {
@@ -124,7 +124,7 @@ describe("useFormFeedback", () => {
     expect(feedback.successMessage.value).toContain("sucesso");
   });
 
-  it("run devolve o resultado quando a operação succeede", async () => {
+  it("run returns the result when the operation succeeds", async () => {
     const feedback = useFormFeedback();
     const operation = vi.fn().mockResolvedValue({ id: 7 });
 
@@ -132,7 +132,7 @@ describe("useFormFeedback", () => {
     expect(feedback.errorMessage.value).toBeNull();
   });
 
-  it("limpa o feedback do formulário sem parar a contagem", () => {
+  it("clears form feedback without stopping the countdown", () => {
     const feedback = useFormFeedback();
 
     feedback.handleFailure(validationError());
@@ -144,7 +144,7 @@ describe("useFormFeedback", () => {
     expect(feedback.rateLimitSeconds.value).toBe(2);
   });
 
-  it("para a contagem quando o escopo é descartado", () => {
+  it("stops the countdown when the scope is disposed", () => {
     const scope = effectScope();
     let feedback: ReturnType<typeof useFormFeedback>;
     scope.run(() => {
@@ -158,7 +158,7 @@ describe("useFormFeedback", () => {
     expect(feedback!.rateLimitSeconds.value).toBe(5);
   });
 
-  it("expõe estado reativo compatível com computed", () => {
+  it("exposes reactive state compatible with computed", () => {
     const feedback = useFormFeedback();
     const summary = computed(
       () => Object.keys(feedback.fieldErrors.value).length,

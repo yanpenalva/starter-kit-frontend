@@ -3,15 +3,15 @@ import { routes } from "./index";
 import { routeDescriptors, shortcutDescriptors } from "./descriptors";
 import { APP_NAV_ITEMS } from "@/features/auth/composables/useAuthorization";
 
-describe("descritores de rota tipados", () => {
-  it("mantém name e path únicos entre os descritores", () => {
+describe("typed route descriptors", () => {
+  it("keeps name and path unique across descriptors", () => {
     const names = routeDescriptors.map((d) => d.name);
     const paths = routeDescriptors.map((d) => d.path);
     expect(new Set(names).size).toBe(names.length);
     expect(new Set(paths).size).toBe(paths.length);
   });
 
-  it("deriva as rotas registradas exclusivamente dos descritores", () => {
+  it("derives registered routes exclusively from descriptors", () => {
     expect(routes.map((r) => r.path)).toEqual(
       routeDescriptors.map((d) => d.path),
     );
@@ -20,7 +20,7 @@ describe("descritores de rota tipados", () => {
     );
   });
 
-  it("protege a rota Minha Conta", () => {
+  it("protects the Minha Conta route", () => {
     const profile = routeDescriptors.find(
       (descriptor) => descriptor.name === "profile",
     );
@@ -30,7 +30,7 @@ describe("descritores de rota tipados", () => {
     expect(profile?.nav?.label).toBe("Minha Conta");
   });
 
-  it("apresenta a administração de roles como Perfis sem mudar a rota", () => {
+  it("presents role administration as Perfis without changing the route", () => {
     const descriptor = routeDescriptors.find((item) => item.name === "roles");
     const navigationItem = APP_NAV_ITEMS.find((item) => item.key === "roles");
     const shortcut = shortcutDescriptors.find((item) => item.name === "roles");
@@ -41,7 +41,7 @@ describe("descritores de rota tipados", () => {
     expect(shortcut?.label).toBe("Gerenciar Perfis");
   });
 
-  it("usa o dashboard como destino único de Início e mantém / compatível", () => {
+  it("uses the dashboard as the single Início destination and keeps / compatible", () => {
     const home = routeDescriptors.find(
       (descriptor) => descriptor.name === "home",
     );
@@ -59,7 +59,7 @@ describe("descritores de rota tipados", () => {
     ).toHaveLength(1);
   });
 
-  it("exibe Manual no menu de sessão limitada e protege Minha Conta", () => {
+  it("shows Manual in the limited session menu and protects Minha Conta", () => {
     const manual = routeDescriptors.find(
       (descriptor) => descriptor.name === "manual",
     );
@@ -91,7 +91,7 @@ describe("descritores de rota tipados", () => {
     });
   });
 
-  it("deriva os itens de menu dos descritores de navegação", () => {
+  it("derives menu items from navigation descriptors", () => {
     const navDescriptors = routeDescriptors.filter((d) => d.nav);
     expect(APP_NAV_ITEMS.map((item) => item.key)).toEqual(
       navDescriptors.map((d) => d.name),
@@ -114,7 +114,7 @@ describe("descritores de rota tipados", () => {
     }
   });
 
-  it("protege a página de sessões e a inclui na navegação autenticada", () => {
+  it("protects the sessions page and includes it in authenticated navigation", () => {
     const descriptor = routeDescriptors.find(
       (item) => item.name === "sessions",
     );
@@ -134,7 +134,7 @@ describe("descritores de rota tipados", () => {
     expect(navigationItem?.permissions).toBeUndefined();
   });
 
-  it("usa a mesma fonte de permissões para rota, menu e atalho", () => {
+  it("uses the same permission source for route, menu, and shortcut", () => {
     for (const descriptor of routeDescriptors) {
       const metaPermissions = descriptor.meta?.permissions;
       const route = routes.find((r) => r.name === descriptor.name);
@@ -146,7 +146,7 @@ describe("descritores de rota tipados", () => {
     }
   });
 
-  it("deriva os atalhos do painel dos descritores com rótulo pt-BR", () => {
+  it("derives dashboard shortcuts from descriptors with pt-BR labels", () => {
     const paths = new Set(routeDescriptors.map((d) => d.path));
     expect(shortcutDescriptors.length).toBeGreaterThan(0);
     for (const shortcut of shortcutDescriptors) {
@@ -161,7 +161,7 @@ describe("descritores de rota tipados", () => {
     ]);
   });
 
-  it("atalhos apontam para rotas existentes com as mesmas permissões", () => {
+  it("points shortcuts to existing routes with the same permissions", () => {
     expect(shortcutDescriptors.length).toBeGreaterThan(0);
     expect(shortcutDescriptors.map((s) => s.path)).toEqual([
       "/users",
