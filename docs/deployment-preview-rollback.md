@@ -1,4 +1,4 @@
-# Deploy Estático, Preview e Estratégia de Rollback
+# 🚢 Deploy Estático, Preview e Estratégia de Rollback
 
 Documento operacional para build versionado, ambiente de preview, gestão de origens cross-origin/Sanctum e procedimentos de rollback.
 

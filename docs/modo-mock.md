@@ -1,4 +1,4 @@
-# Modo mock (UI sem API)
+# 🎭 Modo mock (UI sem API)
 
 Valide layout, responsividade, tabelas, filtros, paginação e detalhes das
 páginas reais sem backend rodando. O navegador usa as mesmas páginas,

@@ -1,4 +1,4 @@
-# Onboarding do frontend
+# 👋 Onboarding do frontend
 
 Guia para sair do zero até build + testes verdes. Stack: Vue 3 + Vite +
 Pinia + TanStack Query, cliente HTTP próprio sobre axios, contrato OpenAPI

@@ -1,4 +1,4 @@
-# Checklist Executável: Smoke Pós-Deploy
+# ✅ Checklist Executável: Smoke Pós-Deploy
 
 Guia prático e conciso para validação manual ou semi-automatizada imediatamente após o deploy em ambiente de Preview, Staging ou Produção.
 

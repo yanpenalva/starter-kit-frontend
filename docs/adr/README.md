@@ -1,4 +1,4 @@
-# Architecture Decision Records
+# 📝 Architecture Decision Records
 
 Material architecture decisions for `starter-kit-frontend` are recorded here as numbered ADRs and accepted through explicit human approval recorded in the owning CSD work item (see `.context/project/conventions.md`). One file per decision, named `NNNN-short-title.md`. An accepted ADR is changed only by a successor ADR; superseded drafts stay as evidence under `.context/work/`.
 

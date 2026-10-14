@@ -1,8 +1,21 @@
-# 05 — Integração fullstack (SPA ↔ API)
+# 🔗 Integração fullstack (SPA ↔ API)
 
 Como a SPA conversa com a API Laravel: a sequência de uma operação autenticada, o que muda por ambiente, como sessão e CSRF viajam e o que fazer quando o contrato muda. A tabela de endpoints no fim mostra cada chamada consumida e qual guard a protege.
 
-## Sequência SPA → API
+---
+
+## 📑 Índice
+
+1. [Sequência SPA → API](#-sequência-spa--api)
+2. [`VITE_API_URL` por ambiente](#-vite_api_url-por-ambiente)
+3. [`withCredentials` + `csrf-cookie`](#-withcredentials--csrf-cookie)
+4. [Domínio compartilhado e HTTPS](#-domínio-compartilhado-e-https)
+5. [Quando o contrato OpenAPI muda](#-quando-o-contrato-openapi-muda)
+6. [Endpoints consumidos e guards](#-endpoints-consumidos-e-guards)
+
+---
+
+## 🔁 Sequência SPA → API
 
 ```mermaid
 sequenceDiagram
@@ -26,7 +39,9 @@ sequenceDiagram
 
 Pontos que o diagrama resume: o bootstrap CSRF acontece somente antes de pedidos de escrita (`POST`, `PUT`, `PATCH`, `DELETE`), escritas concorrentes partilham a mesma promessa em voo, e leituras (`GET`) nunca disparam bootstrap. O cliente usa timeout de 15 segundos e `Accept: application/json` em tudo.
 
-## `VITE_API_URL` por ambiente
+---
+
+## 🌍 `VITE_API_URL` por ambiente
 
 | Ambiente (`VITE_APP_ENV`) | Exemplo | `VITE_API_URL` | Regra |
 |---|---|---|---|
@@ -35,9 +50,11 @@ Pontos que o diagrama resume: o bootstrap CSRF acontece somente antes de pedidos
 | staging | `.env.staging.example` | `https://staging-api.starterkit.com` | QA e validação pré-lançamento |
 | production | `.env.production.example` | `https://api.starterkit.com` | Release; valor vem de segredo de deploy, nunca de arquivo local |
 
-A validação da URL é falha fechada: exige `http`/`https` com autoridade real e rejeita barra invertida, caractere de controle, credencial embutida, query e fragmento. Em produção, a URL é selada no momento do build via `ARG VITE_API_URL` do `Dockerfile` — trocar a API de um deploy exige reconstruir a imagem, porque o valor vai embutido no bundle.
+> A validação da URL é falha fechada: exige `http`/`https` com autoridade real e rejeita barra invertida, caractere de controle, credencial embutida, query e fragmento. Em produção, a URL é selada no momento do build via `ARG VITE_API_URL` do `Dockerfile` — trocar a API de um deploy exige reconstruir a imagem, porque o valor vai embutido no bundle.
 
-## `withCredentials` + `csrf-cookie`
+---
+
+## 🍪 `withCredentials` + `csrf-cookie`
 
 A sessão viaja em cookie HttpOnly propriedade da API — a SPA nunca toca no valor, só pede ao navegador que o envie com `withCredentials: true` em todas as instâncias do cliente central. Nenhum outro módulo pode criar axios próprio, então não existe caminho que esqueça a credencial.
 
@@ -61,7 +78,9 @@ flowchart TD
 
 Se a API responder 419 no meio de uma escrita, o coordenador CSRF reinicia o estado antes de devolver o erro tipado, então a próxima escrita refaz o bootstrap do zero em vez de repetir um cookie morto.
 
-## Domínio compartilhado e HTTPS
+---
+
+## 🔒 Domínio compartilhado e HTTPS
 
 O cookie de sessão da API usa `SameSite=Lax` (padrão) e só viaja entre subdomínios do mesmo domínio registrável — e apenas se a API emitir o cookie com escopo de domínio pai (`SESSION_DOMAIN=.exemplo.com`). Se `SESSION_DOMAIN` for nulo ou omitido, o Laravel emite o cookie como *Host-Only* (`api.exemplo.com`): ele acompanha as requisições à API, mas o JavaScript da SPA em `app.exemplo.com` não o enxerga em `document.cookie` (o que afeta a leitura do `XSRF-TOKEN` para espelhar no `X-XSRF-TOKEN`). Na prática: SPA e API sob o mesmo domínio, em subdomínios distintos — `app.exemplo.com` + `api.exemplo.com` funciona; `app.exemplo.com` + `api.exemplo.net` não funciona, e nenhuma configuração de frontend contorna isso.
 
@@ -72,9 +91,11 @@ Pontos de atenção:
 - **Valores concretos** — `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS` e `CORS_ALLOWED_ORIGINS` vivem nas variáveis da API (documentadas lá). Atenção aos formatos: `CORS_ALLOWED_ORIGINS` exige esquema completo (`https://app.exemplo.com`); `SANCTUM_STATEFUL_DOMAINS` aceita só host/porta, sem esquema (`app.exemplo.com`). Inverter os formatos é causa comum de 419 em deploy. Antes de subir o ambiente, confirme que SPA e API apontam para subdomínios do domínio definido nelas.
 - **`VITE_API_URL` de produção** — vem de segredo de deploy e deve apontar para o host HTTPS da API, nunca para `localhost` nem para HTTP.
 
-Se o 419 persistir com `withCredentials` e CSRF corretos, verifique o alinhamento de domínio antes de qualquer ajuste no código.
+> Se o 419 persistir com `withCredentials` e CSRF corretos, verifique o alinhamento de domínio antes de qualquer ajuste no código.
 
-## Quando o contrato OpenAPI muda
+---
+
+## 📄 Quando o contrato OpenAPI muda
 
 O contrato é publicado pela API e pinado neste repositório: `openapi/openapi.json` é o snapshot aprovado, acompanhado do pin verificável (origem, commit, execução, resumo criptográfico) e do recibo do pacote. A SPA nunca consome a API fora do contrato aprovado. O procedimento quando chega um contrato novo:
 
@@ -90,7 +111,9 @@ flowchart TD
 
 Na prática: receba o pacote oficial, rode a verificação, regenere o cliente, confira a divergência e deixe testes e typecheck acusarem campos renomeados ou endpoints removidos. Se o `client:check` falhar sem você ter regenerado, alguém editou o gerado à mão ou esqueceu de versionar a regeneração — nunca ajuste o gerado diretamente.
 
-## Endpoints consumidos e guards
+---
+
+## 📡 Endpoints consumidos e guards
 
 Métodos e caminhos abaixo são os que o cliente gerado efetivamente chama (prefixo `/api/v1` mais a raiz do CSRF). A coluna de guard indica a proteção de rota correspondente na SPA:
 
@@ -116,4 +139,4 @@ Métodos e caminhos abaixo são os que o cliente gerado efetivamente chama (pref
 | `PUT` | `/api/v1/roles/{role}/permissions` | atualizar permissões do papel | `requiresAuth` + `roles.view` |
 | `GET` | `/api/v1/activity-log` | auditoria de atividade | `requiresAuth` + `logs.view` em `/logs` |
 
-Sem a permissão da coluna, o guard manda para `/403`; sem sessão, para `/login` com `redirect`; com sessão limitada, tudo que não tem `allowLimited` manda para `/limited`. Erros vindos da rede seguem o mapeamento tipado: 401 e 419 limpam a sessão, 403 vira proibido, 422 carrega erros por campo, 429 informa os segundos de espera.
+> Sem a permissão da coluna, o guard manda para `/403`; sem sessão, para `/login` com `redirect`; com sessão limitada, tudo que não tem `allowLimited` manda para `/limited`. Erros vindos da rede seguem o mapeamento tipado: 401 e 419 limpam a sessão, 403 vira proibido, 422 carrega erros por campo, 429 informa os segundos de espera.

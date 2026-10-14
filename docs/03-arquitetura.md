@@ -1,8 +1,22 @@
-# 03 — Arquitetura
+# 🏛️ Arquitetura
 
 Como as pastas se organizam por domínio, como os dois gestores de estado dividem o trabalho, como o código gerado chega até as telas, como o router protege cada rota e quais estados uma sessão pode assumir.
 
-## Visão geral
+---
+
+## 📑 Índice
+
+1. [Visão geral](#-visão-geral)
+2. [Mapa das pastas por funcionalidade](#-mapa-das-pastas-por-funcionalidade)
+3. [Componentes compartilhados](#-componentes-compartilhados)
+4. [Ciclo Pinia vs TanStack Query](#-ciclo-pinia-vs-tanstack-query)
+5. [Do contrato ao componente: o mutador Orval](#-do-contrato-ao-componente-o-mutador-orval)
+6. [Guards do router e tabela de rotas](#-guards-do-router-e-tabela-de-rotas)
+7. [Estados da sessão, incluindo a limitada](#-estados-da-sessão-incluindo-a-limitada)
+
+---
+
+## 🌐 Visão geral
 
 ```mermaid
 flowchart LR
@@ -39,7 +53,9 @@ Fluxo de autenticação: `GET /sanctum/csrf-cookie` → `POST /api/v1/login` →
 `permissions`. Sessão limitada (`email_verified_at: null`) só acessa
 logout, perfil mínimo e verificação.
 
-## Mapa das pastas por funcionalidade
+---
+
+## 🗂️ Mapa das pastas por funcionalidade
 
 ```mermaid
 flowchart TD
@@ -76,7 +92,41 @@ flowchart TD
 
 Cada funcionalidade é dona do seu pedaço: páginas, chamadas de API, composables e testes moram lado a lado. `users` tem ainda `utils` (como máscara de CPF) e `roles` e `users` expõem composables de listagem. `logs` é somente leitura de auditoria. `manual` é conteúdo interno sem camada de API. O `auth` é o único com `stores`, porque a sessão é transversal a todos os domínios.
 
-## Ciclo Pinia vs TanStack Query
+---
+
+## 🧩 Componentes compartilhados
+
+```mermaid
+flowchart TD
+    subgraph LAY["src/shared/layouts"]
+        APP["AppLayout<br/>AppHeader + AppNavigation + slot"]
+        AUTHL["AuthLayout"]
+        PUBL["PublicLayout"]
+    end
+    ADMIN["AdminPageLayout<br/>renderiza dentro de AppLayout<br/>eyebrow + title + helpText? + backFallback?"]
+    ADMIN --> APP
+    ADMIN -->|só se backFallback<br/>ex.: detalhe com back-fallback=/users| BACK["BackButton<br/>history.position > 0 ? router.back() : push(fallback)"]
+    ADMIN -->|só se helpText| INFO["InfoTooltip<br/>Ajuda: título"]
+    FORM["FormLabel<br/>slot + required?"] -->|inline, só se required| REQ["RequiredMark<br/>* Campo obrigatório"]
+    ROLE["RoleMultiSelect<br/>chips + busca + lista paginada"] -->|botão select-all toggle| ACT["ActionButton<br/>Selecionar / Desmarcar todos os perfis"]
+    LIST["páginas de lista<br/>Users, Roles, Logs, Sessions<br/>sem backFallback"] -.sem botão voltar.-> ADMIN
+    DETAIL["UserDetailPage<br/>back-fallback=/users"] -.com botão voltar.-> ADMIN
+```
+
+| Componente | Papel | Detalhe de uso |
+|---|---|---|
+| `AdminPageLayout` | Moldura das páginas admin (cabeçalho, toolbar, card) | Renderiza dentro de `AppLayout`; recebe `eyebrow`, `title`, `helpText?` e `backFallback?` |
+| `BackButton` | Voltar contextual | Renderizado só quando `backFallback` está presente — hoje só em detalhe (`UserDetailPage` com `back-fallback="/users"`); listas e layouts globais (`AppLayout`, `AuthLayout`, `PublicLayout`) nunca o exibem. Se há histórico (`history.position > 0`), volta; senão navega para o `fallback` |
+| `ActionButton` | Botão padrão com ícone, cor, loading e tooltip | Padrão para ações; no `RoleMultiSelect` é o toggle select-all (`toggleLabel` alterna `Selecionar todos os perfis` / `Desmarcar todos os perfis` via `toggleSelectAll`) |
+| `FormLabel` | Rótulo de campo | Exibe o asterisco inline: renderiza `RequiredMark` ao lado do texto só quando `required` |
+| `RequiredMark` | Marca `*` de obrigatório | Tooltip `Campo obrigatório`, sem texto solto no layout |
+| `RoleMultiSelect` | Seleção múltipla de papéis | Chips removíveis, busca com debounce, lista paginada com scroll, toggle select-all via `ActionButton`, mensagem de restrição sem `roles.view` |
+
+> `BackButton` nunca mora nos layouts globais: estar fora de `AppLayout`/`AuthLayout`/`PublicLayout` e atrás da prop `back-fallback` do `AdminPageLayout` é o que o mantém contextual — só páginas de detalhe o pedem.
+
+---
+
+## 🔄 Ciclo Pinia vs TanStack Query
 
 A regra central: estado de interface e de sessão fica no Pinia; estado de servidor fica no TanStack Query. Nunca se duplica resposta da API em store manual.
 
@@ -103,7 +153,9 @@ flowchart LR
 
 O ciclo de uma listagem, por exemplo a de usuários: o composable `useUsersList` declara filtros reativos locais e uma `useQuery` cuja chave inclui esses filtros; a função de busca chama o gerado do Orval, que passa pelo mutador e pelo cliente HTTP. Uma mutação (atualizar usuário, atribuir papéis) invalida a chave da listagem, e a Query refaz a busca sozinha. O `queryClient` partilhado desliga repetição automática e refetch ao focar a janela, para que a SPA nunca dispare tráfego que o usuário não pediu. No logout, a sessão limpa o usuário em memória e esvazia a cache da Query de uma vez.
 
-## Do contrato ao componente: o mutador Orval
+---
+
+## 🔧 Do contrato ao componente: o mutador Orval
 
 ```mermaid
 flowchart TD
@@ -121,7 +173,9 @@ flowchart TD
 
 Todo o código sob `generated/` é propriedade do Orval e nunca é editado à mão — o cabeçalho de cada arquivo diz isso e o `client:check` prova. A configuração fixa a entrada no contrato pinado, a saída separada por etiqueta, o cliente `vue-query` sobre axios e o mutador `transportApi`, com sinal de aborto e versão 5 das queries. O mutador captura a origem confiável da API de forma imutável na criação e, a cada pedido, verifica se o `baseURL` continua sendo a raiz validada antes de enviar qualquer byte — qualquer tentativa de destino estrangeiro vira erro sem tráfego.
 
-## Guards do router e tabela de rotas
+---
+
+## 🛡️ Guards do router e tabela de rotas
 
 O guard global corre antes de cada navegação. Se a sessão ainda não foi inicializada, ele faz o bootstrap primeiro (perfil via API) e só depois decide. Sessão bloqueada vai para `/403` com motivo de bloqueio, seja qual for o destino.
 
@@ -163,9 +217,11 @@ Tabela completa das rotas e o que cada proteção faz na prática:
 | `/404`             | not-found       | não         | não               | —            | —            | abre direto             | abre direto               |
 | `/:pathMatch(.*)*` | catch-all       | não         | não               | —            | —            | página 404              | página 404                |
 
-Sobre 401 e 403 vindos da rede (não do guard): respostas 401 e 419 disparam o evento de sessão expirada, que limpa a sessão em memória sem repetir a mutação que falhou — o 419 ainda reinicia o bootstrap CSRF antes de devolver o erro tipado. Já um 403 de API vira `HttpError` de proibido na tela correspondente, com mensagem fixa segura.
+> Sobre 401 e 403 vindos da rede (não do guard): respostas 401 e 419 disparam o evento de sessão expirada, que limpa a sessão em memória sem repetir a mutação que falhou — o 419 ainda reinicia o bootstrap CSRF antes de devolver o erro tipado. Já um 403 de API vira `HttpError` de proibido na tela correspondente, com mensagem fixa segura.
 
-## Estados da sessão, incluindo a limitada
+---
+
+## 🔐 Estados da sessão, incluindo a limitada
 
 ```mermaid
 stateDiagram-v2
@@ -191,4 +247,4 @@ Os seis estados e o que cada um libera:
 - `blocked` — a API respondeu proibido ao perfil. Toda navegação cai em `/403` com motivo de bloqueio.
 - `unauthenticated` — sem sessão. Rotas protegidas redirecionam ao login preservando o destino em `redirect`.
 
-Nada da sessão é persistido no navegador: recarregar a página volta a `idle` e o bootstrap reconsulta o perfil. Não há token em `localStorage` nem snapshot de perfil em disco — a única fonte de verdade é a sessão cookie da API.
+> Nada da sessão é persistido no navegador: recarregar a página volta a `idle` e o bootstrap reconsulta o perfil. Não há token em `localStorage` nem snapshot de perfil em disco — a única fonte de verdade é a sessão cookie da API.

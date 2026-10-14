@@ -1,8 +1,23 @@
-# 01 — Instalação e ambiente local
+# 📦 Instalação e ambiente local
 
 Este guia leva uma máquina vazia até a SPA rodando contra a API local. Cada comando tem o motivo explicado; nada aqui é ritual sem propósito.
 
-## Pré-requisitos
+---
+
+## 📑 Índice
+
+1. [Pré-requisitos](#-pré-requisitos)
+2. [Clonar e entrar no projeto](#1️⃣-clonar-e-entrar-no-projeto)
+3. [Criar o `.env`](#2️⃣-criar-o-env-a-partir-do-exemplo-correto)
+4. [Instalar as dependências](#3️⃣-instalar-as-dependências)
+5. [Subir o servidor de desenvolvimento](#4️⃣-subir-o-servidor-de-desenvolvimento)
+6. [Apontar para a API local](#5️⃣-apontar-para-a-api-local)
+7. [Validar a instalação completa](#6️⃣-validar-a-instalação-completa)
+8. [Servir o build de produção localmente](#7️⃣-servir-o-build-de-produção-localmente)
+
+---
+
+## 🧰 Pré-requisitos
 
 | Requisito | Versão exigida | Onde está travado |
 |---|---|---|
@@ -13,7 +28,7 @@ O `.npmrc` ainda define `save-exact=true`, então qualquer `npm install <pacote>
 
 Com o `nvm` instalado, o Node certo é ativado assim:
 
-```sh
+```bash
 nvm use
 node --version
 npm --version
@@ -31,9 +46,11 @@ flowchart TD
     F --> G["API Laravel em localhost:8000<br/>sessão cookie + CSRF"]
 ```
 
-## Clonar e entrar no projeto
+---
 
-```sh
+### 1️⃣ Clonar e entrar no projeto
+
+```bash
 git clone <url-do-repositorio> starter-kit-frontend
 cd starter-kit-frontend
 nvm use
@@ -41,17 +58,19 @@ nvm use
 
 O clone traz tudo, inclusive os exemplos de ambiente versionados (`.env.*.example`) e o contrato OpenAPI pinado em `openapi/`. O `.env` real nunca é versionado — está no `.gitignore` — então o passo seguinte é criá-lo a partir do exemplo certo.
 
-## Criar o `.env` a partir do exemplo correto
+---
+
+### 2️⃣ Criar o `.env` a partir do exemplo correto
 
 Existem quatro exemplos versionados, um por ambiente. Para desenvolvimento local, o ponto de partida é sempre o de desenvolvimento:
 
-```sh
+```bash
 cp .env.development.example .env
 ```
 
 O conteúdo copiado é:
 
-```sh
+```bash
 VITE_APP_ENV=development
 VITE_API_URL=http://localhost:8000
 ```
@@ -65,25 +84,31 @@ Por que este arquivo e não outro:
 | `.env.staging.example` | Referência para QA; aponta para a API de homologação |
 | `.env.production.example` | Referência para release; aponta para a API de produção |
 
-A única variável obrigatória é `VITE_API_URL`, sempre a origem raiz da API, sem caminho, sem query e sem barra final. Os caminhos `/api/v1/...` já vêm do contrato, então colocar caminho aqui quebraria todas as URLs. A validação é estrita e falha fechada: protocolo diferente de `http`/`https`, credencial embutida, query string ou fragmento fazem a criação do cliente HTTP lançar erro antes de qualquer pedido à rede.
+> A única variável obrigatória é `VITE_API_URL`, sempre a origem raiz da API, sem caminho, sem query e sem barra final. Os caminhos `/api/v1/...` já vêm do contrato, então colocar caminho aqui quebraria todas as URLs. A validação é estrita e falha fechada: protocolo diferente de `http`/`https`, credencial embutida, query string ou fragmento fazem a criação do cliente HTTP lançar erro antes de qualquer pedido à rede.
 
-## Instalar as dependências
+---
 
-```sh
+### 3️⃣ Instalar as dependências
+
+```bash
 npm ci
 ```
 
 O `npm ci` instala exatamente o que está travado no `package-lock.json`, apagando `node_modules` antes. É o comando do CI e deve ser o local também: ele garante que a sua máquina tem as mesmas árvores de dependências que a esteira validou. Use `npm install` apenas quando quiser adicionar ou atualizar um pacote — nunca para uma instalação limpa.
 
-## Subir o servidor de desenvolvimento
+---
 
-```sh
+### 4️⃣ Subir o servidor de desenvolvimento
+
+```bash
 npm run dev
 ```
 
 O `dev` executa `vite` puro, sem verificação de tipos e sem verificação de contrato — é propositalmente rápido. A aplicação fica disponível no endereço padrão do Vite, `http://localhost:5173`. Alterações em `src/` recarregam a quente no navegador.
 
-## Apontar para a API local
+---
+
+### 5️⃣ Apontar para a API local
 
 Com o `.env` de desenvolvimento, a SPA em `http://localhost:5173` fala com a API em `http://localhost:8000`, em outra origem. Isso funciona porque a integração é por cookie com credenciais, e exige contrapartida na API:
 
@@ -102,13 +127,15 @@ sequenceDiagram
     API-->>Navegador: perfil + papéis + permissões
 ```
 
-Se o login falhar com erro de rede ou CORS no dev, o primeiro lugar a olhar é o `VITE_API_URL` no `.env` e o registro da origem `:5173` na API — não o código da SPA. Detalhes do fluxo CSRF e da troca de cookies estão em `05-integracao-fullstack.md`.
+> Se o login falhar com erro de rede ou CORS no dev, o primeiro lugar a olhar é o `VITE_API_URL` no `.env` e o registro da origem `:5173` na API — não o código da SPA. Detalhes do fluxo CSRF e da troca de cookies estão em `05-integracao-fullstack.md`.
 
-## Validar a instalação completa
+---
+
+### 6️⃣ Validar a instalação completa
 
 Depois do `dev` abrir sem erro, valide a cadeia inteira, nesta ordem:
 
-```sh
+```bash
 npm run format:check
 npm run lint
 npm run typecheck
@@ -118,9 +145,11 @@ npm run build
 
 Cada etapa cobre uma camada: formatação, regras de código, tipos, comportamento e empacotamento final (que inclui a verificação do cliente gerado contra o contrato pinado). O que cada comando faz e a saída esperada estão detalhados em `02-comandos.md`.
 
-## Servir o build de produção localmente
+---
 
-```sh
+### 7️⃣ Servir o build de produção localmente
+
+```bash
 npm run preview
 ```
 

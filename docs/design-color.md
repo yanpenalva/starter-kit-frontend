@@ -1,4 +1,4 @@
-# Design de cores
+# 🎨 Design de cores
 
 Este documento registra a paleta já usada pela interface, os tokens semânticos e seu uso por componente e tela. É um guia vivo e pode ser alterado conforme o projeto evolui. O tema visual base permanece inalterado.
 

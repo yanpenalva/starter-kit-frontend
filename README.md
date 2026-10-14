@@ -1,8 +1,19 @@
-# starter-kit-frontend
+# 🖥️ Starter Kit Frontend
 
 SPA administrativa em Vue 3 + Quasar que consome a API do Starter Kit por sessão cookie com proteção CSRF. Pinia guarda só interface e sessão em memória, TanStack Query gerencia todo o estado de servidor, e um único cliente HTTP central detém credenciais, fluxo CSRF e erros tipados. Tipos e hooks de API são gerados pelo Orval a partir do contrato OpenAPI pinado em `openapi/` — nada de endpoint escrito à mão.
 
-## Stack
+---
+
+## 📑 Índice
+
+1. [Stack](#-stack)
+2. [Documentação](#-documentação)
+3. [Início rápido](#-início-rápido)
+4. [Guias complementares](#-guias-complementares)
+
+---
+
+## 🧱 Stack
 
 | Camada                | Tecnologia                 | Versão           |
 | --------------------- | -------------------------- | ---------------- |
@@ -20,22 +31,20 @@ SPA administrativa em Vue 3 + Quasar que consome a API do Starter Kit por sessã
 | Lint / formato        | ESLint flat / Prettier     | 10.12.0 / 3.9.9  |
 | Produção              | nginx alpine / node alpine | 1.29 / 26        |
 
-## Documentação
+---
+
+## 📚 Documentação
 
 Guia numerado, do zero ao deploy. Referência complementar: `smoke-checklist.md`, `deployment-preview-rollback.md`, `adr/`.
 
-- [`docs/01-instalacao.md`](docs/01-instalacao.md)
-  Pré-requisitos de Node/npm travados por `engines` e `.nvmrc`, criação do `.env` a partir do exemplo certo e como apontar a SPA para a API local com CORS e Sanctum.
-- [`docs/02-comandos.md`](docs/02-comandos.md)
-  Cada script do `package.json` explicado por dentro — `dev`, `build`, `client:generate`, `client:check`, `test`, `test:coverage`, `typecheck`, `lint`, `format`, `preview`, `smoke:browser` — com quando usar e saída esperada.
-- [`docs/03-arquitetura.md`](docs/03-arquitetura.md)
-  Mapa das pastas por funcionalidade, divisão Pinia vs TanStack Query, mutador Orval, guards do router com tabela de rotas 401/403 e os seis estados da sessão incluindo a limitada.
-- [`docs/04-decisoes.md`](docs/04-decisoes.md)
-  Cada decisão com motivo e alternativa rejeitada: Query para servidor, MSW, Orval pinado, alias `@/`, arrow functions, sem comentários, testes em inglês com mensagens pt-BR, thresholds de cobertura, nginx com fallback SPA e E2E fora do repo.
-- [`docs/05-integracao-fullstack.md`](docs/05-integracao-fullstack.md)
-  Sequência SPA→API com `withCredentials` e `csrf-cookie`, `VITE_API_URL` por ambiente, procedimento quando o contrato OpenAPI muda e tabela de endpoints consumidos com guards.
-- [`docs/modo-mock.md`](docs/modo-mock.md)
-  Modo mock efêmero (`npm run dev:mock`): valida as páginas reais sem backend, com cenários `full`, `empty`, `slow` e `error` via `?mock=`. Não substitui a validação contra a API real.
+| Guia                                                          | Conteúdo                                                                                                                                                                                                                          |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`docs/01-instalacao.md`](docs/01-instalacao.md)               | Pré-requisitos de Node/npm travados por `engines` e `.nvmrc`, criação do `.env` a partir do exemplo certo e como apontar a SPA para a API local com CORS e Sanctum.                                                               |
+| [`docs/02-comandos.md`](docs/02-comandos.md)                   | Cada script do `package.json` explicado por dentro — `dev`, `build`, `client:generate`, `client:check`, `test`, `test:coverage`, `typecheck`, `lint`, `format`, `preview`, `smoke:browser` — com quando usar e saída esperada.     |
+| [`docs/03-arquitetura.md`](docs/03-arquitetura.md)             | Mapa das pastas por funcionalidade, divisão Pinia vs TanStack Query, mutador Orval, guards do router com tabela de rotas 401/403 e os seis estados da sessão incluindo a limitada.                                                 |
+| [`docs/04-decisoes.md`](docs/04-decisoes.md)                   | Cada decisão com motivo e alternativa rejeitada: Query para servidor, MSW, Orval pinado, alias `@/`, arrow functions, sem comentários, testes em inglês com mensagens pt-BR, thresholds de cobertura, nginx com fallback SPA e E2E fora do repo. |
+| [`docs/05-integracao-fullstack.md`](docs/05-integracao-fullstack.md) | Sequência SPA→API com `withCredentials` e `csrf-cookie`, `VITE_API_URL` por ambiente, procedimento quando o contrato OpenAPI muda e tabela de endpoints consumidos com guards.                                                  |
+| [`docs/modo-mock.md`](docs/modo-mock.md)                       | Modo mock efêmero (`npm run dev:mock`): valida as páginas reais sem backend, com cenários `full`, `empty`, `slow` e `error` via `?mock=`. Não substitui a validação contra a API real.                                            |
 
 ```mermaid
 flowchart LR
@@ -56,19 +65,35 @@ flowchart LR
     H --> V
 ```
 
-## Início rápido
+---
 
-```sh
+## 🚀 Início rápido
+
+```bash
 cp .env.development.example .env
 npm ci
 sh scripts/install-hooks.sh
 npm run dev
 ```
 
-Detalhes e solução de problemas de CORS em [`docs/01-instalacao.md`](docs/01-instalacao.md). Validação completa antes de entregar:
+> Detalhes e solução de problemas de CORS em [`docs/01-instalacao.md`](docs/01-instalacao.md).
 
-```sh
+Validação completa antes de entregar:
+
+```bash
 npm run format:check && npm run lint && npm run typecheck && npm test && npm run build
 ```
 
-O que cada comando faz está em [`docs/02-comandos.md`](docs/02-comandos.md).
+> O que cada comando faz está em [`docs/02-comandos.md`](docs/02-comandos.md).
+
+---
+
+## 📎 Guias complementares
+
+| Guia                                                                | Conteúdo                                                        |
+| ------------------------------------------------------------------- | --------------------------------------------------------------- |
+| [`docs/onboarding.md`](docs/onboarding.md)                           | Caminho guiado do zero até build + testes verdes.               |
+| [`docs/smoke-checklist.md`](docs/smoke-checklist.md)                 | Validação manual pós-deploy em Preview, Staging ou Produção.    |
+| [`docs/deployment-preview-rollback.md`](docs/deployment-preview-rollback.md) | Build versionado, preview de PR, origens cross-origin e rollback. |
+| [`docs/design-color.md`](docs/design-color.md)                       | Paleta, tokens semânticos e uso por componente e tela.          |
+| [`docs/adr/`](docs/adr/)                                             | Registros de decisões arquiteturais (ADRs) do frontend.         |
