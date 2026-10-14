@@ -133,7 +133,7 @@ const handleClick = (event: MouseEvent): void => {
 }
 
 .action-button--secondary {
-  color: var(--color-muted);
+  color: var(--color-evergreen-deep, #365744);
 }
 
 .action-button__label--hidden {

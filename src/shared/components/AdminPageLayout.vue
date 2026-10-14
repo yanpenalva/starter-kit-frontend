@@ -90,7 +90,7 @@ defineProps<{
   gap: 1rem;
 }
 
-.page-toolbar > :last-child {
+.page-toolbar > :last-child:not(:first-child) {
   margin-left: auto;
 }
 
