@@ -1,6 +1,6 @@
 # Quality Configuration
 
-Normative baseline: `.context/policies/core/code-quality.md`. Governance mode is `starter`: initial application checks are configured by the scaffold; measured coverage/complexity thresholds remain `NOT FOUND`. Context validation remains mandatory.
+Normative baseline: `.context/policies/core/code-quality.md`. Governance mode is `starter`: application checks are configured by the repository; measured coverage thresholds are enforced and complexity/duplication thresholds remain `NOT FOUND`. Context validation remains mandatory.
 
 Executed/required CSD checks:
 
@@ -15,6 +15,6 @@ The unmodified official validator is in `scripts/vendor/csd/validate_context.py`
 
 All other upstream structural, schema/config, link, placeholder, classification, governance, approval and active-work-item checks remain enabled. Thin reference adapters required by upstream validation are present; only Codex is activated by the project installer.
 
-Frontend commands now configured by FEAT-5: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`; exact package versions are pinned by `package-lock.json`. `npm run smoke:browser` requires local Vite dev server plus Chrome; it checks public route and a dev-only layout harness without adding production routes. This is a local browser gate, not part of remote CI. Coverage/complexity/duplication thresholds and quality owner: `NOT FOUND`; no measured threshold is claimed. Execution results are recorded in `.context/work/FEAT-5/verification.md` and FEAT-6 verification. API intends Pest/Pint/Larastan.
+Frontend commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:coverage`, `npm run build`; exact package versions are pinned by `package-lock.json`. `npm run smoke:browser` requires a local Vite dev server plus Chrome; it checks the public route and a dev-only layout harness without adding production routes. It is a local browser gate, not part of remote CI. Coverage thresholds are enforced by Vitest v8 in `vite.config.ts` (lines 87, statements 87, functions 83, branches 80); complexity and duplication thresholds and the quality owner remain `NOT FOUND`. The API repository intends Pest/Pint/Larastan.
 
-FEAT-7 Stage B adds `npm run contract:verify` (offline pinned provenance/schema verification), `npm run client:generate` (fail-closed Orval wrapper), and `npm run client:check` (offline verification, deterministic generation, tracked-output diff). Generated `src/lib/api/generated/**` is excluded from hand-authored CSD counts by provenance and remains generator-owned. CI consumes committed artifacts without API credentials.
+`npm run contract:verify` performs offline pinned provenance/schema verification; `npm run client:generate` is the fail-closed Orval wrapper; `npm run client:check` verifies offline, regenerates deterministically and diffs tracked output. Generated `src/lib/api/generated/**` is excluded from hand-authored CSD counts by provenance and remains generator-owned. CI consumes committed artifacts without API credentials.
