@@ -4,7 +4,7 @@
   "title": "Polish frontend batch 2 user, role and account workflows",
   "track": "product",
   "type": "feature",
-  "phase": "verify",
+  "phase": "release",
   "status": "active",
   "risk": "high",
   "owner": "yanpenalva",
@@ -17,7 +17,8 @@
     "plan",
     "preflight",
     "execute",
-    "verify"
+    "verify",
+    "release"
   ],
   "classification": {
     "complexity": "high",
