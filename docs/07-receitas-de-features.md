@@ -15,10 +15,10 @@ seguem fechando (87% linhas, 83% funções, 80% ramos, 87% instruções).
 
 | # | Arquivo | Papel |
 | --- | --- | --- |
-| 1 | `src/features/<x>/api/<x>.types.ts` | tipos de domínio + filtros (não os gerados crus) |
-| 2 | `src/features/<x>/api/<x>.api.ts` | wrappers finos sobre `transportApi` (GET/POST/PATCH/DELETE) |
-| 3 | `src/features/<x>/composables/use<X>List.ts` | `useQuery` com chave `[KEY, {...filtros}]` + `useMutation` invalidando no `onSuccess` |
-| 4 | `src/features/<x>/pages/<X>Page.vue` | `AdminPageLayout` + componentes shared; sem fetch direto |
+| 1 | `src/features/departments/api/departments.types.ts` | tipos de domínio + filtros (não os gerados crus) |
+| 2 | `src/features/departments/api/departments.api.ts` | wrappers finos sobre `transportApi` (GET/POST/PATCH/DELETE) |
+| 3 | `src/features/departments/composables/useDepartmentsList.ts` | `useQuery` com chave `[KEY, {...filtros}]` + `useMutation` invalidando no `onSuccess` |
+| 4 | `src/features/departments/pages/DepartmentsPage.vue` | `AdminPageLayout` + componentes shared; sem fetch direto |
 | 5 | `src/app/router/descriptors.ts` | rota lazy (`() => import(...)`) + `meta` de permissão + `nav` |
 | 6 | `src/mocks/mock-handlers.ts` + `mock-data.ts` | respostas para teste e `dev:mock` |
 | 7 | `*.test.ts` ao lado de cada arquivo | MSW: monta pedido de verdade, só resposta simulada |
@@ -29,7 +29,7 @@ sem `invalidate` = tela obsoleta até F5.
 
 ## B. Página nova em feature existente
 
-1. `pages/<X>Page.vue` + teste MSW.
+1. `pages/DepartmentsPage.vue` + teste MSW.
 2. Entrada em `descriptors.ts` (lazy + meta + nav se aparece no menu).
 3. Reuso primeiro: `AdminPageLayout`, `SearchInput`, `Pagination`,
    `useDebouncedSearch`, `usePageSelection` — componente novo só com 2+ usos.
@@ -45,7 +45,7 @@ sem `invalidate` = tela obsoleta até F5.
 ## D. Componente compartilhado novo
 
 1. Só com 2+ usos confirmados — o segundo uso paga a abstração.
-2. `src/shared/components/<X>.vue` presentacional (props/slots, sem fetch nem
+2. `src/shared/components/ConfirmDialog.vue` presentacional (props/slots, sem fetch nem
    store de feature) + `*.test.ts`.
 3. Comportamento de tela repetido vira `src/shared/composables/` no mesmo molde.
 
