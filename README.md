@@ -44,6 +44,9 @@ Guia numerado, do zero ao deploy. Referência complementar: `smoke-checklist.md`
 | [`docs/03-arquitetura.md`](docs/03-arquitetura.md)             | Mapa das pastas por funcionalidade, divisão Pinia vs TanStack Query, mutador Orval, guards do router com tabela de rotas 401/403 e os seis estados da sessão incluindo a limitada.                                                 |
 | [`docs/04-decisoes.md`](docs/04-decisoes.md)                   | Cada decisão com motivo e alternativa rejeitada: Query para servidor, MSW, Orval pinado, alias `@/`, arrow functions, sem comentários, testes em inglês com mensagens pt-BR, thresholds de cobertura, nginx com fallback SPA e E2E fora do repo. |
 | [`docs/05-integracao-fullstack.md`](docs/05-integracao-fullstack.md) | Sequência SPA→API com `withCredentials` e `csrf-cookie`, `VITE_API_URL` por ambiente, procedimento quando o contrato OpenAPI muda e tabela de endpoints consumidos com guards.                                                  |
+| [`docs/06-padroes.md`](docs/06-padroes.md) | Catálogo de padrões: anatomia da fatia, Query vs Pinia, fronteira do gerado, transporte único, descritores de rota, componentes shared, mock no protocolo e o que evitamos. |
+| [`docs/07-receitas-de-features.md`](docs/07-receitas-de-features.md) | Quero fazer X, por onde parto: CRUD novo, página, mutação, componente shared, mudança de contrato e rota protegida, arquivo a arquivo. |
+| [`docs/08-arquitetura-e-escala.md`](docs/08-arquitetura-e-escala.md) | Desenhos Mermaid: travessia de uma fatia e estágios de escala a nível de código, com gatilhos. |
 | [`docs/modo-mock.md`](docs/modo-mock.md)                       | Modo mock efêmero (`npm run dev:mock`): valida as páginas reais sem backend, com cenários `full`, `empty`, `slow` e `error` via `?mock=`. Não substitui a validação contra a API real.                                            |
 
 ```mermaid
