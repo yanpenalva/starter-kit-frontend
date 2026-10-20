@@ -3,6 +3,7 @@
 Como seria em cima da arquitetura atual, arquivo a arquivo e na ordem. O processo
 (TDD, gates, contrato) segue o mesmo espírito da API; aqui está o **mapa**.
 Padrões e limites em [06-padroes](06-padroes.md).
+Exemplo de handoff entre CSD e engenharia: [CSD + strict-code](10-exemplo-csd-strict-code.md).
 
 Checklist comum: fatia mínima observável → teste MSW que falha → menor
 implementação → `npm run test -- <arquivo>`, `typecheck`, `lint` → contrato se
