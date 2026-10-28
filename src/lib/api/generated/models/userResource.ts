@@ -2,7 +2,7 @@
  * Gerado por Orval 8.39.0 a partir do contrato OpenAPI aprovado e pinado.
  * Não editar manualmente; use npm run client:generate.
  */
-import type { UserResourceRolesItem } from "./userResourceRolesItem.ts";
+import type { UserResourceRoleDisplayNames } from "./userResourceRoleDisplayNames.ts";
 
 export interface UserResource {
   id: number;
@@ -12,7 +12,8 @@ export interface UserResource {
   email_verified_at: string | null;
   /** @nullable */
   deactivated_at: string | null;
-  roles: UserResourceRolesItem[];
+  roles: string[];
+  role_display_names?: UserResourceRoleDisplayNames;
   /** @nullable */
   cpf?: string | null;
 }

@@ -4,7 +4,7 @@
  */
 
 export type MfaEnrollmentEnroll200 = {
-  secret: string;
+  secret: "";
   provisioning_uri: string;
   recovery_codes: string[];
 };
