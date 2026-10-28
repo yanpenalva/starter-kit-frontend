@@ -43,7 +43,7 @@
     "@quasar/vite-plugin": "2.0.2",
     "@tailwindcss/vite": "4.3.3",
     "@vitejs/plugin-vue": "6.0.9",
-    "@vitest/coverage-v8": "5.0.3",
+    "@vitest/coverage-v8": "5.0.5",
     "@vue/test-utils": "2.5.1",
     "@vue/tsconfig": "0.9.1",
     "eslint": "10.12.0",
