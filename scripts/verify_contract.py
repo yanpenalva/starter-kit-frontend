@@ -72,10 +72,10 @@ class ExpectedPin(TypedDict):
 
 EXPECTED_PIN: ExpectedPin = {
     "schema_version": 1,
-    "policy_source": "User authorization in FE W2 integration request, 2026-10-13",
+    "policy_source": "User authorization in chat, 2026-10-28: sync pinned contract to API main d5086bc",
     "source": {
         "repository": "yanpenalva/starter-kit-api",
-        "commit_sha": "4f6209194af5892a668cf7469020de144a6cd747",
+        "commit_sha": "d5086bc3be589bf6066be7274c1487b83a5cb8d1",
         "branch": "main",
     },
     "workflow": {
@@ -85,20 +85,20 @@ EXPECTED_PIN: ExpectedPin = {
         "event": "workflow_dispatch",
     },
     "run": {
-        "id": 38448776305,
+        "id": 40689505618,
         "attempt": 1,
         "status": "completed",
         "conclusion": "success",
     },
     "artifact": {
-        "id": 11838753867,
-        "name": "openapi-4f6209194af5892a668cf7469020de144a6cd747",
+        "id": 12816014367,
+        "name": "openapi-d5086bc3be589bf6066be7274c1487b83a5cb8d1",
         "archive_file": "artifact.zip",
-        "archive_bytes": 7945,
-        "archive_sha256": "dc75db085cac8c4b77948804d3923b68e9ccc6d8f088952b9f9a2c334c9a4c23",
+        "archive_bytes": 7798,
+        "archive_sha256": "7da712a1549395ec96a1289330b06c315d99c527ce91d2fc5924b08dfdd9a38b",
         "contract_file": "openapi.json",
-        "contract_bytes": 159899,
-        "contract_sha256": "4ada660b67de220dd686ce2ca949eb4e71cacec05f86db1ea4391ec08698ff33",
+        "contract_bytes": 163200,
+        "contract_sha256": "e20aa82c11e48606e108a3afd1e1d78907a18ce45db0ef8b808d043fc54a6eb0",
     },
     "verification": {
         "mode": "verify-committed",

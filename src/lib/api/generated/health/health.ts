@@ -14,6 +14,8 @@ import type {
 
 import { unref } from "vue";
 
+import type { Health200, Health503 } from "../models";
+
 import { transportApi } from "../../../http/orval-mutator.ts";
 import type { ErrorType } from "../../../http/orval-mutator.ts";
 
@@ -23,7 +25,7 @@ export const health = (
   options?: SecondParameter<typeof transportApi>,
   signal?: AbortSignal,
 ) => {
-  return transportApi<string>(
+  return transportApi<Health200>(
     { url: `/api/v1/health`, method: "GET", signal },
     options,
   );
@@ -35,7 +37,7 @@ export const getHealthQueryKey = () => {
 
 export const getHealthQueryOptions = <
   TData = Awaited<ReturnType<typeof health>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<Health503>,
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof health>>, TError, TData>
@@ -58,11 +60,11 @@ export const getHealthQueryOptions = <
 };
 
 export type HealthQueryResult = NonNullable<Awaited<ReturnType<typeof health>>>;
-export type HealthQueryError = ErrorType<unknown>;
+export type HealthQueryError = ErrorType<Health503>;
 
 export function useHealth<
   TData = Awaited<ReturnType<typeof health>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<Health503>,
 >(
   options?: {
     query?: Partial<

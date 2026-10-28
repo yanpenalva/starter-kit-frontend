@@ -3,4 +3,6 @@
  * Não editar manualmente; use npm run client:generate.
  */
 
-export type VerificationVerify200 = { [key: string]: unknown };
+export type VerificationVerify200 = {
+  message: "Email verificado com sucesso.";
+};
