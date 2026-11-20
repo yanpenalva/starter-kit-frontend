@@ -51,7 +51,7 @@ Os testes interceptam rede com o Mock Service Worker ao nível do protocolo, com
 
 ## 🔌 Cliente Orval gerado e pinado, nunca escrito à mão
 
-Tipos, hooks e DTOs vêm do Orval `8.39.0` a partir do contrato aprovado em `openapi/openapi.json`, com pin verificável (origem, commit, execução e resumo criptográfico do artefato). O `client:check` falha se o gerado divergir do revisado, e o `build` roda o `client:check` antes de compilar. O motivo é que o contrato é a única especificação confiável da API: gerar elimina divergência de tipos, nomes de campo e caminhos. A alternativa rejeitada foi escrever chamadas axios à mão por funcionalidade — funcionaria no início, mas cada mudança de contrato viraria caça manual a todos os pontos de uso, sem nada que acusasse o esquecimento.
+Tipos, hooks e DTOs vêm do Orval `8.48.0` a partir do contrato aprovado em `openapi/openapi.json`, com pin verificável (origem, commit, execução e resumo criptográfico do artefato). O `client:check` falha se o gerado divergir do revisado, e o `build` roda o `client:check` antes de compilar. O motivo é que o contrato é a única especificação confiável da API: gerar elimina divergência de tipos, nomes de campo e caminhos. A alternativa rejeitada foi escrever chamadas axios à mão por funcionalidade — funcionaria no início, mas cada mudança de contrato viraria caça manual a todos os pontos de uso, sem nada que acusasse o esquecimento.
 
 ---
 

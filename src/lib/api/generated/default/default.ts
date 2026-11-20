@@ -1,5 +1,5 @@
 /**
- * Gerado por Orval 8.39.0 a partir do contrato OpenAPI aprovado e pinado.
+ * Gerado por Orval 8.48.0 a partir do contrato OpenAPI aprovado e pinado.
  * Não editar manualmente; use npm run client:generate.
  */
 import { useQuery } from "@tanstack/vue-query";
@@ -56,7 +56,7 @@ export const getGetApiV1QueryOptions = <
     Awaited<ReturnType<typeof getApiV1>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetApiV1QueryResult = NonNullable<
@@ -80,10 +80,16 @@ export function useGetApiV1<
 } {
   const queryOptions = getGetApiV1QueryOptions(options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof getApiV1>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,

@@ -17,18 +17,18 @@ SPA administrativa em Vue 3 + Quasar que consome a API do Starter Kit por sessã
 
 | Camada                | Tecnologia                 | Versão           |
 | --------------------- | -------------------------- | ---------------- |
-| Framework UI          | Vue                        | 3.5.43           |
-| Componentes e estilo  | Quasar                     | 2.34.0           |
-| Build e dev server    | Vite                       | 8.3.2            |
+| Framework UI          | Vue                        | 3.5.46           |
+| Componentes e estilo  | Quasar                     | 2.35.5           |
+| Build e dev server    | Vite                       | 8.3.8            |
 | Linguagem             | TypeScript estrito         | 6.0.3            |
 | Runtime / pacote      | Node.js / npm              | 24.15.0 / 12.2.0 |
-| Estado de UI e sessão | Pinia                      | 4.0.3            |
-| Estado de servidor    | TanStack Vue Query         | 5.104.1          |
-| Rotas                 | Vue Router                 | 5.3.1            |
-| Transporte HTTP       | axios                      | 1.20.0           |
-| Cliente gerado        | Orval                      | 8.39.0           |
-| Testes                | Vitest + jsdom + MSW       | 5.0.3 / 3.0.2    |
-| Lint / formato        | ESLint flat / Prettier     | 10.12.0 / 3.9.9  |
+| Estado de UI e sessão | Pinia                      | 4.1.0            |
+| Estado de servidor    | TanStack Vue Query         | 5.108.2          |
+| Rotas                 | Vue Router                 | 5.5.1            |
+| Transporte HTTP       | axios                      | 1.21.1           |
+| Cliente gerado        | Orval                      | 8.48.0           |
+| Testes                | Vitest + jsdom + MSW       | 5.1.1 / 30.1.3 / 3.0.7 |
+| Lint / formato        | ESLint flat / Prettier     | 10.15.0 / 3.10.1 |
 | Produção              | nginx alpine / node alpine | 1.29 / 26        |
 
 ---

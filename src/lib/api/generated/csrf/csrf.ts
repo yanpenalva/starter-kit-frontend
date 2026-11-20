@@ -1,5 +1,5 @@
 /**
- * Gerado por Orval 8.39.0 a partir do contrato OpenAPI aprovado e pinado.
+ * Gerado por Orval 8.48.0 a partir do contrato OpenAPI aprovado e pinado.
  * Não editar manualmente; use npm run client:generate.
  */
 import { useQuery } from "@tanstack/vue-query";
@@ -61,7 +61,7 @@ export const getSanctumCsrfCookieQueryOptions = <
     Awaited<ReturnType<typeof sanctumCsrfCookie>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type SanctumCsrfCookieQueryResult = NonNullable<
@@ -69,6 +69,7 @@ export type SanctumCsrfCookieQueryResult = NonNullable<
 >;
 export type SanctumCsrfCookieQueryError = ErrorType<unknown>;
 
+/** Emite o cookie XSRF-TOKEN e o cookie de sessão HttpOnly (starter-kit-api-session) para a SPA. Público; nenhuma autenticação necessária. */
 export function useSanctumCsrfCookie<
   TData = Awaited<ReturnType<typeof sanctumCsrfCookie>>,
   TError = ErrorType<unknown>,
@@ -89,10 +90,16 @@ export function useSanctumCsrfCookie<
 } {
   const queryOptions = getSanctumCsrfCookieQueryOptions(options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof sanctumCsrfCookie>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
