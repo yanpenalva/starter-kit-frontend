@@ -17,12 +17,15 @@ Update project dependencies to the latest secure, compatible versions under Node
 - Lockfile refresh in `package-lock.json`.
 - Header sync in `orval.config.ts` from 8.39.0 to pinned Orval 8.48.0, with deterministic regeneration.
 - Delivery tracking record: branch `security/dependency-refresh-2026-11`, target `main`, remote `origin`.
-- User task-specific Git authorization and delivery decision (2026-11-20): user yanpenalva authorized commit, push, and PR creation for all three task branches, but chose to keep frontend merge blocked while the two moderate dev-only advisories remain (no risk acceptance); the branch may proceed through PR/CI, but no merge into main is permitted; parent orchestrator handles Git operations; working tree left uncommitted.
+- Delivery decision chronology (2026-11-20):
+  - Historical decision: user yanpenalva authorized commit, push, and PR creation for all three task branches, but initially held frontend merge while two moderate dev-only advisories remained.
+  - Superseding instruction: user explicitly superseded the merge hold, directing to merge this refreshed dependency branch. If vulnerabilities remain, retain secure compatible versions rather than downgrade or add unsupported overrides. This explicitly authorizes merging the branch with the disclosed audit result (5 moderate dev-only package entries across 2 advisories; 0 production advisories via `npm audit --omit=dev`); it does NOT mean the audit is clean.
+  - Parent orchestrator handles Git finalization; working tree left uncommitted.
 - Exception `EXC-0002` applies: the user explicitly waived a GitHub Issue for this task only; retains work item, PR, review, and validation evidence without waiving quality/security gates.
 
 ## Out of scope
 
-- Committing, pushing, PR creation, merging, or deleting branches (orchestrator handles Git finalization).
+- Committing, pushing, PR creation, merging, or deleting branches were initially reserved for the parent orchestrator; the user's later instructions explicitly authorized these operations for this task.
 - Modifying the original main checkout.
 - Major breaking framework/tool migrations (e.g. TypeScript 7.x, jsdom 31.x).
 - Downgrades that weaken security or test reliability (e.g. unsafe @vue/test-utils downgrade).
@@ -45,7 +48,7 @@ Update project dependencies to the latest secure, compatible versions under Node
 - Reactivity behavior note: `@vue/test-utils 2.6.0` changes reactivity for in-place mutations of plain object/array props; preserved with this compatibility note and verified through the full test suite.
 - Interfaces, data and permissions: Orval client generator contract and provenance remain unchanged; reviewed diff reflects 142 changed files across the generator config and output: 141 files under `src/lib/api/generated/` plus `orval.config.ts`; 10 generated API client files have query typing diffs (12 hook `queryOptions` assertions and 10 query-key `DataTag` intersections). All changes compile to identical runtime JavaScript.
 - Security and privacy impact: 16 fewer affected package entries (high 4 -> 0, moderate 17 -> 5; 21 -> 5 package entries across 2 distinct advisories); residual 5 entries are dev-only and documented; zero production vulnerabilities confirmed via `npm audit --omit=dev`.
-- Review attribution: All review attribution is left neutral and pending parent review; no acceptance of residual advisories or merge readiness is claimed.
+- Review attribution: Recorded neutrally without claiming a GitHub approving review; independent review factual and documentation findings were corrected. Branch merge is authorized by the user with the disclosed audit findings.
 
 ## Tests and acceptance criteria
 
@@ -62,5 +65,7 @@ Update project dependencies to the latest secure, compatible versions under Node
 
 ## Open decisions
 
-- Dated delivery/risk decision (2026-11-20): User chose to keep frontend merge blocked while the two moderate dev-only advisories remain; no risk acceptance. User separately authorized commit, push, and PR creation for all three task branches, but no merge. The branch may proceed through PR/CI.
-- Final Git operations (commit, push, PR creation) reserved for parent orchestrator; merge into main remains blocked.
+- Delivery decision chronology (2026-11-20):
+  - Earlier decision (superseded): User held frontend merge while the two moderate dev-only advisories remained.
+  - Latest instruction (active): User superseded the hold and authorized merging this refreshed dependency branch with the disclosed audit result (5 moderate dev-only package entries across two advisories; zero production advisories on `npm audit --omit=dev`), instructing that secure compatible versions be retained rather than downgraded or altered with unsupported overrides.
+- Git finalization: Execution of commit, push, PR creation, and merge reserved for parent orchestrator.

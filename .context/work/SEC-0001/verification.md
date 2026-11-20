@@ -38,6 +38,14 @@
       `python3 -m unittest discover -s tests -v`: exit code 0 (18/18 tests passed).
   12. CSD doctor:
       `PATH=/home/hiyan/.nvm/versions/node/v24.15.0/bin:$PATH npx --yes --cache /tmp/npm-cache @owlcodium/context-spec-develop@1.2.1 doctor --scope project`: exit code 0 (CSD is healthy 1.2.1).
+  13. PR and CI verification (PR #115 / commit `35b7be5fa30ed60134fdd2d8eb176c9d55e27c71`):
+      - CodeQL: Succeeded
+      - Deploy PR Preview Environment: Succeeded
+      - GitGuardian Security Checks: Succeeded
+      - Build & Upload Preview Artifact: Succeeded
+      - Analyze JavaScript/TypeScript: Succeeded
+      - OpenAPI client contract check: Succeeded
+      - verify: Succeeded
 - Scope analyzed: Direct dependencies, devDependencies, lockfile resolution, Orval API client generation, unit/component tests, production build, and CSD context governance in worktree `security-dependency-refresh-2026-11`.
 - Date and environment: 2026-11-20, Linux, Node v24.15.0, npm 12.2.0 (via non-global npx).
 - Limitations or `NOT APPLICABLE` rationale: Browser smoke tests require active Chrome and local dev server; smoke browser tests were not executed in this headless container environment.
@@ -52,8 +60,11 @@
 - Core policy: Pinned engines respected, script allowlist preserved, uncommitted changes preserved for parent orchestrator finalization.
 - Generated diff clarification: 142 changed files across the generator config and output: 141 files under `src/lib/api/generated/` plus `orval.config.ts`; 10 generated API client files have query typing diffs (12 hook `queryOptions` assertions and 10 query-key `DataTag` intersections).
 - Pre-existing generator limitation: `src/lib/api/generated/models/userResourceRolesItem.ts` retains the Orval 8.39 header and a stale model/barrel export absent from the current OpenAPI spec; `client:check` does not remove stale tracked files already on disk. Confirmed pre-existing and not introduced by this diff.
-- Delivery and risk decision (2026-11-20): User chose to keep frontend merge blocked while the two moderate dev-only advisories remain; no risk acceptance. User separately authorized commit, push, and PR creation for all three task branches, but no merge. The branch may proceed through PR/CI.
-- Attribution status: Left neutral and pending parent review. No acceptance of residual advisories or merge readiness is claimed.
+- Delivery decision chronology (2026-11-20):
+  - Earlier decision (superseded): User held frontend merge while two moderate dev-only advisories remained.
+  - Latest instruction (active): User superseded the hold and authorized merging this refreshed dependency branch with the disclosed audit result (5 moderate dev-only package entries across two advisories; zero production advisories on `npm audit --omit=dev`), directing to retain secure compatible versions rather than downgrade or add unsupported overrides. This authorizes merge with the disclosed audit results and does not claim a clean audit.
+- CI status: All checks succeeded on PR #115 (commit `35b7be5fa30ed60134fdd2d8eb176c9d55e27c71`): CodeQL, Deploy PR Preview Environment, GitGuardian Security Checks, Build & Upload Preview Artifact, Analyze JavaScript/TypeScript, OpenAPI client contract check, and verify.
+- Review attribution: Recorded neutrally without claiming a GitHub approving review. Independent review factual and documentation findings were corrected.
 
 ## Findings
 
@@ -65,4 +76,4 @@
 
 ## Verdict
 
-`PENDING PARENT ATTRIBUTION`
+`PASS WITH KNOWN NON-BLOCKING LIMITATIONS`

@@ -20,17 +20,23 @@
 - Deterministic Orval verification succeeded with an isolated temporary Git index under `/tmp/opencode` without altering the real Git index.
 - Full test suite passed (75 test files, 696 tests) with coverage meeting configured thresholds (Statements 93.17%, Branches 88.12%, Functions 94.41%, Lines 94.16%).
 - Format check, ESLint, TypeScript compilation, contract verification, and build all passed without errors under Node 24.15.0 and CI-pinned npm 12.2.0.
-- Uncommitted state maintained as instructed for parent orchestrator finalization; no merge readiness or residual advisory acceptance is claimed.
+- All remote CI checks succeeded on PR #115 (commit `35b7be5fa30ed60134fdd2d8eb176c9d55e27c71`): CodeQL, Deploy PR Preview Environment, GitGuardian Security Checks, Build & Upload Preview Artifact, Analyze JavaScript/TypeScript, OpenAPI client contract check, and verify.
+- Working tree maintained as instructed for parent orchestrator finalization. User explicitly authorized merging this branch with disclosed audit findings (5 moderate dev-only package entries across 2 advisories; 0 production advisories), superseding the earlier merge hold; independent review factual and documentation findings were corrected without claiming a GitHub approving review or zero advisories.
 
 ## Problems and risks
 
-- Priority: Non-blocking
-- Location: `package.json:47`
-- Evidence: `@vue/test-utils: 2.6.0` retains 5 moderate transitive entries mapping to 2 distinct advisories (`glob` GHSA-3g3m-2fjr-6pw4 [13.0.6] and `minimatch` GHSA-g3hv-75wg-m249 [10.2.6] via `js-beautify` 2.0.3 and `editorconfig` 3.0.2). Production audit `npm audit --omit=dev` confirms 0 vulnerabilities.
-- Pre-existing limitation: `src/lib/api/generated/models/userResourceRolesItem.ts` still has the old Orval 8.39 header and a stale model/barrel export absent from the current OpenAPI schema; `client:check` does not remove stale tracked files already on disk. Retained as pre-existing, not introduced by this diff.
-- Reactivity note: `@vue/test-utils 2.6.0` changes reactivity for in-place mutations of plain object/array props; verified that project test suite passes without regressions (696 tests).
-- Impact: Dev-only, does not affect production bundle or runtime security.
-- Recommendation: Recorded neutrally for parent attribution and risk evaluation; no acceptance of residual advisories or merge readiness is claimed. Retaining dependency avoids unsafe downgrade or cross-major override.
+1. Non-blocking: Residual dev-only advisories explicitly disclosed in user merge authorization
+   - Location: `package.json:47`
+   - Evidence: `@vue/test-utils: 2.6.0` retains 5 moderate transitive entries mapping to 2 distinct advisories (`glob` GHSA-3g3m-2fjr-6pw4 [13.0.6] and `minimatch` GHSA-g3hv-75wg-m249 [10.2.6] via `js-beautify` 2.0.3 and `editorconfig` 3.0.2). Production audit `npm audit --omit=dev` confirms 0 vulnerabilities.
+   - Reactivity note: `@vue/test-utils 2.6.0` changes reactivity for in-place mutations of plain object/array props; verified that project test suite passes without regressions (696 tests).
+   - Impact: Development-only; does not affect production bundle or runtime security.
+   - Disposition: Retained per user instruction to use latest secure compatible versions rather than downgrade or apply unsupported overrides; user explicitly authorized merging with this disclosed audit result.
+
+2. Non-blocking: Pre-existing stale generator artifact
+   - Location: `src/lib/api/generated/models/userResourceRolesItem.ts`
+   - Evidence: Retains the Orval 8.39.0 header and a stale model/barrel export absent from current OpenAPI output; `client:check` does not remove stale tracked files already on disk.
+   - Impact: Pre-existing file, not introduced by this diff.
+   - Disposition: Retained without manual editing or deletion.
 
 ## Baseline checklist
 
@@ -44,8 +50,9 @@
 
 ## Findings Summary
 
-- `package.json:47`: Non-blocking (residual dev-only dependency path documented; 2 distinct advisories across 5 package entries; no upstream fix available without unsafe downgrade or cross-major override).
+- `package.json:47`: Non-blocking (residual dev-only dependency path documented; 2 distinct advisories across 5 package entries; explicitly disclosed in user's merge authorization; no upstream fix available without unsafe downgrade or cross-major override).
+- `src/lib/api/generated/models/userResourceRolesItem.ts`: Non-blocking (pre-existing stale generator artifact; retains Orval 8.39.0 header and export absent from current OpenAPI spec).
 
 ## Verdict
 
-`PENDING PARENT ATTRIBUTION` (0 blocking, 1 non-blocking)
+`PASS WITH KNOWN NON-BLOCKING LIMITATIONS` (0 blocking, 2 non-blocking)
