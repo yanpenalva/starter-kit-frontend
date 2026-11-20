@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "id": "EXC-0002",
+  "policy": "delivery.md Issue linkage requirement (Issue -> work item -> PR -> merge traceability)",
+  "scope": "Work item SEC-0001 (dependency security refresh 2026-11) in yanpenalva/starter-kit-frontend only.",
+  "rationale": "The user explicitly waived a GitHub Issue for this task only during conversation on 2026-11-20.",
+  "risk": "low",
+  "compensating_controls": [
+    "Retains the work item, PR, independent review and validation evidence.",
+    "Does not waive any security or test gate.",
+    "Applies strictly to work item SEC-0001 only; expires when the work closes or by 2026-12-20."
+  ],
+  "owner": "yanpenalva",
+  "approver": "yanpenalva",
+  "created_at": "2026-11-20",
+  "expires_at": "2026-12-20",
+  "status": "approved"
+}

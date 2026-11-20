@@ -1,5 +1,5 @@
 /**
- * Gerado por Orval 8.39.0 a partir do contrato OpenAPI aprovado e pinado.
+ * Gerado por Orval 8.48.0 a partir do contrato OpenAPI aprovado e pinado.
  * Não editar manualmente; use npm run client:generate.
  */
 import { useMutation, useQuery } from "@tanstack/vue-query";
@@ -188,7 +188,7 @@ export const getUserIndexQueryOptions = <
     Awaited<ReturnType<typeof userIndex>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type UserIndexQueryResult = NonNullable<
@@ -221,10 +221,16 @@ export function useUserIndex<
 } {
   const queryOptions = getUserIndexQueryOptions(params, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof userIndex>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
@@ -377,7 +383,9 @@ export const getUserShowQueryOptions = <
       () => toValue(user) !== null && toValue(user) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof userShow>>, TError, TData>;
+  } as UseQueryOptions<Awaited<ReturnType<typeof userShow>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 };
 
 export type UserShowQueryResult = NonNullable<
@@ -410,10 +418,16 @@ export function useUserShow<
 } {
   const queryOptions = getUserShowQueryOptions(user, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof userShow>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,

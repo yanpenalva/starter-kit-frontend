@@ -100,7 +100,7 @@ Use antes de qualquer entrega, e é o que o `Dockerfile` e o CI executam. Saída
 
 ### 4️⃣ `npm run client:generate` → `node scripts/generate-client.mjs`
 
-Regenera o cliente API a partir do contrato aprovado em `openapi/openapi.json` usando o Orval `8.39.0` com a configuração de `orval.config.ts`. Por dentro, o script primeiro bloqueia a geração se o contrato aprovado estiver ausente, depois valida o pacote localmente e só então invoca o Orval, que escreve em `src/lib/api/generated/` em modo de separação por etiqueta. Use depois de receber um contrato novo aprovado. Saída esperada: os arquivos gerados atualizados sob `src/lib/api/generated/`; se o contrato estiver ausente, erro explícito de geração bloqueada e saída diferente de zero.
+Regenera o cliente API a partir do contrato aprovado em `openapi/openapi.json` usando o Orval `8.48.0` com a configuração de `orval.config.ts`. Por dentro, o script primeiro bloqueia a geração se o contrato aprovado estiver ausente, depois valida o pacote localmente e só então invoca o Orval, que escreve em `src/lib/api/generated/` em modo de separação por etiqueta. Use depois de receber um contrato novo aprovado. Saída esperada: os arquivos gerados atualizados sob `src/lib/api/generated/`; se o contrato estiver ausente, erro explícito de geração bloqueada e saída diferente de zero.
 
 ### 5️⃣ `npm run client:check` → `client:generate` + `check-client-generated.mjs`
 

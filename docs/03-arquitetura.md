@@ -160,7 +160,7 @@ O ciclo de uma listagem, por exemplo a de usuários: o composable `useUsersList`
 ```mermaid
 flowchart TD
     PIN["openapi/openapi.json<br/>contrato aprovado e pinado"]
-    ORVAL["Orval 8.39.0<br/>orval.config.ts"]
+    ORVAL["Orval 8.48.0<br/>orval.config.ts"]
     GEN["src/lib/api/generated/<br/>separado por etiqueta, cliente vue-query"]
     MUTCODE["transportApi<br/>src/lib/http/orval-mutator.ts"]
     CLIENT["createHttpClient<br/>origem confiável + CSRF + erros tipados"]

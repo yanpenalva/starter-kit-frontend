@@ -1,5 +1,5 @@
 /**
- * Gerado por Orval 8.39.0 a partir do contrato OpenAPI aprovado e pinado.
+ * Gerado por Orval 8.48.0 a partir do contrato OpenAPI aprovado e pinado.
  * Não editar manualmente; use npm run client:generate.
  */
 import { useQuery } from "@tanstack/vue-query";
@@ -115,7 +115,7 @@ export const getVerificationVerifyQueryOptions = <
     Awaited<ReturnType<typeof verificationVerify>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type VerificationVerifyQueryResult = NonNullable<
@@ -163,10 +163,16 @@ export function useVerificationVerify<
     options,
   );
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof verificationVerify>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
